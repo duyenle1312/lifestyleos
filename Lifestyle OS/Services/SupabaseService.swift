@@ -18,6 +18,7 @@ class SupabaseService {
             supabaseURL: SupabaseConfig.url,
             supabaseKey: SupabaseConfig.anonKey,
             
+            
         )
     }
     

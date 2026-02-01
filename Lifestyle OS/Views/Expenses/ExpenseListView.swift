@@ -15,6 +15,8 @@ struct ExpenseListView: View {
     @State private var selectedExpense: Expense?
     @State private var searchText = ""
     @State private var selectedCategory: String = "All"
+    @State private var selectedMonth: Date = Date() // Current month by default
+    @State private var showingMonthPicker = false
     
     let categories = ["All", "Food & Drink", "Home", "Rent & Utilities", "Gold/Silver", "ETFs", "Transport", "Telecom", "Crochet", "Fun", "Eating Out", "Work", "Other"]
     
@@ -22,8 +24,16 @@ struct ExpenseListView: View {
         print("DEBUG: Total expenses: \(viewModel.expenses.count)")
         print("DEBUG: Search text: '\(searchText)'")
         print("DEBUG: Selected category: '\(selectedCategory)'")
+        print("DEBUG: Selected month: \(selectedMonth)")
         
         var filtered = viewModel.expenses
+        
+        // Filter by month
+        let calendar = Calendar.current
+        filtered = filtered.filter { expense in
+            calendar.isDate(expense.expense_date, equalTo: selectedMonth, toGranularity: .month)
+        }
+        print("DEBUG: After month filter: \(filtered.count)")
         
         // Filter by category
         if selectedCategory != "All" {
@@ -58,18 +68,70 @@ struct ExpenseListView: View {
             VStack(spacing: 0) {
                 // Summary card
                 VStack(spacing: 8) {
-                    Text("Total Expenses")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                    Text(totalAmount)
-                        .font(.system(size: 32, weight: .bold))
-                    Text(viewModel.expenses.first?.currency ?? "USD")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                   
+//                    Text(totalAmount)
+//                        .font(.system(size: 32, weight: .bold))
+                    HStack(spacing: 4) {
+                        Text(totalAmount)
+                            .font(.system(size: 22, weight: .bold))
+//                            .font(.headline)
+                        Text(viewModel.expenses.first?.currency ?? "EUR")
+                            .font(.system(size: 22, weight: .bold))
+//                            .font(.headline)
+                            .foregroundColor(.secondary)
+//                        Text("•")
+//                            .font(.subheadline)
+//                            .foregroundColor(.secondary)
+//                        Text(formatMonthYear(selectedMonth))
+//                            .font(.subheadline)
+//                            .foregroundColor(.secondary)
+                    }
                 }
                 .frame(maxWidth: .infinity)
                 .padding()
                 .background(Color(.systemGroupedBackground))
+                
+                // Month selector
+                HStack {
+                    Button {
+                        changeMonth(by: -1)
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.blue)
+                            .frame(width: 44, height: 44)
+                    }
+                    
+                    Spacer()
+                    
+                    Button {
+                        showingMonthPicker = true
+                    } label: {
+                        HStack(spacing: 8) {
+                            Text(formatMonthYear(selectedMonth))
+                                .font(.system(size: 18, weight: .semibold))
+                            Image(systemName: "calendar")
+                                .font(.system(size: 16))
+                        }
+                        .foregroundColor(.primary)
+                    }
+                    
+                    Spacer()
+                    
+                    Button {
+                        changeMonth(by: 1)
+                    } label: {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.blue)
+                            .frame(width: 44, height: 44)
+                    }
+                    .disabled(isCurrentMonth)
+                    .opacity(isCurrentMonth ? 0.3 : 1.0)
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 12)
+                .background(Color(.systemBackground))
                 
                 // Category filter
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -148,6 +210,9 @@ struct ExpenseListView: View {
             .sheet(item: $selectedExpense) { expense in
                 ExpenseDetailView(expense: expense, viewModel: viewModel)
             }
+            .sheet(isPresented: $showingMonthPicker) {
+                MonthPickerView(selectedMonth: $selectedMonth)
+            }
             .task {
                 if let user = authViewModel.currentUser {
                     print("DEBUG: Loading expenses for user: \(user.id)")
@@ -161,6 +226,30 @@ struct ExpenseListView: View {
                 }
             }
         }
+    }
+    
+    // MARK: - Helper Methods
+    
+    private var isCurrentMonth: Bool {
+        let calendar = Calendar.current
+        return calendar.isDate(selectedMonth, equalTo: Date(), toGranularity: .month)
+    }
+    
+    private func changeMonth(by value: Int) {
+        let calendar = Calendar.current
+        if let newMonth = calendar.date(byAdding: .month, value: value, to: selectedMonth) {
+            // Don't allow going beyond current month
+            if value > 0 && calendar.compare(newMonth, to: Date(), toGranularity: .month) == .orderedDescending {
+                return
+            }
+            selectedMonth = newMonth
+        }
+    }
+    
+    private func formatMonthYear(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+        return formatter.string(from: date)
     }
     
     // Group expenses by date
@@ -192,6 +281,42 @@ struct ExpenseListView: View {
     private func deleteExpense(_ expense: Expense) {
         Task {
             await viewModel.deleteExpense(id: expense.id)
+        }
+    }
+}
+
+// MARK: - Month Picker View
+
+struct MonthPickerView: View {
+    @Binding var selectedMonth: Date
+    @Environment(\.dismiss) var dismiss
+    
+    var body: some View {
+        NavigationView {
+            DatePicker(
+                "Select Month",
+                selection: $selectedMonth,
+                in: ...Date(),
+                displayedComponents: [.date]
+            )
+            .datePickerStyle(.graphical)
+            .padding()
+            .navigationTitle("Select Month")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
         }
     }
 }
@@ -239,8 +364,6 @@ struct ExpenseRow: View {
                 
                 HStack(spacing: 4) {
                     if let location = expense.location {
-//                        Image(systemName: "mappin.circle.fill")
-//                            .font(.system(size: 12))
                         Text(location)
                             .font(.system(size: 13))
                     }
@@ -270,7 +393,6 @@ struct ExpenseRow: View {
         .padding(.vertical, 4)
     }
     
-
     private var categoryIcon: String {
         switch expense.category {
             case "Food & Drink": return "fork.knife"
@@ -306,7 +428,7 @@ struct ExpenseRow: View {
     }
 }
 
-// MARK: - Detail View Placeholder
+// MARK: - Detail View
 struct ExpenseDetailView: View {
     let expense: Expense
     @ObservedObject var viewModel: ExpenseViewModel
