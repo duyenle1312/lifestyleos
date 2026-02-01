@@ -13,7 +13,7 @@ struct EditExpenseView: View {
     @Environment(\.dismiss) private var dismiss
     let expense: Expense
     @ObservedObject var viewModel: ExpenseViewModel
-    
+    @EnvironmentObject var authViewModel: AuthViewModel    
 
     @State private var amount = ""
     @State private var currency = "EUR"
@@ -27,6 +27,7 @@ struct EditExpenseView: View {
     @State private var expireDate = Date()
     @State private var paymentMethod = ""
     @State private var hasExpireDate = false
+    @State private var showDuplicateAlert = false
 
     let currencies = ["EUR", "USD", "GBP", "JPY", "BGN", "CNY", "INR"]
     let categories = ["Food & Drink", "Home", "Rent & Utilities", "Gold/Silver", "ETFs", "Transport", "Telecom", "Crochet", "Fun", "Eating Out", "Work", "Other"]
@@ -123,6 +124,18 @@ struct EditExpenseView: View {
                     TextEditor(text: $description)
                         .frame(minHeight: 100)
                 }
+                
+                Section {
+                    Button(action: {
+                        showDuplicateAlert = true
+                    }) {
+                        HStack {
+                            Image(systemName: "doc.on.doc")
+                            Text("Duplicate to Next Month")
+                        }
+                        .foregroundColor(.blue)
+                    }
+                }
             }
             .navigationTitle("Edit Expense")
             .navigationBarTitleDisplayMode(.inline)
@@ -143,6 +156,14 @@ struct EditExpenseView: View {
             }
             .onAppear {
                 loadExpenseData()
+            }
+            .alert("Duplicate Expense", isPresented: $showDuplicateAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Duplicate") {
+                    duplicateToNextMonth()
+                }
+            } message: {
+                Text("This will create a copy of this expense with the date set to next month.")
             }
         }
     }
@@ -197,6 +218,66 @@ struct EditExpenseView: View {
                 unit: unitInt,
                 unitPrice: unitPriceDecimal,
                 expireDate: expireDateSafe,
+                paymentMethod: paymentMethod.isEmpty ? nil : paymentMethod,
+                item: item.isEmpty ? nil : item
+            )
+            
+            dismiss()
+        }
+    }
+    
+    // MARK: - Duplicate
+    
+    private func duplicateToNextMonth() {
+        guard let user = authViewModel.currentUser else {
+            print("No current user")
+            return
+        }
+        
+        let accountId = user.id
+        print("User ID: \(user.id)")
+        
+        // Parse numeric values
+        guard let unitInt = Int(unit),
+              let unitPriceDecimal = Decimal.fromString(unitPrice) else {
+            print("Invalid unit or unit price")
+            return
+        }
+
+        // Calculate total amount
+        let amountDecimal = unitPriceDecimal * Decimal(unitInt)
+        let calendar = Calendar.current
+        
+        // Add one month to the current expense date
+        guard let nextMonthDate = calendar.date(byAdding: .month, value: 1, to: expenseDate) else {
+            print("Failed to calculate next month date")
+            return
+        }
+        
+        // Create dates at noon to avoid timezone issues
+        let nextMonthDateAtNoon = calendar.noon(for: nextMonthDate)
+        
+        // If there's an expiration date, also move it forward by one month
+        let nextExpireDateAtNoon: Date? = {
+            if hasExpireDate,
+               let calculatedExpireDate = calendar.date(byAdding: .month, value: 1, to: expireDate) {
+                return calendar.noon(for: calculatedExpireDate)
+            }
+            return nil
+        }()
+
+        Task {
+            await viewModel.addExpense(
+                accountId: accountId,
+                amount: amountDecimal,
+                currency: currency,
+                expenseDate: nextMonthDateAtNoon,
+                category: category.isEmpty ? nil : category,
+                description: description.isEmpty ? nil : description,
+                location: location.isEmpty ? nil : location,
+                unit: unitInt,
+                unitPrice: unitPriceDecimal,
+                expireDate: nextExpireDateAtNoon,
                 paymentMethod: paymentMethod.isEmpty ? nil : paymentMethod,
                 item: item.isEmpty ? nil : item
             )

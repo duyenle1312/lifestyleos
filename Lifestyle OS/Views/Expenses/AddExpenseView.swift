@@ -162,11 +162,6 @@ struct AddExpenseView: View {
         let expenseDateAtStartOfDay = hasExpireDate ? Calendar.current.noon(for: expenseDate) : Date()
         
         let expireDateAtStartOfDay = hasExpireDate ? Calendar.current.noon(for: expireDate) : nil
-
-//        
-//        let calendar = Calendar.current
-//        let expenseDateAtStartOfDay = calendar.startOfDay(for: expenseDate)
-//        let expireDateAtStartOfDay = hasExpireDate ? calendar.startOfDay(for: expireDate) : nil
         
         Task {
             await viewModel.addExpense(

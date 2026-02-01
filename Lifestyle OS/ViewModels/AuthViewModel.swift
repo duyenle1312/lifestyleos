@@ -27,15 +27,37 @@ class AuthViewModel: ObservableObject {
     
     func checkAuthStatus() async {
         do {
-            if let user = try await authService.getCurrentUser() {
-                currentUser = user
+            if let session = try await authService.getCurrentSession() {
+                // Check if session is expired
+                if session.isExpired {
+                    isAuthenticated = false
+                    currentUser = nil
+                    currentAccountId = nil
+                    return
+                }
+                
+                currentUser = session.user
                 isAuthenticated = true
                 await fetchUserAccount()
+            } else {
+                isAuthenticated = false
             }
         } catch {
             isAuthenticated = false
         }
     }
+    
+//    func checkAuthStatus() async {
+//        do {
+//            if let user = try await authService.getCurrentUser() {
+//                currentUser = user
+//                isAuthenticated = true
+//                await fetchUserAccount()
+//            }
+//        } catch {
+//            isAuthenticated = false
+//        }
+//    }
     
     func signIn(email: String, password: String) async {
         isLoading = true
