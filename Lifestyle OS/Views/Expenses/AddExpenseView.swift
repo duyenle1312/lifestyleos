@@ -27,16 +27,16 @@ struct AddExpenseView: View {
     @State private var hasExpireDate = false
     
     let currencies = ["EUR", "USD", "GBP", "JPY", "BGN", "CNY", "INR"]
-    let categories = ["Food & Drink", "Home", "Rent & Utilities", "Gold/Silver", "ETFs", "Transport", "Telecom", "Crochet", "Fun", "Eating Out", "Work", "Other"]
+    let categories = ["Food & Drink", "Home", "Rent & Utilities", "Gold/Silver", "ETFs", "Transport", "Telecom", "Crochet", "Fun", "Eating Out", "Work", "Garden", "Other"]
     let paymentMethods = ["Food Voucher", "T212", "Revolut", "UBB", "Curve", "VCB", "Cash", "Other"]
     
     // Computed property for calculated amount
     private var calculatedAmount: String {
-        guard let unitInt = Int(unit), unitInt > 0,
+        guard let unitInt = Decimal(string: unit), unitInt > 0,
               let unitPriceDecimal = Decimal(string: unitPrice), unitPriceDecimal > 0 else {
             return "0.00"
         }
-        let total = unitPriceDecimal * Decimal(unitInt)
+        let total = unitPriceDecimal * unitInt
         return String(format: "%.2f", NSDecimalNumber(decimal: total).doubleValue)
     }
     
@@ -148,18 +148,18 @@ struct AddExpenseView: View {
         
         
         // Parse numeric values
-        guard let unitInt = Int(unit),
+        guard let unitInt = Decimal.fromString(unit),
               let unitPriceDecimal = Decimal.fromString(unitPrice) else {
             print("Invalid unit or unit price")
             return
         }
 
         // Calculate total amount
-        let amountDecimal = unitPriceDecimal * Decimal(unitInt)
+        let amountDecimal = unitPriceDecimal * unitInt
         
         // Create dates at start of day to avoid timezone issues
         
-        let expenseDateAtStartOfDay = hasExpireDate ? Calendar.current.noon(for: expenseDate) : Date()
+        let expenseDateAtStartOfDay = Calendar.current.noon(for: expenseDate)
         
         let expireDateAtStartOfDay = hasExpireDate ? Calendar.current.noon(for: expireDate) : nil
         

@@ -36,7 +36,7 @@ class ExpenseService {
         category: String?,
         description: String?,
         location: String?,
-        unit: Int?,
+        unit: Decimal?,
         unitPrice: Decimal?,
         expireDate: Date?,
         paymentMethod: String?,
@@ -52,7 +52,7 @@ class ExpenseService {
             let category: String?
             let description: String?
             let location: String?
-            let unit: Int?
+            let unit: Decimal?
             let unit_price: Double?
             let expire_date: String?
             let payment_method: String?
@@ -162,7 +162,7 @@ class ExpenseService {
         category: String?,
         description: String?,
         location: String?,
-        unit: Int?,
+        unit: Decimal?,
         unitPrice: Decimal?,
         expireDate: Date?,
         paymentMethod: String?,
@@ -183,6 +183,11 @@ class ExpenseService {
             updates["unit_price"] = AnyJSON(unitPriceAsDouble)
         }
         
+        if let unit = unit {
+            let unitAsDouble = NSDecimalNumber(decimal: unit).doubleValue
+            updates["unit"] = AnyJSON(unitAsDouble)
+        }
+        
         if let expenseDate = expenseDate {
             let formatter = ISO8601DateFormatter()
             formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -201,7 +206,7 @@ class ExpenseService {
         if let category = category { updates["category"] = AnyJSON(category) }
         if let description = description { updates["description"] = AnyJSON(description) }
         if let location = location { updates["location"] = AnyJSON(location) }
-        if let unit = unit { updates["unit"] = AnyJSON(unit) }
+//        if let unit = unit { updates["unit"] = AnyJSON(unit) }
         if let paymentMethod = paymentMethod { updates["payment_method"] = AnyJSON(paymentMethod) }
         if let item = item { updates["item"] = AnyJSON(item) }
         

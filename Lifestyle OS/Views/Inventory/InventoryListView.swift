@@ -170,7 +170,7 @@ struct InventoryListView: View {
                     }
                 }
             }
-            .navigationTitle("Inventory")
+//            .navigationTitle("Inventory")
             .searchable(text: $searchText, prompt: "Search items...")
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {

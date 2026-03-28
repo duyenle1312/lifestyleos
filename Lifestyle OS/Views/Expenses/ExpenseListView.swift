@@ -18,13 +18,23 @@ struct ExpenseListView: View {
     @State private var selectedMonth: Date = Date() // Current month by default
     @State private var showingMonthPicker = false
     
-    let categories = ["All", "Food & Drink", "Home", "Rent & Utilities", "Gold/Silver", "ETFs", "Transport", "Telecom", "Crochet", "Fun", "Eating Out", "Work", "Other"]
+    private func expenseCount(for category: String) -> Int {
+        // Count against the *month-filtered* list so numbers stay in sync with what's shown.
+        let calendar = Calendar.current
+        let monthFiltered = viewModel.expenses.filter {
+            calendar.isDate($0.expense_date, equalTo: selectedMonth, toGranularity: .month)
+        }
+        if category == "All" { return monthFiltered.count }
+        return monthFiltered.filter { $0.category == category }.count
+    }
+    
+    let categories = ["All", "Rent & Utilities", "Food & Drink", "Home", "Transport", "Telecom", "Garden", "Crochet", "Fun", "Eating Out", "Gold/Silver", "ETFs", "Work", "Other"]
     
     var filteredExpenses: [Expense] {
-        print("DEBUG: Total expenses: \(viewModel.expenses.count)")
-        print("DEBUG: Search text: '\(searchText)'")
-        print("DEBUG: Selected category: '\(selectedCategory)'")
-        print("DEBUG: Selected month: \(selectedMonth)")
+//        print("DEBUG: Total expenses: \(viewModel.expenses.count)")
+//        print("DEBUG: Search text: '\(searchText)'")
+//        print("DEBUG: Selected category: '\(selectedCategory)'")
+//        print("DEBUG: Selected month: \(selectedMonth)")
         
         var filtered = viewModel.expenses
         
@@ -33,14 +43,14 @@ struct ExpenseListView: View {
         filtered = filtered.filter { expense in
             calendar.isDate(expense.expense_date, equalTo: selectedMonth, toGranularity: .month)
         }
-        print("DEBUG: After month filter: \(filtered.count)")
+//        print("DEBUG: After month filter: \(filtered.count)")
         
         // Filter by category
         if selectedCategory != "All" {
             filtered = filtered.filter { expense in
                 expense.category == selectedCategory
             }
-            print("DEBUG: After category filter: \(filtered.count)")
+//            print("DEBUG: After category filter: \(filtered.count)")
         }
         
         // Filter by search text
@@ -51,10 +61,10 @@ struct ExpenseListView: View {
                 let locMatch = expense.location?.localizedCaseInsensitiveContains(searchText) ?? false
                 return itemMatch || descMatch || locMatch
             }
-            print("DEBUG: After search filter: \(filtered.count)")
+//            print("DEBUG: After search filter: \(filtered.count)")
         }
         
-        print("DEBUG: Final filtered count: \(filtered.count)")
+//        print("DEBUG: Final filtered count: \(filtered.count)")
         return filtered
     }
     
@@ -67,28 +77,13 @@ struct ExpenseListView: View {
         NavigationView {
             VStack(spacing: 0) {
                 // Summary card
-                VStack(spacing: 8) {
+                VStack(spacing: 0) {
                    
-//                    Text(totalAmount)
-//                        .font(.system(size: 32, weight: .bold))
-                    HStack(spacing: 4) {
-                        Text(totalAmount)
-                            .font(.system(size: 22, weight: .bold))
-//                            .font(.headline)
-                        Text(viewModel.expenses.first?.currency ?? "EUR")
-                            .font(.system(size: 22, weight: .bold))
-//                            .font(.headline)
-                            .foregroundColor(.secondary)
-//                        Text("•")
-//                            .font(.subheadline)
-//                            .foregroundColor(.secondary)
-//                        Text(formatMonthYear(selectedMonth))
-//                            .font(.subheadline)
-//                            .foregroundColor(.secondary)
-                    }
+                    Text("\(totalAmount) EUR")
+                        .font(.system(size: 22, weight: .semibold))
                 }
                 .frame(maxWidth: .infinity)
-                .padding()
+                .padding(.vertical, 2)
                 .background(Color(.systemGroupedBackground))
                 
                 // Month selector
@@ -97,9 +92,9 @@ struct ExpenseListView: View {
                         changeMonth(by: -1)
                     } label: {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(.blue)
-                            .frame(width: 44, height: 44)
+                            .frame(width: 36, height: 36)
                     }
                     
                     Spacer()
@@ -109,9 +104,9 @@ struct ExpenseListView: View {
                     } label: {
                         HStack(spacing: 8) {
                             Text(formatMonthYear(selectedMonth))
-                                .font(.system(size: 18, weight: .semibold))
+                                .font(.system(size: 16, weight: .semibold))
                             Image(systemName: "calendar")
-                                .font(.system(size: 16))
+                                .font(.system(size: 14))
                         }
                         .foregroundColor(.primary)
                     }
@@ -122,33 +117,16 @@ struct ExpenseListView: View {
                         changeMonth(by: 1)
                     } label: {
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(.blue)
-                            .frame(width: 44, height: 44)
+                            .frame(width: 36, height: 36)
                     }
                     .disabled(isCurrentMonth)
                     .opacity(isCurrentMonth ? 0.3 : 1.0)
                 }
                 .padding(.horizontal)
-                .padding(.vertical, 12)
-                .background(Color(.systemBackground))
-                
-                // Category filter
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(categories, id: \.self) { category in
-                            CategoryChip(
-                                title: category,
-                                isSelected: selectedCategory == category
-                            ) {
-                                selectedCategory = category
-                            }
-                        }
-                    }
-                    .padding(.horizontal)
-                    .padding(.vertical, 12)
-                }
-                .background(Color(.systemBackground))
+                .padding(.vertical, 5)
+                .background(Color(.systemGroupedBackground))
                 
                 // Expense list
                 if viewModel.isLoading {
@@ -193,9 +171,26 @@ struct ExpenseListView: View {
                     .listStyle(.insetGrouped)
                 }
             }
-            .navigationTitle("Expenses")
             .searchable(text: $searchText, prompt: "Search expenses")
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Menu {
+                        Picker("Category", selection: $selectedCategory) {
+                            ForEach(categories, id: \.self) { category in
+                                Text(category).tag(category)
+                            }
+                        }
+                        .pickerStyle(.inline)
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "line.3.horizontal.decrease.circle\(selectedCategory != "All" ? ".fill" : "")")
+                            if selectedCategory != "All" {
+                                Text(selectedCategory)
+                                    .font(.caption)
+                            }
+                        }
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         showingAddExpense = true
@@ -218,9 +213,9 @@ struct ExpenseListView: View {
                     print("DEBUG: Loading expenses for user: \(user.id)")
                     await viewModel.loadExpenses(accountId: user.id)
                     print("DEBUG: Loaded \(viewModel.expenses.count) expenses")
-                    if !viewModel.expenses.isEmpty {
-                        print("DEBUG: First expense: \(viewModel.expenses[0])")
-                    }
+//                    if !viewModel.expenses.isEmpty {
+//                        print("DEBUG: First expense: \(viewModel.expenses[0])")
+//                    }
                 } else {
                     print("DEBUG: No current user")
                 }
@@ -406,6 +401,7 @@ struct ExpenseRow: View {
             case "Eating Out": return "fork.knife"
             case "Gold/Silver": return "eurosign.bank.building.fill"
             case "ETFs": return "building.columns"
+            case "Garden": return "leaf.fill"
             default: return "tag.fill"
         }
     }
@@ -423,6 +419,7 @@ struct ExpenseRow: View {
             case "Work": return .gray
             case "Gold/Silver": return .yellow
             case "ETFs": return .green
+            case "Garden": return .green
             default: return .gray
         }
     }
@@ -450,7 +447,7 @@ struct ExpenseDetailView: View {
                         HStack {
                             Text("Unit Price")
                             Spacer()
-                            Text(String(format: "%.2f × %d", unitPrice, unit))
+                            Text(String(format: "%.2f × %.2f", unitPrice, unit))
                                 .foregroundColor(.secondary)
                         }
                     }

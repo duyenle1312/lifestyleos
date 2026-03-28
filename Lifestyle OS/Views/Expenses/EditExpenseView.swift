@@ -30,19 +30,19 @@ struct EditExpenseView: View {
     @State private var showDuplicateAlert = false
 
     let currencies = ["EUR", "USD", "GBP", "JPY", "BGN", "CNY", "INR"]
-    let categories = ["Food & Drink", "Home", "Rent & Utilities", "Gold/Silver", "ETFs", "Transport", "Telecom", "Crochet", "Fun", "Eating Out", "Work", "Other"]
+    let categories = ["Food & Drink", "Home", "Rent & Utilities", "Gold/Silver", "ETFs", "Transport", "Telecom", "Crochet", "Fun", "Eating Out", "Work", "Garden", "Other"]
     let paymentMethods = ["Food Voucher", "T212", "Revolut", "UBB", "Curve", "VCB", "Cash", "Other"]
 
     // MARK: - Calculated Amount
 
     private var calculatedAmount: String {
-        guard let unitInt = Int(unit),
+        guard let unitInt = Decimal.fromString(unit),
               let unitPriceDecimal = Decimal.fromString(unitPrice),
-              unitInt > 0 else {
+              unitInt > 0.0 else {
             return "0.00"
         }
 
-        let total = unitPriceDecimal * Decimal(unitInt)
+        let total = unitPriceDecimal * unitInt
 
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
@@ -60,7 +60,7 @@ struct EditExpenseView: View {
 
                     HStack {
                         TextField("Quantity", text: $unit)
-                            .keyboardType(.numberPad)
+                            .keyboardType(.decimalPad)
 
                         Text("×")
                             .foregroundColor(.secondary)
@@ -193,13 +193,13 @@ struct EditExpenseView: View {
     // MARK: - Save
 
     private func updateExpense() {
-        guard let unitInt = Int(unit),
+        guard let unitInt = Decimal.fromString(unit),
               let unitPriceDecimal = Decimal.fromString(unitPrice) else {
             print("Invalid unit or unit price")
             return
         }
-
-        let amountDecimal = unitPriceDecimal * Decimal(unitInt)
+        
+        let amountDecimal = unitPriceDecimal * unitInt
         
         let calendar = Calendar.current
 
@@ -238,14 +238,14 @@ struct EditExpenseView: View {
         print("User ID: \(user.id)")
         
         // Parse numeric values
-        guard let unitInt = Int(unit),
+        guard let unitInt = Decimal.fromString(unit),
               let unitPriceDecimal = Decimal.fromString(unitPrice) else {
             print("Invalid unit or unit price")
             return
         }
 
         // Calculate total amount
-        let amountDecimal = unitPriceDecimal * Decimal(unitInt)
+        let amountDecimal = unitPriceDecimal * unitInt
         let calendar = Calendar.current
         
         // Add one month to the current expense date

@@ -201,7 +201,7 @@ struct ReceiptReviewView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @ObservedObject var viewModel: ReceiptScannerViewModel
     
-    let categories = ["Food & Drink", "Home", "Rent & Utilities", "Gold/Silver", "ETFs", "Transport", "Telecom", "Crochet", "Fun", "Eating Out", "Work", "Other"]
+    let categories = ["Food & Drink", "Home", "Rent & Utilities", "Garden", "Gold/Silver", "ETFs", "Transport", "Telecom", "Crochet", "Fun", "Eating Out", "Work", "Other"]
     
     var body: some View {
         if let receipt = viewModel.scannedReceipt {

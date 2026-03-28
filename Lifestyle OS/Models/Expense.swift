@@ -17,7 +17,7 @@ struct Expense: Codable, Identifiable {
     let category: String?
     let description: String?
     let location: String?
-    let unit: Int?
+    let unit: Double?
     let unit_price: Double?
     let expire_date: Date?
     let payment_method: String?
@@ -34,6 +34,11 @@ struct Expense: Codable, Identifiable {
     var unitPriceDecimal: Decimal? {
         guard let unit_price = unit_price else { return nil }
         return Decimal(unit_price)
+    }
+    
+    var unitDecimal: Decimal? {
+        guard let unit = unit else { return nil }
+        return Decimal(unit)
     }
     
     // Custom decoding to handle date formats
@@ -73,7 +78,7 @@ struct Expense: Codable, Identifiable {
         category = try container.decodeIfPresent(String.self, forKey: .category)
         description = try container.decodeIfPresent(String.self, forKey: .description)
         location = try container.decodeIfPresent(String.self, forKey: .location)
-        unit = try container.decodeIfPresent(Int.self, forKey: .unit)
+        unit = try container.decodeIfPresent(Double.self, forKey: .unit)
         unit_price = try container.decodeIfPresent(Double.self, forKey: .unit_price)
         
         if let expireDateString = try container.decodeIfPresent(String.self, forKey: .expire_date) {

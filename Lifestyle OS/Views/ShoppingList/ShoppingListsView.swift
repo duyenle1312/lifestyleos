@@ -53,9 +53,9 @@ struct ShoppingListsView: View {
     }
     
     var filteredItems: [ShoppingList] {
-        print("DEBUG: Total shopping items: \(viewModel.shoppingLists.count)")
-        print("DEBUG: Search text: '\(searchText)'")
-        print("DEBUG: Selected filter: '\(filterOption.rawValue)'")
+//        print("DEBUG: Total shopping items: \(viewModel.shoppingLists.count)")
+//        print("DEBUG: Search text: '\(searchText)'")
+//        print("DEBUG: Selected filter: '\(filterOption.rawValue)'")
         
         var items = viewModel.shoppingLists
         
@@ -85,7 +85,7 @@ struct ShoppingListsView: View {
                 return now >= start && now <= end
             }
         }
-        print("DEBUG: After filter: \(items.count)")
+//        print("DEBUG: After filter: \(items.count)")
         
         // Apply search
         if !searchText.isEmpty {
@@ -94,10 +94,10 @@ struct ShoppingListsView: View {
                 (item.description?.localizedCaseInsensitiveContains(searchText) ?? false) ||
                 (item.location?.localizedCaseInsensitiveContains(searchText) ?? false)
             }
-            print("DEBUG: After search: \(items.count)")
+//            print("DEBUG: After search: \(items.count)")
         }
         
-        print("DEBUG: Final filtered count: \(items.count)")
+//        print("DEBUG: Final filtered count: \(items.count)")
         return items
     }
     
@@ -162,21 +162,21 @@ struct ShoppingListsView: View {
 //                }
                 
                 // Filter Picker
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(FilterOption.allCases, id: \.self) { option in
-                            FilterChip(
-                                title: option.rawValue,
-                                isSelected: filterOption == option
-                            ) {
-                                filterOption = option
-                            }
-                        }
-                    }
-                    .padding(.horizontal)
-                    .padding(.vertical, 12)
-                }
-                .background(Color(.systemBackground))
+//                ScrollView(.horizontal, showsIndicators: false) {
+//                    HStack(spacing: 12) {
+//                        ForEach(FilterOption.allCases, id: \.self) { option in
+//                            FilterChip(
+//                                title: option.rawValue,
+//                                isSelected: filterOption == option
+//                            ) {
+//                                filterOption = option
+//                            }
+//                        }
+//                    }
+//                    .padding(.horizontal)
+//                    .padding(.vertical, 12)
+//                }
+//                .background(Color(.systemBackground))
                 
                 // Content
                 if viewModel.isLoading {
@@ -211,7 +211,7 @@ struct ShoppingListsView: View {
                     .listStyle(.insetGrouped)
                 }
             }
-            .navigationTitle("Shopping List")
+//            .navigationTitle("Shopping List")
             .searchable(text: $searchText, prompt: "Search items...")
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
