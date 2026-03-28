@@ -203,7 +203,8 @@ struct ExpenseListView: View {
                 AddExpenseView(viewModel: viewModel)
             }
             .sheet(item: $selectedExpense) { expense in
-                ExpenseDetailView(expense: expense, viewModel: viewModel)
+                ExpenseDetailView(expenseId: expense.id, viewModel: viewModel)
+//                ExpenseDetailView(expense: expense, viewModel: viewModel)
             }
             .sheet(isPresented: $showingMonthPicker) {
                 MonthPickerView(selectedMonth: $selectedMonth)
@@ -427,10 +428,16 @@ struct ExpenseRow: View {
 
 // MARK: - Detail View
 struct ExpenseDetailView: View {
-    let expense: Expense
+    let expenseId: UUID
+//    let expense: Expense
     @ObservedObject var viewModel: ExpenseViewModel
     @Environment(\.dismiss) var dismiss
     @State private var showingEditExpense = false
+    
+    // ✅ always reads the fresh value from the published array
+    private var expense: Expense? {
+        viewModel.expenses.first { $0.id == expenseId }
+    }
     
     var body: some View {
         NavigationView {
@@ -439,11 +446,11 @@ struct ExpenseDetailView: View {
                     HStack {
                         Text("Total")
                         Spacer()
-                        Text(String(format: "%.2f %@", expense.amount, expense.currency))
+                        Text(String(format: "%.2f %@", expense?.amount ?? "", expense?.currency ?? ""))
                             .font(.headline)
                     }
                     
-                    if let unit = expense.unit, let unitPrice = expense.unit_price {
+                    if let unit = expense?.unit, let unitPrice = expense?.unit_price {
                         HStack {
                             Text("Unit Price")
                             Spacer()
@@ -454,26 +461,26 @@ struct ExpenseDetailView: View {
                 }
                 
                 Section("Details") {
-                    if let item = expense.item {
+                    if let item = expense?.item {
                         LabeledRow(label: "Item", value: item)
                     }
-                    if let category = expense.category {
+                    if let category = expense?.category {
                         LabeledRow(label: "Category", value: category)
                     }
-                    LabeledRow(label: "Date", value: formatDate(expense.expense_date))
+                    LabeledRow(label: "Date", value: formatDate(expense?.expense_date ?? Date()))
                     
-                    if let location = expense.location {
+                    if let location = expense?.location {
                         LabeledRow(label: "Location", value: location)
                     }
-                    if let paymentMethod = expense.payment_method {
+                    if let paymentMethod = expense?.payment_method {
                         LabeledRow(label: "Payment", value: paymentMethod)
                     }
-                    if let expireDate = expense.expire_date {
+                    if let expireDate = expense?.expire_date {
                         LabeledRow(label: "Expires", value: formatDate(expireDate))
                     }
                 }
                 
-                if let description = expense.description {
+                if let description = expense?.description {
                     Section("Description") {
                         Text(description)
                             .foregroundColor(.primary)
@@ -496,7 +503,9 @@ struct ExpenseDetailView: View {
                 }
             }
             .sheet(isPresented: $showingEditExpense) {
-                EditExpenseView(expense: expense, viewModel: viewModel)
+                if ((expense) != nil) {
+                    EditExpenseView(expense: expense!, viewModel: viewModel)
+                }
             }
         }
     }

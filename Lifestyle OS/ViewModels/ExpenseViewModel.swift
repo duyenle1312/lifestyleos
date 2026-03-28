@@ -97,6 +97,7 @@ class ExpenseViewModel: ObservableObject {
                 item: item
             )
             
+            // Update the local array so SwiftUI re-renders
             if let index = expenses.firstIndex(where: { $0.id == id }) {
                 expenses[index] = updated
             }

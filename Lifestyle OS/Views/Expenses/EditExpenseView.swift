@@ -149,6 +149,7 @@ struct EditExpenseView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
                         updateExpense()
+                        
                     }
                     .disabled(unit.isEmpty || unitPrice.isEmpty)
                     .foregroundColor(unit.isEmpty || unitPrice.isEmpty ? .gray : .blue)
@@ -221,7 +222,7 @@ struct EditExpenseView: View {
                 paymentMethod: paymentMethod.isEmpty ? nil : paymentMethod,
                 item: item.isEmpty ? nil : item
             )
-            
+                        
             dismiss()
         }
     }
