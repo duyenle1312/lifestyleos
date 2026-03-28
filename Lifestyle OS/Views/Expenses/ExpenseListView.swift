@@ -92,7 +92,7 @@ struct ExpenseListView: View {
                         changeMonth(by: -1)
                     } label: {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.blue)
                             .frame(width: 36, height: 36)
                     }
@@ -104,9 +104,9 @@ struct ExpenseListView: View {
                     } label: {
                         HStack(spacing: 8) {
                             Text(formatMonthYear(selectedMonth))
-                                .font(.system(size: 16, weight: .semibold))
+                                .font(.system(size: 18, weight: .semibold))
                             Image(systemName: "calendar")
-                                .font(.system(size: 14))
+                                .font(.system(size: 16))
                         }
                         .foregroundColor(.primary)
                     }
@@ -117,7 +117,7 @@ struct ExpenseListView: View {
                         changeMonth(by: 1)
                     } label: {
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.blue)
                             .frame(width: 36, height: 36)
                     }
@@ -125,7 +125,7 @@ struct ExpenseListView: View {
                     .opacity(isCurrentMonth ? 0.3 : 1.0)
                 }
                 .padding(.horizontal)
-                .padding(.vertical, 5)
+                .padding(.vertical, 8)
                 .background(Color(.systemGroupedBackground))
                 
                 // Expense list
@@ -150,13 +150,16 @@ struct ExpenseListView: View {
                 } else {
                     List {
                         ForEach(groupedExpenses.keys.sorted(by: >), id: \.self) { date in
-                            Section(header: Text(formatSectionDate(date))) {
+                            Section(header:
+                                Text(formatSectionDate(date))
+                            ) {
                                 ForEach(groupedExpenses[date] ?? []) { expense in
                                     ExpenseRow(expense: expense)
                                         .contentShape(Rectangle())
                                         .onTapGesture {
                                             selectedExpense = expense
                                         }
+                                        .font(.subheadline) // or .footnote
                                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                             Button(role: .destructive) {
                                                 deleteExpense(expense)
@@ -164,11 +167,35 @@ struct ExpenseListView: View {
                                                 Label("Delete", systemImage: "trash")
                                             }
                                         }
+                                        .listRowInsets(EdgeInsets(top: 12, leading: 18, bottom: 12, trailing: 18)) // tighter padding
                                 }
                             }
                         }
                     }
                     .listStyle(.insetGrouped)
+                    
+//                    List {
+//                        ForEach(groupedExpenses.keys.sorted(by: >), id: \.self) { date in
+//                            Section(header: Text(formatSectionDate(date))) {
+//                                ForEach(groupedExpenses[date] ?? []) { expense in
+//                                    ExpenseRow(expense: expense)
+//                                        .contentShape(Rectangle())
+//                                        .onTapGesture {
+//                                            selectedExpense = expense
+//                                        }
+//                                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+//                                            Button(role: .destructive) {
+//                                                deleteExpense(expense)
+//                                            } label: {
+//                                                Label("Delete", systemImage: "trash")
+//                                            }
+//                                        }
+//                                }
+//                            }
+//                        }
+//                    }
+//                    .listStyle(.insetGrouped)
+                    
                 }
             }
             .searchable(text: $searchText, prompt: "Search expenses")
