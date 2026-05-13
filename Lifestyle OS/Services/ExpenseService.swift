@@ -122,18 +122,18 @@ class ExpenseService {
             let itemName = item.displayName
             let location = receipt.storeName
             
-            print("Creating expense \(index + 1)/\(items.count): \(itemName) - \(item.amount) \(receipt.currency)")
+            print("Creating expense \(index + 1)/\(items.count): \(itemName) - \(String(describing: item.quantity)) - \(item.amount) \(receipt.currency)")
             
             do {
                 let expense = try await createExpense(
                     accountId: accountId,
                     amount: item.amount,
-                    currency: receipt.currency,
+                    currency: "EUR", //receipt.currency,
                     expenseDate: Date(),
                     category: item.category,
                     description: nil,
                     location: location,
-                    unit: 1,
+                    unit: item.quantity,
                     unitPrice: item.amount,
                     expireDate: nil,
                     paymentMethod: "Food Voucher",

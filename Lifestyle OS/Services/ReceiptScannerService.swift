@@ -96,7 +96,9 @@ class ReceiptScannerService {
         let model = ai.generativeModel(modelName: "gemini-2.5-flash")
         
         let prompt = """
-        Extract information from this receipt OCR and translate item names to English. If there is a discount, apply it directly to the item price before listing.
+        Extract information from this receipt OCR and translate item names to English. If there is a discount, calculate and apply it directly to the item price before listing.
+        
+        For each item, pick one corresponding category from this list: "Food & Drink", "Home" for household items, "Crochet", "Garden", "Other" 
         
         Return the data in this EXACT plain text format (one field per line):
         
@@ -105,8 +107,8 @@ class ReceiptScannerService {
         CURRENCY: [currency code, e.g., EUR, BGN, USD]
         TOTAL: [total amount as decimal number]
         ITEMS_START
-        [Item name in English]|[price as decimal]|[quantity as integer]
-        [Item name in English]|[price as decimal]|[quantity as integer]
+        [Item name in English]|[price as decimal]|[quantity as integer or decimal for fresh produce in kg]|[category]
+        [Item name in English]|[price as decimal]|[quantity as integer or decimal for fresh produce in kg]|[category]
         ITEMS_END
         
         Example output:
@@ -115,9 +117,9 @@ class ReceiptScannerService {
         CURRENCY: EUR
         TOTAL: 15.50
         ITEMS_START
-        White Bread|1.20|1
-        Fresh Milk 1L|2.30|2
-        Tomatoes|3.50|1
+        Toilet Paper|12.0|1|Home
+        Fresh Milk 1L|2.30|2|Food & Drink
+        Tomatoes|3.50|1.7|Food & Drink
         ITEMS_END
         
         === RAW OCR TEXT ===
@@ -161,7 +163,7 @@ class ReceiptScannerService {
         
         var storeName: String?
         var dateString: String?
-        var currency = "EUR"
+//        var currency = "EUR"
         var total: Decimal = 0
         var items: [ReceiptItem] = []
         var inItemsSection = false
@@ -172,7 +174,7 @@ class ReceiptScannerService {
             } else if line.hasPrefix("DATE:") {
                 dateString = line.replacingOccurrences(of: "DATE:", with: "").trimmingCharacters(in: .whitespaces)
             } else if line.hasPrefix("CURRENCY:") {
-                currency = line.replacingOccurrences(of: "CURRENCY:", with: "").trimmingCharacters(in: .whitespaces)
+                var currency = line.replacingOccurrences(of: "CURRENCY:", with: "").trimmingCharacters(in: .whitespaces)
             } else if line.hasPrefix("TOTAL:") {
                 let totalStr = line.replacingOccurrences(of: "TOTAL:", with: "").trimmingCharacters(in: .whitespaces)
                 total = Decimal(string: totalStr) ?? 0
@@ -183,20 +185,21 @@ class ReceiptScannerService {
             } else if inItemsSection {
                 // Parse item: Name|Price|Quantity
                 let parts = line.components(separatedBy: "|")
-                if parts.count == 3 {
+                if parts.count == 4 {
                     let name = parts[0].trimmingCharacters(in: .whitespaces)
                     let price = Decimal(string: parts[1].trimmingCharacters(in: .whitespaces)) ?? 0
-                    let quantity = Int(parts[2].trimmingCharacters(in: .whitespaces)) ?? 1
+                    let quantity = Decimal(string: parts[2].trimmingCharacters(in: .whitespaces)) ?? 1.0
+                    let category = parts[3].trimmingCharacters(in: .whitespaces)
                     
                     let item = ReceiptItem(
                         name: name,
                         translatedName: name,
                         amount: price,
                         quantity: quantity,
-                        category: "Food & Drink"
+                        category: category
                     )
                     items.append(item)
-                    print("✅ Parsed item: \(name) - \(price) x\(quantity)")
+                    print("✅ Parsed item: \(name) - \(price) x\(quantity), cat: \(category)")
                 }
             }
         }
@@ -211,7 +214,7 @@ class ReceiptScannerService {
             date: date,
             items: items,
             total: total,
-            currency: currency,
+            currency: "EUR", //currency,
             rawText: rawOCR,
             translatedText: storeName
         )

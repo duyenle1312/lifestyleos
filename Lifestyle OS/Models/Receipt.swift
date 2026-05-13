@@ -23,7 +23,7 @@ struct ReceiptItem: Identifiable {
     var name: String
     var translatedName: String?
     var amount: Decimal
-    var quantity: Int?
+    var quantity: Decimal?
     var category: String?
     
     var displayName: String {
