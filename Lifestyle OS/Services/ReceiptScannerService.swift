@@ -96,7 +96,7 @@ class ReceiptScannerService {
         let model = ai.generativeModel(modelName: "gemini-2.5-flash")
         
         let prompt = """
-        Extract information from this receipt OCR and translate item names to English. If there is a discount, calculate and apply it directly to the item price before listing.
+        Extract information from this receipt OCR and translate item names to English. If there is a discount, ignore it and show only the original prices.
         
         For each item, pick one corresponding category from this list: "Food & Drink", "Home" for household items, "Crochet", "Garden", "Other" 
         

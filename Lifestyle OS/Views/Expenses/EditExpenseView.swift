@@ -31,7 +31,7 @@ struct EditExpenseView: View {
 
     let currencies = ["EUR", "USD", "GBP", "JPY", "BGN", "CNY", "INR"]
     let categories = ["Food & Drink", "Home", "Rent & Utilities", "Gold/Silver", "ETFs", "Transport", "Telecom", "Crochet", "Fun", "Eating Out", "Work", "Garden", "Other"]
-    let paymentMethods = ["Food Voucher", "T212", "Revolut", "UBB", "Curve", "VCB", "Cash", "Other"]
+    let paymentMethods = ["Food Voucher", "T212", "Revolut", "UBB", "Paypal", "Curve", "VCB", "Cash", "Other"]
 
     // MARK: - Calculated Amount
 

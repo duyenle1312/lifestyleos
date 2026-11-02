@@ -9,11 +9,6 @@
 /* Begin PBXBuildFile section */
 		DB2E41112EFACCE5008C32A5 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = DB2E41102EFACCE5008C32A5 /* Supabase */; };
 		DB2E41352EFAD9C0008C32A5 /* README.md in Sources */ = {isa = PBXBuildFile; fileRef = DB2E41342EFAD9BA008C32A5 /* README.md */; };
-		DB39AD5C2EFACBC0007C88C4 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = DB39AD5B2EFACBC0007C88C4 /* Auth */; };
-		DB39AD5E2EFACBC0007C88C4 /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = DB39AD5D2EFACBC0007C88C4 /* Functions */; };
-		DB39AD602EFACBC0007C88C4 /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = DB39AD5F2EFACBC0007C88C4 /* PostgREST */; };
-		DB39AD622EFACBC0007C88C4 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = DB39AD612EFACBC0007C88C4 /* Realtime */; };
-		DB39AD642EFACBC0007C88C4 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = DB39AD632EFACBC0007C88C4 /* Storage */; };
 		DB6ADFC02F119616000EF164 /* FirebaseAILogic in Frameworks */ = {isa = PBXBuildFile; productRef = DB6ADFBF2F119616000EF164 /* FirebaseAILogic */; };
 /* End PBXBuildFile section */
 
@@ -48,13 +43,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DB39AD602EFACBC0007C88C4 /* PostgREST in Frameworks */,
-				DB39AD5E2EFACBC0007C88C4 /* Functions in Frameworks */,
 				DB2E41112EFACCE5008C32A5 /* Supabase in Frameworks */,
 				DB6ADFC02F119616000EF164 /* FirebaseAILogic in Frameworks */,
-				DB39AD5C2EFACBC0007C88C4 /* Auth in Frameworks */,
-				DB39AD642EFACBC0007C88C4 /* Storage in Frameworks */,
-				DB39AD622EFACBC0007C88C4 /* Realtime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -106,11 +96,6 @@
 			);
 			name = "Lifestyle OS";
 			packageProductDependencies = (
-				DB39AD5B2EFACBC0007C88C4 /* Auth */,
-				DB39AD5D2EFACBC0007C88C4 /* Functions */,
-				DB39AD5F2EFACBC0007C88C4 /* PostgREST */,
-				DB39AD612EFACBC0007C88C4 /* Realtime */,
-				DB39AD632EFACBC0007C88C4 /* Storage */,
 				DB2E41102EFACCE5008C32A5 /* Supabase */,
 				DB6ADFBF2F119616000EF164 /* FirebaseAILogic */,
 			);
@@ -412,31 +397,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DB39AD5A2EFACBC0007C88C4 /* XCRemoteSwiftPackageReference "supabase-swift" */;
 			productName = Supabase;
-		};
-		DB39AD5B2EFACBC0007C88C4 /* Auth */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DB39AD5A2EFACBC0007C88C4 /* XCRemoteSwiftPackageReference "supabase-swift" */;
-			productName = Auth;
-		};
-		DB39AD5D2EFACBC0007C88C4 /* Functions */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DB39AD5A2EFACBC0007C88C4 /* XCRemoteSwiftPackageReference "supabase-swift" */;
-			productName = Functions;
-		};
-		DB39AD5F2EFACBC0007C88C4 /* PostgREST */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DB39AD5A2EFACBC0007C88C4 /* XCRemoteSwiftPackageReference "supabase-swift" */;
-			productName = PostgREST;
-		};
-		DB39AD612EFACBC0007C88C4 /* Realtime */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DB39AD5A2EFACBC0007C88C4 /* XCRemoteSwiftPackageReference "supabase-swift" */;
-			productName = Realtime;
-		};
-		DB39AD632EFACBC0007C88C4 /* Storage */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DB39AD5A2EFACBC0007C88C4 /* XCRemoteSwiftPackageReference "supabase-swift" */;
-			productName = Storage;
 		};
 		DB6ADFBF2F119616000EF164 /* FirebaseAILogic */ = {
 			isa = XCSwiftPackageProductDependency;
