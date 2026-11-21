@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * Same as AuthViewModel.createDefaultAccount: a "My Kitchen" account owned by the new user.
+ * Same as AuthViewModel.createDefaultAccount: a "Personal" account owned by the new user.
  * iOS runs it right after signUp; the web app has no sign-up step (magic links create the user),
  * so here it runs on every sign-in and is a no-op once the account exists.
  *
@@ -108,7 +108,7 @@ async function ensureDefaultAccount(userId: string) {
     if (lookupError) throw lookupError;
     if (existing.length > 0) return;
 
-    const { error } = await supabase.from("accounts").upsert({ id: userId, name: "My Kitchen" }, { onConflict: "id", ignoreDuplicates: true });
+    const { error } = await supabase.from("accounts").upsert({ id: userId, name: "Personal" }, { onConflict: "id", ignoreDuplicates: true });
     if (error) throw error;
     const { error: linkError } = await supabase
       .from("account_users")

@@ -4,7 +4,7 @@
 -- Safe to run more than once.
 
 insert into public.accounts (id, name)
-select u.id, 'My Kitchen'
+select u.id, 'Personal'
 from auth.users u
 where not exists (select 1 from public.accounts a where a.id = u.id);
 
