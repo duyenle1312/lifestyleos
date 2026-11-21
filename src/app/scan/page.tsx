@@ -3,7 +3,7 @@
 // Port of Views/ReceiptScanner/ReceiptScannerView.swift + ReceiptScannerViewModel.swift
 // Additions over iOS: editable store name + receipt date, editable quantity, user's own categories.
 import { useRef, useState } from "react";
-import { Camera, CircleCheck, CirclePlus, Image as ImageIcon, Pencil, ScanText, Trash2 } from "lucide-react";
+import { Camera, CircleCheck, CirclePlus, Image as ImageIcon, Pencil, RotateCcw, ScanText, Trash2 } from "lucide-react";
 import { useAuth, useUser } from "@/components/AuthProvider";
 import { useCategories } from "@/components/CategoriesProvider";
 import { usePaymentMethods } from "@/components/PaymentMethodsProvider";
@@ -287,23 +287,31 @@ function ReceiptReview({
         ))}
       </ul>
 
-      <div className="sticky bottom-[var(--tabbar-h)] flex flex-col items-center gap-3 border-t border-separator bg-primary-bg p-4">
+      <div className="sticky bottom-[var(--tabbar-h)] flex items-center gap-2 border-t border-separator bg-primary-bg/90 px-4 py-2 backdrop-blur-md">
+        <button
+          type="button"
+          onClick={onReset}
+          disabled={isSaving}
+          className="flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-ios-blue/10 px-4 text-[15px] font-semibold text-ios-blue disabled:opacity-40"
+        >
+          <RotateCcw size={16} /> Scan Again
+        </button>
         <button
           type="button"
           onClick={onSave}
           disabled={isSaving || receipt.items.length === 0}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-ios-blue p-4 text-[17px] font-semibold text-white disabled:bg-ios-gray"
+          className="flex h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full bg-ios-blue px-4 text-[15px] font-semibold text-white disabled:bg-ios-gray"
         >
           {isSaving ? (
             <Spinner className="text-white" />
           ) : (
             <>
-              <CirclePlus size={20} /> Add to Expenses
+              <CirclePlus size={16} className="shrink-0" />
+              <span className="truncate">
+                Add {receipt.items.length} · {formatCurrency(receipt.total, receipt.currency)}
+              </span>
             </>
           )}
-        </button>
-        <button type="button" onClick={onReset} className="text-[17px] text-ios-blue">
-          Scan Another Receipt
         </button>
       </div>
     </div>
