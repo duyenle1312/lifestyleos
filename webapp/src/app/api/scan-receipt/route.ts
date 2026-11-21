@@ -1,7 +1,7 @@
 // Receipt scanning, server side so the Gemini key never reaches the browser.
 // iOS: Vision OCR → Gemini (Firebase AI Logic). Web: the image goes straight to Gemini (it is multimodal).
 import { createClient } from "@supabase/supabase-js";
-import { parseReceiptResponse, RECEIPT_PROMPT } from "@/lib/receipt";
+import { buildReceiptPrompt, parseReceiptResponse, sanitizeCategories } from "@/lib/receipt";
 
 const MAX_BASE64_LENGTH = 6_000_000; // ~4.5 MB image
 
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "GEMINI_API_KEY is not configured on the server" }, { status: 500 });
   }
 
-  const body = (await request.json().catch(() => null)) as { image?: string; mimeType?: string } | null;
+  const body = (await request.json().catch(() => null)) as { image?: string; mimeType?: string; categories?: unknown } | null;
   if (!body?.image || !body.mimeType?.startsWith("image/")) {
     return Response.json({ error: "Invalid image format" }, { status: 400 });
   }
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       contents: [
         {
           role: "user",
-          parts: [{ text: RECEIPT_PROMPT }, { inline_data: { mime_type: body.mimeType, data: body.image } }],
+          parts: [{ text: buildReceiptPrompt(sanitizeCategories(body.categories)) }, { inline_data: { mime_type: body.mimeType, data: body.image } }],
         },
       ],
     }),

@@ -2,9 +2,24 @@
 // On iOS the image goes through Vision OCR first; Gemini reads the image directly here.
 import type { ScannedReceipt } from "./types";
 
-export const RECEIPT_PROMPT = `Extract information from this receipt image and translate item names to English. If there is a discount, ignore it and show only the original prices.
+const FALLBACK_CATEGORIES = ["Food & Drink", "Home", "Other"];
 
-For each item, pick one corresponding category from this list: "Food & Drink", "Home" for household items, "Crochet", "Garden", "Other"
+/** Category names are user-provided: keep them short and strip characters that could break the format. */
+export function sanitizeCategories(input: unknown): string[] {
+  if (!Array.isArray(input)) return FALLBACK_CATEGORIES;
+  const clean = input
+    .filter((c): c is string => typeof c === "string")
+    .map((c) => c.replace(/["|\r\n]/g, " ").trim().slice(0, 50))
+    .filter(Boolean)
+    .slice(0, 100);
+  return clean.length ? clean : FALLBACK_CATEGORIES;
+}
+
+export const buildReceiptPrompt = (categories: string[]) => `Extract information from this receipt image and translate item names to English.
+
+Prices must be the FINAL amount actually paid. The price of an item is the total of that line after any discount, promotion or coupon applied to it (for example, a line of 4.99 followed by a discount line of -1.00 means the item price is 3.99). Do not list discount lines as separate items. If a discount applies to the whole receipt rather than one line, spread it across the items in proportion to their prices, so that the item prices add up to TOTAL. TOTAL is the final amount paid for the whole receipt.
+
+For each item, pick one corresponding category from this list: ${categories.map((c) => `"${c}"`).join(", ")}
 
 Return the data in this EXACT plain text format (one field per line):
 

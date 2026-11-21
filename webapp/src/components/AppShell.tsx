@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CircleDollarSign, Layers, ScanText, Settings, ShoppingCart, UtensilsCrossed } from "lucide-react";
 import { useAuth } from "./AuthProvider";
+import { CategoriesProvider } from "./CategoriesProvider";
 import { LoginView } from "./LoginView";
 import { Spinner } from "./ui";
 
@@ -59,7 +60,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main className="min-w-0 flex-1 pb-[var(--tabbar-h)]">
-        <div className="mx-auto w-full max-w-3xl">{children}</div>
+        <div className="mx-auto w-full max-w-3xl">
+          <CategoriesProvider>{children}</CategoriesProvider>
+        </div>
       </main>
 
       {/* Bottom tab bar – phones */}

@@ -3,7 +3,9 @@
 // Port of AddExpenseView.swift + EditExpenseView.swift (one form, two modes).
 import { useState } from "react";
 import { Copy } from "lucide-react";
-import { CURRENCIES, EXPENSE_CATEGORIES, PAYMENT_METHODS } from "@/lib/constants";
+import { CURRENCIES, PAYMENT_METHODS } from "@/lib/constants";
+import { useCategories } from "../CategoriesProvider";
+import { CategoryNameSheet } from "../categories/CategoryNameSheet";
 import { addMonths, noonISO, parseDecimal, toDateInput, todayInput } from "@/lib/helpers";
 import type { ExpenseInput } from "@/lib/services";
 import type { Expense } from "@/lib/types";
@@ -25,6 +27,9 @@ const opts = (values: string[], placeholder?: string) => [
   ...values.map((v) => ({ value: v, label: v })),
 ];
 
+/** Sentinel option in the category picker that opens the "New Category" sheet. */
+const NEW_CATEGORY = "__new_category__";
+
 /** Strip binary float noise (3 × 1.1 = 3.3000000000000003) without rounding real decimals. */
 const clean = (n: number) => Math.round(n * 1e6) / 1e6;
 
@@ -41,6 +46,8 @@ export function ExpenseForm({
   onClose: () => void;
 }) {
   const isEdit = !!expense;
+  const { names: categoryNames, addCategory } = useCategories();
+  const [showNewCategory, setShowNewCategory] = useState(false);
   const [item, setItem] = useState(expense?.item ?? "");
   const [unit, setUnit] = useState(expense ? (expense.unit != null ? String(expense.unit) : "") : "1");
   const [unitPrice, setUnitPrice] = useState(expense?.unit_price != null ? expense.unit_price.toFixed(2) : "");
@@ -52,12 +59,24 @@ export function ExpenseForm({
   const [expenseDate, setExpenseDate] = useState(
     expense ? toDateInput(new Date(expense.expense_date)) : todayInput(),
   );
-  const [category, setCategory] = useState(expense ? (expense.category ?? "") : "Food & Drink");
+  const [category, setCategory] = useState(() => {
+    if (expense) return expense.category ?? "";
+    return categoryNames.includes("Food & Drink") ? "Food & Drink" : (categoryNames[0] ?? "");
+  });
   const [location, setLocation] = useState(expense?.location ?? "");
   const [paymentMethod, setPaymentMethod] = useState(expense?.payment_method ?? "");
   const [description, setDescription] = useState(expense?.description ?? "");
   const [saving, setSaving] = useState(false);
   const [showDuplicateAlert, setShowDuplicateAlert] = useState(false);
+
+  // Keep an expense's existing category selectable even if it is not in the user's list.
+  const categoryOptions = [
+    ...opts(
+      category && !categoryNames.includes(category) ? [...categoryNames, category] : categoryNames,
+      "Select Category",
+    ),
+    { value: NEW_CATEGORY, label: "New Category…" },
+  ];
 
   const unitNum = parseDecimal(unit);
   const priceNum = parseDecimal(unitPrice);
@@ -132,8 +151,8 @@ export function ExpenseForm({
         <SelectRow
           label="Category"
           value={category}
-          onChange={setCategory}
-          options={opts(EXPENSE_CATEGORIES, "Select Category")}
+          onChange={(v) => (v === NEW_CATEGORY ? setShowNewCategory(true) : setCategory(v))}
+          options={categoryOptions}
         />
       </Section>
 
@@ -157,6 +176,18 @@ export function ExpenseForm({
             <Copy size={18} /> Duplicate to Next Month
           </ButtonRow>
         </Section>
+      )}
+
+      {showNewCategory && (
+        <CategoryNameSheet
+          title="New Category"
+          actionLabel="Add"
+          onSubmit={async (name) => {
+            const created = await addCategory(name);
+            setCategory(created.name);
+          }}
+          onClose={() => setShowNewCategory(false)}
+        />
       )}
 
       {showDuplicateAlert && onDuplicate && (

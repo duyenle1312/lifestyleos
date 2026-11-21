@@ -1,12 +1,13 @@
 "use client";
 
 // Port of Views/ReceiptScanner/ReceiptScannerView.swift + ReceiptScannerViewModel.swift
+// Additions over iOS: editable store name + receipt date, editable quantity, user's own categories.
 import { useRef, useState } from "react";
 import { Camera, CircleCheck, CirclePlus, Image as ImageIcon, Pencil, ScanText, Trash2 } from "lucide-react";
 import { useAuth, useUser } from "@/components/AuthProvider";
+import { useCategories } from "@/components/CategoriesProvider";
 import { Alert, LargeTitle, LoadingOverlay, Spinner, Toolbar } from "@/components/ui";
-import { RECEIPT_CATEGORIES } from "@/lib/constants";
-import { errorMessage, parseDecimal } from "@/lib/helpers";
+import { errorMessage, formatQuantity, parseDecimal, todayInput } from "@/lib/helpers";
 import { createExpensesFromReceipt } from "@/lib/services";
 import { type ReceiptItem, receiptItemDisplayName, type ScannedReceipt } from "@/lib/types";
 
@@ -23,10 +24,19 @@ async function prepareImage(file: File): Promise<{ image: string; mimeType: stri
 }
 
 const sumItems = (items: ReceiptItem[]) => items.reduce((s, i) => s + i.amount, 0);
+const isDateInput = (s: string | null): s is string => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
+
+/** Map Gemini's category onto one of the user's categories (case-insensitive), else "Other"/first. */
+function matchCategory(raw: string | null, names: string[]): string | null {
+  if (!names.length) return raw;
+  const found = names.find((n) => n.toLowerCase() === raw?.trim().toLowerCase());
+  return found ?? names.find((n) => n.toLowerCase() === "other") ?? names[0];
+}
 
 export default function ScanPage() {
   const user = useUser();
   const { session } = useAuth();
+  const { names: categoryNames } = useCategories();
   const [receipt, setReceipt] = useState<ScannedReceipt | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -44,11 +54,16 @@ export default function ScanPage() {
       const res = await fetch("/api/scan-receipt", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, categories: categoryNames }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Failed to scan receipt");
-      setReceipt(json as ScannedReceipt);
+      const scanned = json as ScannedReceipt;
+      setReceipt({
+        ...scanned,
+        date: isDateInput(scanned.date) ? scanned.date : todayInput(),
+        items: scanned.items.map((i) => ({ ...i, category: matchCategory(i.category, categoryNames) })),
+      });
     } catch (e) {
       setError(errorMessage(e));
     } finally {
@@ -56,16 +71,23 @@ export default function ScanPage() {
     }
   };
 
-  // Like the view model, every edit recalculates the total from the items.
+  // Like the view model, every item edit recalculates the total from the items.
   const updateItems = (fn: (items: ReceiptItem[]) => ReceiptItem[]) =>
-    setReceipt((r) => (r ? { ...r, items: fn(r.items), total: sumItems(fn(r.items)) } : r));
+    setReceipt((r) => {
+      if (!r) return r;
+      const items = fn(r.items);
+      return { ...r, items, total: sumItems(items) };
+    });
 
   const save = async () => {
     if (!receipt) return;
     setIsSaving(true);
     setError(null);
     try {
-      await createExpensesFromReceipt(user.id, receipt, receipt.items);
+      const created = await createExpensesFromReceipt(user.id, receipt, receipt.items);
+      if (created.length < receipt.items.length) {
+        throw new Error(`Only ${created.length} of ${receipt.items.length} items were added.`);
+      }
       setShowSuccess(true);
     } catch (e) {
       setError(errorMessage(e));
@@ -133,7 +155,10 @@ export default function ScanPage() {
       ) : (
         <ReceiptReview
           receipt={receipt}
+          categories={categoryNames}
           isSaving={isSaving}
+          onChangeStore={(storeName) => setReceipt((r) => (r ? { ...r, storeName } : r))}
+          onChangeDate={(date) => setReceipt((r) => (r ? { ...r, date } : r))}
           onUpdateItem={(id, patch) => updateItems((items) => items.map((i) => (i.id === id ? { ...i, ...patch } : i)))}
           onRemoveItem={(id) => updateItems((items) => items.filter((i) => i.id !== id))}
           onSave={save}
@@ -160,14 +185,20 @@ const formatCurrency = (amount: number, currency: string) =>
 
 function ReceiptReview({
   receipt,
+  categories,
   isSaving,
+  onChangeStore,
+  onChangeDate,
   onUpdateItem,
   onRemoveItem,
   onSave,
   onReset,
 }: {
   receipt: ScannedReceipt;
+  categories: string[];
   isSaving: boolean;
+  onChangeStore: (name: string | null) => void;
+  onChangeDate: (date: string) => void;
   onUpdateItem: (id: string, patch: Partial<ReceiptItem>) => void;
   onRemoveItem: (id: string) => void;
   onSave: () => void;
@@ -176,7 +207,24 @@ function ReceiptReview({
   return (
     <div className="flex flex-col">
       <div className="flex flex-col items-center gap-2 bg-gray6 p-4 dark:bg-cell">
-        {receipt.storeName && <h2 className="text-[22px] font-bold">{receipt.storeName}</h2>}
+        <label className="flex w-full max-w-sm items-center justify-center gap-1.5 border-b border-transparent focus-within:border-ios-blue">
+          <input
+            aria-label="Store name"
+            className="min-w-0 flex-1 bg-transparent text-center text-[22px] font-bold outline-none placeholder:font-normal"
+            placeholder="Store name"
+            value={receipt.storeName ?? ""}
+            onChange={(e) => onChangeStore(e.target.value || null)}
+          />
+          <Pencil size={14} className="shrink-0 text-label-3" />
+        </label>
+        <input
+          type="date"
+          aria-label="Receipt date"
+          className="rounded-md bg-fill px-2.5 text-[17px] text-label outline-none"
+          value={receipt.date ?? todayInput()}
+          max={todayInput()}
+          onChange={(e) => e.target.value && onChangeDate(e.target.value)}
+        />
         <p className="flex items-center gap-2">
           <span className="text-[17px] font-semibold text-label-2">Total:</span>
           <span className="text-[22px] font-bold text-ios-blue">{formatCurrency(receipt.total, receipt.currency)}</span>
@@ -189,6 +237,7 @@ function ReceiptReview({
           <ReceiptItemRow
             key={item.id}
             item={item}
+            categories={categories}
             onUpdate={(patch) => onUpdateItem(item.id, patch)}
             onDelete={() => onRemoveItem(item.id)}
           />
@@ -220,97 +269,116 @@ function ReceiptReview({
 
 function ReceiptItemRow({
   item,
+  categories,
   onUpdate,
   onDelete,
 }: {
   item: ReceiptItem;
+  categories: string[];
   onUpdate: (patch: Partial<ReceiptItem>) => void;
   onDelete: () => void;
 }) {
   const [isEditing, setIsEditing] = useState(false);
-  const [name, setName] = useState(receiptItemDisplayName(item));
-  const [amount, setAmount] = useState(String(item.amount));
-  const [category, setCategory] = useState(item.category ?? "Food & Drink");
+  const [name, setName] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [amount, setAmount] = useState("");
+  const [category, setCategory] = useState("");
 
   const startEditing = () => {
     setName(receiptItemDisplayName(item));
+    setQuantity(String(item.quantity ?? 1));
     setAmount(String(item.amount));
-    setCategory(item.category ?? "Food & Drink");
+    setCategory(item.category ?? categories[0] ?? "");
     setIsEditing(true);
   };
 
+  const parsedQty = parseDecimal(quantity);
+  const parsedAmount = parseDecimal(amount);
+  const valid = name.trim() !== "" && parsedQty != null && parsedQty > 0 && parsedAmount != null && parsedAmount >= 0;
+
   const save = () => {
-    const parsed = parseDecimal(amount);
-    onUpdate({ translatedName: name, category, ...(parsed != null ? { amount: parsed } : {}) });
+    if (!valid) return;
+    onUpdate({ translatedName: name.trim(), quantity: parsedQty, amount: parsedAmount, category: category || null });
     setIsEditing(false);
   };
 
-  const inputClass = "rounded-md border border-separator bg-primary-bg px-2 py-1 text-[15px] outline-none";
+  // Keep a category Gemini returned selectable even if the user doesn't have it.
+  const categoryOptions = category && !categories.includes(category) ? [...categories, category] : categories;
+  const fieldClass = "w-full rounded-md border border-separator bg-primary-bg px-2 py-1.5 text-[16px] outline-none focus:border-ios-blue";
+  const labelClass = "flex flex-col gap-1 text-xs text-label-2";
+
+  if (isEditing) {
+    return (
+      <li className="flex flex-col gap-3 border-b border-separator bg-gray6/60 px-4 py-4 dark:bg-cell/60">
+        <label className={labelClass}>
+          Item
+          <input className={fieldClass} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <label className={labelClass}>
+            Quantity
+            <input
+              className={fieldClass}
+              inputMode="decimal"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+            />
+          </label>
+          <label className={labelClass}>
+            Price
+            <input className={fieldClass} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
+          </label>
+        </div>
+        <label className={labelClass}>
+          Category
+          <select className={fieldClass} value={category} onChange={(e) => setCategory(e.target.value)}>
+            {categoryOptions.map((c) => (
+              <option key={c}>{c}</option>
+            ))}
+          </select>
+        </label>
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setIsEditing(false)}
+            className="rounded-full bg-ios-blue/15 px-4 py-1.5 text-[15px] font-medium text-ios-blue"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={save}
+            disabled={!valid}
+            className="rounded-full bg-ios-blue px-4 py-1.5 text-[15px] font-medium text-white disabled:opacity-40"
+          >
+            Save
+          </button>
+        </div>
+      </li>
+    );
+  }
 
   return (
     <li className="flex flex-col gap-3 border-b border-separator px-4 py-4">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          {isEditing ? (
-            <input className={`${inputClass} w-full`} value={name} onChange={(e) => setName(e.target.value)} />
-          ) : (
-            <>
-              <p className="text-[17px] font-semibold">{receiptItemDisplayName(item)}</p>
-              {item.name !== receiptItemDisplayName(item) && <p className="text-xs text-label-2">{item.name}</p>}
-            </>
-          )}
+          <p className="text-[17px] font-semibold">{receiptItemDisplayName(item)}</p>
+          {item.name !== receiptItemDisplayName(item) && <p className="text-xs text-label-2">{item.name}</p>}
+          <p className="mt-0.5 text-[13px] text-label-2">Qty: {formatQuantity(item.quantity ?? 1)}</p>
         </div>
-        {isEditing ? (
-          <input
-            className={`${inputClass} w-[90px]`}
-            inputMode="decimal"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-          />
-        ) : (
-          <span className="text-[17px] font-semibold text-ios-blue">{item.amount.toFixed(2)}</span>
-        )}
+        <span className="text-[17px] font-semibold text-ios-blue">{item.amount.toFixed(2)}</span>
       </div>
-
-      {isEditing ? (
-        <div className="flex items-center gap-2">
-          <select
-            className="min-w-0 flex-1 bg-transparent text-[15px] text-ios-blue outline-none"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-          >
-            {RECEIPT_CATEGORIES.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={save}
-            className="rounded-full bg-ios-blue px-3 py-1 text-[15px] font-medium text-white"
-          >
-            Save
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsEditing(false)}
-            className="rounded-full bg-ios-blue/15 px-3 py-1 text-[15px] font-medium text-ios-blue"
-          >
-            Cancel
-          </button>
-        </div>
-      ) : (
-        <div className="flex items-center gap-4">
-          <span className="mr-auto rounded-full bg-ios-blue/10 px-2.5 py-1 text-xs text-ios-blue">
-            {item.category ?? "Food & Drink"}
-          </span>
-          <button type="button" onClick={startEditing} className="flex items-center gap-1 text-[15px] text-ios-blue">
-            <Pencil size={15} /> Edit
-          </button>
-          <button type="button" onClick={onDelete} className="flex items-center gap-1 text-[15px] text-ios-red">
-            <Trash2 size={15} /> Delete
-          </button>
-        </div>
-      )}
+      <div className="flex items-center gap-4">
+        <span className="mr-auto truncate rounded-full bg-ios-blue/10 px-2.5 py-1 text-xs text-ios-blue">
+          {item.category ?? "Uncategorized"}
+        </span>
+        <button type="button" onClick={startEditing} className="flex items-center gap-1 text-[15px] text-ios-blue">
+          <Pencil size={15} /> Edit
+        </button>
+        <button type="button" onClick={onDelete} className="flex items-center gap-1 text-[15px] text-ios-red">
+          <Trash2 size={15} /> Delete
+        </button>
+      </div>
     </li>
   );
 }

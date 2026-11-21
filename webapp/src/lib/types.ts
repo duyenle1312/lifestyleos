@@ -59,6 +59,15 @@ export interface InventoryItem {
   updated_at: string;
 }
 
+export interface Category {
+  id: string;
+  account_id: string;
+  name: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ReceiptItem {
   id: string;
   name: string;

@@ -17,54 +17,7 @@ import {
 // Lists copied from AddExpenseView / EditExpenseView / ExpenseListView.
 export const CURRENCIES = ["EUR", "USD", "GBP", "JPY", "BGN", "CNY", "INR"];
 
-export const EXPENSE_CATEGORIES = [
-  "Food & Drink",
-  "Home",
-  "Rent & Utilities",
-  "Gold/Silver",
-  "ETFs",
-  "Transport",
-  "Telecom",
-  "Crochet",
-  "Fun",
-  "Eating Out",
-  "Work",
-  "Garden",
-  "Other",
-];
-
-export const FILTER_CATEGORIES = [
-  "All",
-  "Rent & Utilities",
-  "Food & Drink",
-  "Home",
-  "Transport",
-  "Telecom",
-  "Garden",
-  "Crochet",
-  "Fun",
-  "Eating Out",
-  "Gold/Silver",
-  "ETFs",
-  "Work",
-  "Other",
-];
-
-export const RECEIPT_CATEGORIES = [
-  "Food & Drink",
-  "Home",
-  "Rent & Utilities",
-  "Garden",
-  "Gold/Silver",
-  "ETFs",
-  "Transport",
-  "Telecom",
-  "Crochet",
-  "Fun",
-  "Eating Out",
-  "Work",
-  "Other",
-];
+// Expense categories are per user now: see the `categories` table and CategoriesProvider.
 
 export const PAYMENT_METHODS = ["Food Voucher", "T212", "Revolut", "UBB", "Curve", "Paypal", "VCB", "Cash", "Other"];
 
@@ -109,6 +62,7 @@ export function categoryIcon(category: string | null): LucideIcon {
     case "Fun":
       return Dumbbell;
     case "Rent & Utilities":
+    case "Utilities":
       return House;
     case "Work":
       return Monitor;
@@ -139,6 +93,7 @@ export function categoryColor(category: string | null): IOSColor {
     case "Fun":
       return "purple";
     case "Rent & Utilities":
+    case "Utilities":
       return "cyan";
     case "Telecom":
       return "mint";
@@ -147,7 +102,20 @@ export function categoryColor(category: string | null): IOSColor {
     case "ETFs":
     case "Garden":
       return "green";
-    default:
+    case "Other":
+    case null:
+    case "":
       return "gray";
+    default:
+      return hashedColor(category);
   }
+}
+
+/** Custom categories get a stable color derived from their name. */
+const CUSTOM_PALETTE: IOSColor[] = ["blue", "green", "orange", "pink", "purple", "indigo", "cyan", "mint", "red"];
+
+function hashedColor(name: string): IOSColor {
+  let h = 0;
+  for (const ch of name.toLowerCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return CUSTOM_PALETTE[h % CUSTOM_PALETTE.length];
 }

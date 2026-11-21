@@ -1,8 +1,9 @@
 // Ports of Services/ExpenseService.swift, ShoppingListService.swift and InventoryService.swift.
 // Like the iOS app, `accountId` is the signed-in user's id, and `created_by_user_id` is set to it too.
 import { supabase } from "./supabase";
-import type { Expense, InventoryItem, ReceiptItem, ScannedReceipt, ShoppingItem } from "./types";
+import type { Category, Expense, InventoryItem, ReceiptItem, ScannedReceipt, ShoppingItem } from "./types";
 import { receiptItemDisplayName } from "./types";
+import { noonISO } from "./helpers";
 
 const softDelete = () => ({ deleted_at: new Date().toISOString() });
 
@@ -57,21 +58,27 @@ export async function deleteExpense(id: string) {
   if (error) throw error;
 }
 
-/** Port of createExpensesFromReceipt: one expense per line item; failures are skipped. */
+/**
+ * Port of createExpensesFromReceipt: one expense per line item; failures are skipped.
+ * Differences from iOS: uses the receipt's date (iOS used "now"), and stores
+ * unit_price = line price ÷ quantity so that unit × unit_price = amount, like the expense form.
+ */
 export async function createExpensesFromReceipt(accountId: string, receipt: ScannedReceipt, items: ReceiptItem[]) {
+  const expenseDate = receipt.date && /^\d{4}-\d{2}-\d{2}$/.test(receipt.date) ? noonISO(receipt.date) : new Date().toISOString();
   const created: Expense[] = [];
   for (const item of items) {
+    const quantity = item.quantity && item.quantity > 0 ? item.quantity : 1;
     try {
       created.push(
         await createExpense(accountId, {
           amount: item.amount,
           currency: "EUR",
-          expense_date: new Date().toISOString(),
+          expense_date: expenseDate,
           category: item.category,
           description: null,
           location: receipt.storeName,
-          unit: item.quantity,
-          unit_price: item.amount,
+          unit: quantity,
+          unit_price: Math.round((item.amount / quantity) * 10_000) / 10_000,
           expire_date: null,
           payment_method: "Food Voucher",
           item: receiptItemDisplayName(item),
@@ -129,6 +136,36 @@ export async function updateShoppingItem(id: string, input: Partial<ShoppingInpu
 export async function deleteShoppingItem(id: string) {
   const { error } = await supabase.from("shopping_lists").update(softDelete()).eq("id", id);
   if (error) throw error;
+}
+
+// MARK: - Categories (supabase/migrations/*_categories.sql)
+
+export async function fetchCategories(accountId: string) {
+  const { data, error } = await supabase
+    .from("categories")
+    .select()
+    .eq("account_id", accountId)
+    .order("sort_order")
+    .order("created_at");
+  if (error) throw error;
+  return data as Category[];
+}
+
+export async function createCategory(accountId: string, name: string, sortOrder: number) {
+  const { data, error } = await supabase
+    .from("categories")
+    .insert({ account_id: accountId, name, sort_order: sortOrder })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as Category;
+}
+
+/** Renames the category and re-labels existing expenses that used the old name (one transaction). */
+export async function renameCategory(id: string, name: string) {
+  const { data, error } = await supabase.rpc("rename_category", { p_id: id, p_name: name });
+  if (error) throw error;
+  return data as Category;
 }
 
 // MARK: - Inventory

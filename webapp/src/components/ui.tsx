@@ -216,7 +216,7 @@ export function Menu({ trigger, entries, label }: { trigger: React.ReactNode; en
         {trigger}
       </button>
       {open && (
-        <div className="absolute left-0 top-10 z-40 w-60 animate-pop-in overflow-hidden rounded-[13px] bg-cell/95 shadow-[0_8px_40px_rgba(0,0,0,0.22)] backdrop-blur-xl">
+        <div className="absolute left-0 top-10 z-40 max-h-[60dvh] w-60 animate-pop-in overflow-y-auto overscroll-contain rounded-[13px] bg-cell/95 shadow-[0_8px_40px_rgba(0,0,0,0.22)] backdrop-blur-xl">
           {entries.map((entry, i) =>
             entry === "divider" ? (
               <div key={`d${i}`} className="h-2 bg-fill" />

@@ -9,7 +9,8 @@ import { ExpenseForm } from "@/components/expenses/ExpenseForm";
 import { MonthPicker } from "@/components/expenses/MonthPicker";
 import { FilterGlyph, IconBubble } from "@/components/glyphs";
 import { EmptyState, ErrorBanner, IconButton, Menu, SearchBar, Section, Spinner, SwipeRow, Toolbar } from "@/components/ui";
-import { categoryColor, categoryIcon, FILTER_CATEGORIES, iosColor } from "@/lib/constants";
+import { useCategories } from "@/components/CategoriesProvider";
+import { categoryColor, categoryIcon, iosColor } from "@/lib/constants";
 import {
   addMonths,
   errorMessage,
@@ -26,6 +27,7 @@ const byDateDesc = (a: Expense, b: Expense) => b.expense_date.localeCompare(a.ex
 
 export default function ExpensesPage() {
   const user = useUser();
+  const { names: categoryNames } = useCategories();
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const [expenses, setExpenses] = useState<Expense[]>([]);
   /** Month (timestamp) the current `expenses` were loaded for; loading = it differs from the selected month. */
@@ -120,7 +122,7 @@ export default function ExpensesPage() {
                 {category !== "All" && <span className="text-xs">{category}</span>}
               </>
             }
-            entries={FILTER_CATEGORIES.map((c) => ({
+            entries={["All", ...categoryNames].map((c) => ({
               label: c,
               selected: c === category,
               onSelect: () => setCategory(c),
