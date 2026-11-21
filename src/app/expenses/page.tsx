@@ -3,7 +3,7 @@
 // Port of Views/Expenses/ExpenseListView.swift + ExpenseViewModel.swift
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { Calendar, ChevronLeft, ChevronRight, Inbox, List, Plus, Settings2 } from "lucide-react";
+import { ArrowUpDown, Calendar, ChevronLeft, ChevronRight, CreditCard, Inbox, List, Plus, Settings2 } from "lucide-react";
 import { useUser } from "@/components/AuthProvider";
 import { ExpenseDetail } from "@/components/expenses/ExpenseDetail";
 import { ExpenseForm } from "@/components/expenses/ExpenseForm";
@@ -26,6 +26,15 @@ import type { Category, Expense } from "@/lib/types";
 
 const byDateDesc = (a: Expense, b: Expense) => b.expense_date.localeCompare(a.expense_date);
 
+type SortOption = "date" | "payment";
+
+const SORTS = [
+  { value: "date", label: "Date", icon: Calendar },
+  { value: "payment", label: "Payment Method", icon: CreditCard },
+] as const;
+
+const NO_PAYMENT_METHOD = "No Payment Method";
+
 export default function ExpensesPage() {
   const user = useUser();
   const router = useRouter();
@@ -38,6 +47,7 @@ export default function ExpensesPage() {
   const [search, setSearch] = useState("");
   /** "all" or a category id. */
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [sort, setSort] = useState<SortOption>("date");
   const [showAdd, setShowAdd] = useState(false);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -67,14 +77,32 @@ export default function ExpensesPage() {
     });
   }, [expenses, month, categoryFilter, search]);
 
+  /** Sections of [key, header, expenses]: by day (newest first) or by payment method (A–Z, none last). */
   const groups = useMemo(() => {
-    const map = new Map<number, Expense[]>();
-    for (const e of filtered) {
-      const key = startOfDay(new Date(e.expense_date)).getTime();
+    const map = new Map<string | number, Expense[]>();
+    for (const e of [...filtered].sort(byDateDesc)) {
+      const key = sort === "date" ? startOfDay(new Date(e.expense_date)).getTime() : (e.payment_method ?? "");
       map.set(key, [...(map.get(key) ?? []), e]);
     }
-    return [...map.entries()].sort((a, b) => b[0] - a[0]);
-  }, [filtered]);
+    const entries = [...map.entries()];
+    if (sort === "date") {
+      return entries
+        .sort((a, b) => (b[0] as number) - (a[0] as number))
+        .map(([day, items]) => ({ key: String(day), header: formatSectionDate(new Date(day)), items }));
+    }
+    return entries
+      .sort(([a], [b]) => (a === "" ? 1 : b === "" ? -1 : String(a).localeCompare(String(b))))
+      .map(([method, items]) => ({
+        key: `pm:${method}`,
+        header: (
+          <span className="flex justify-between">
+            <span>{method || NO_PAYMENT_METHOD}</span>
+            <span>{items.reduce((sum, e) => sum + e.amount, 0).toFixed(2)}</span>
+          </span>
+        ),
+        items,
+      }));
+  }, [filtered, sort]);
 
   const total = filtered.reduce((sum, e) => sum + e.amount, 0).toFixed(2);
   const isCurrentMonth = isSameMonth(month, new Date());
@@ -117,30 +145,47 @@ export default function ExpensesPage() {
     <>
       <Toolbar
         left={
-          <Menu
-            label="Filter by category"
-            trigger={
-              <>
-                <FilterGlyph active={categoryFilter !== "all"} />
-                {byId.has(categoryFilter) && <span className="text-xs">{byId.get(categoryFilter)!.name}</span>}
-              </>
-            }
-            entries={[
-              { label: "All", icon: List, selected: categoryFilter === "all", onSelect: () => setCategoryFilter("all") },
-              ...categories.map((c) => ({
-                label: c.name,
-                icon: categoryVisual(c).Icon,
-                selected: c.id === categoryFilter,
-                onSelect: () => setCategoryFilter(c.id),
-              })),
-              "divider" as const,
-              {
-                label: "Manage Categories…",
-                icon: Settings2,
-                onSelect: () => router.push("/settings/categories?from=expenses"),
-              },
-            ]}
-          />
+          <>
+            <Menu
+              label="Filter by category"
+              trigger={
+                <>
+                  <FilterGlyph active={categoryFilter !== "all"} />
+                  {byId.has(categoryFilter) && <span className="text-xs">{byId.get(categoryFilter)!.name}</span>}
+                </>
+              }
+              entries={[
+                { label: "All", icon: List, selected: categoryFilter === "all", onSelect: () => setCategoryFilter("all") },
+                ...categories.map((c) => ({
+                  label: c.name,
+                  icon: categoryVisual(c).Icon,
+                  selected: c.id === categoryFilter,
+                  onSelect: () => setCategoryFilter(c.id),
+                })),
+                "divider" as const,
+                {
+                  label: "Manage Categories…",
+                  icon: Settings2,
+                  onSelect: () => router.push("/settings/categories?from=expenses"),
+                },
+              ]}
+            />
+            <Menu
+              label="Sort expenses"
+              trigger={
+                <span className="ml-2 flex items-center gap-1">
+                  <ArrowUpDown size={20} />
+                  {sort !== "date" && <span className="text-xs">{SORTS.find((s) => s.value === sort)!.label}</span>}
+                </span>
+              }
+              entries={SORTS.map((s) => ({
+                label: s.label,
+                icon: s.icon,
+                selected: s.value === sort,
+                onSelect: () => setSort(s.value),
+              }))}
+            />
+          </>
         }
         right={<IconButton icon={Plus} label="Add expense" onClick={() => setShowAdd(true)} />}
       >
@@ -191,8 +236,8 @@ export default function ExpensesPage() {
         />
       ) : (
         <div className="pb-6">
-          {groups.map(([day, items]) => (
-            <Section key={day} header={formatSectionDate(new Date(day))} inset={74} className="first:pt-2">
+          {groups.map(({ key, header, items }) => (
+            <Section key={key} header={header} inset={74} className="first:pt-2">
               {items.map((e) => (
                 <SwipeRow key={e.id} onDelete={() => remove(e.id)} onPress={() => setSelectedId(e.id)}>
                   <ExpenseRow expense={e} category={e.category_id ? byId.get(e.category_id) : undefined} />
