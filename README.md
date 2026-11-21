@@ -11,7 +11,6 @@ tab bar becomes a sidebar and sheets become centered dialogs.
   <img src="docs/screenshots/shopping.png" alt="Shopping list" width="180">
   <img src="docs/screenshots/inventory.png" alt="Inventory" width="180">
   <img src="docs/screenshots/scan.png" alt="Scan receipt" width="180">
-  <img src="docs/screenshots/settings.png" alt="Settings" width="180">
 </p>
 
 ## Run
