@@ -1,0 +1,144 @@
+@import "tailwindcss";
+
+/* iOS system colors (UIKit values) – light */
+:root {
+  color-scheme: light dark;
+
+  --ios-blue: #007aff;
+  --ios-green: #34c759;
+  --ios-red: #ff3b30;
+  --ios-orange: #ff9500;
+  --ios-yellow: #ffcc00;
+  --ios-pink: #ff2d55;
+  --ios-purple: #af52de;
+  --ios-indigo: #5856d6;
+  --ios-cyan: #32ade6;
+  --ios-mint: #00c7be;
+  --ios-gray: #8e8e93;
+
+  --bg-primary: #ffffff; /* systemBackground */
+  --bg-grouped: #f2f2f7; /* systemGroupedBackground */
+  --bg-cell: #ffffff; /* secondarySystemGroupedBackground */
+  --label: #000000;
+  --label-secondary: rgba(60, 60, 67, 0.6);
+  --label-tertiary: rgba(60, 60, 67, 0.3);
+  --separator: rgba(60, 60, 67, 0.29);
+  --fill: rgba(118, 118, 128, 0.12); /* tertiarySystemFill */
+  --gray5: #e5e5ea;
+  --gray6: #f2f2f7;
+  --bar: rgba(249, 249, 249, 0.85);
+
+  --tabbar-h: calc(50px + env(safe-area-inset-bottom));
+}
+
+/* iOS system colors – dark */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ios-blue: #0a84ff;
+    --ios-green: #30d158;
+    --ios-red: #ff453a;
+    --ios-orange: #ff9f0a;
+    --ios-yellow: #ffd60a;
+    --ios-pink: #ff375f;
+    --ios-purple: #bf5af2;
+    --ios-indigo: #5e5ce6;
+    --ios-cyan: #64d2ff;
+    --ios-mint: #63e6e2;
+    --ios-gray: #8e8e93;
+
+    --bg-primary: #000000;
+    --bg-grouped: #000000;
+    --bg-cell: #1c1c1e;
+    --label: #ffffff;
+    --label-secondary: rgba(235, 235, 245, 0.6);
+    --label-tertiary: rgba(235, 235, 245, 0.3);
+    --separator: rgba(84, 84, 88, 0.65);
+    --fill: rgba(118, 118, 128, 0.24);
+    --gray5: #2c2c2e;
+    --gray6: #1c1c1e;
+    --bar: rgba(22, 22, 23, 0.85);
+  }
+}
+
+@media (min-width: 768px) {
+  :root {
+    --tabbar-h: 0px;
+  }
+}
+
+@theme inline {
+  --color-ios-blue: var(--ios-blue);
+  --color-ios-green: var(--ios-green);
+  --color-ios-red: var(--ios-red);
+  --color-ios-orange: var(--ios-orange);
+  --color-ios-gray: var(--ios-gray);
+  --color-primary-bg: var(--bg-primary);
+  --color-grouped: var(--bg-grouped);
+  --color-cell: var(--bg-cell);
+  --color-label: var(--label);
+  --color-label-2: var(--label-secondary);
+  --color-label-3: var(--label-tertiary);
+  --color-separator: var(--separator);
+  --color-fill: var(--fill);
+  --color-gray5: var(--gray5);
+  --color-gray6: var(--gray6);
+  --color-bar: var(--bar);
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+
+  --animate-sheet-up: sheet-up 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+  --animate-fade-in: fade-in 0.2s ease-out;
+  --animate-pop-in: pop-in 0.18s ease-out;
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+html,
+body {
+  background: var(--bg-grouped);
+  color: var(--label);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Native date / select controls styled like iOS form values */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0.6;
+}
+input[type="date"] {
+  min-height: 34px;
+}
+input::placeholder,
+textarea::placeholder {
+  color: var(--label-tertiary);
+}
+input[type="search"]::-webkit-search-cancel-button {
+  display: none;
+}
