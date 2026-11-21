@@ -111,7 +111,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 /**
  * Same as AuthViewModel.createDefaultAccount: a "My Kitchen" account owned by the new user.
  * iOS runs it right after signUp; with email confirmation there is no session then, so here it
- * runs on first sign-in and is skipped when the user already belongs to an account.
+ * runs on first sign-in.
+ *
+ * The app writes every row with account_id = the user's id (see services.ts), so the account
+ * must have that same id, and the user must be linked to it, or RLS rejects the inserts.
+ * The check is for that specific account, so users whose account got a random id are repaired.
  */
 async function ensureDefaultAccount(userId: string) {
   try {
@@ -119,15 +123,16 @@ async function ensureDefaultAccount(userId: string) {
       .from("account_users")
       .select("account_id")
       .eq("user_id", userId)
+      .eq("account_id", userId)
       .limit(1);
     if (lookupError) throw lookupError;
     if (existing.length > 0) return;
 
-    const { data: account, error } = await supabase.from("accounts").insert({ name: "My Kitchen" }).select().single();
+    const { error } = await supabase.from("accounts").upsert({ id: userId, name: "My Kitchen" }, { onConflict: "id", ignoreDuplicates: true });
     if (error) throw error;
     const { error: linkError } = await supabase
       .from("account_users")
-      .insert({ account_id: account.id, user_id: userId, role: "owner" });
+      .insert({ account_id: userId, user_id: userId, role: "owner" });
     if (linkError) throw linkError;
   } catch (e) {
     console.error("Error creating account:", e);
