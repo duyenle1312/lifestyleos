@@ -4,6 +4,16 @@ Next.js + Tailwind port of the iOS app in `../Lifestyle OS`, using the **same Su
 Built mobile-first (iOS look: inset grouped lists, sheets, bottom tab bar); on tablets/desktop the
 tab bar becomes a sidebar and sheets become centered dialogs.
 
+## Screenshots
+
+<p>
+  <img src="docs/screenshots/expenses.png" alt="Expenses" width="180">
+  <img src="docs/screenshots/shopping.png" alt="Shopping list" width="180">
+  <img src="docs/screenshots/inventory.png" alt="Inventory" width="180">
+  <img src="docs/screenshots/scan.png" alt="Scan receipt" width="180">
+  <img src="docs/screenshots/settings.png" alt="Settings" width="180">
+</p>
+
 ## Run
 
 ```bash
