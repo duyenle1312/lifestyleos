@@ -65,6 +65,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         options: { emailRedirectTo: `${window.location.origin}/expenses` },
       });
       if (error) throw error;
+      // Supabase hides whether an email is registered: for an existing account it returns a
+      // user with no identities and sends no email.
+      if (data.user && data.user.identities?.length === 0) {
+        setError("An account with this email already exists. Please sign in instead.");
+        return false;
+      }
       if (!data.session || !data.user) {
         setError("Check your email to confirm your account, then sign in.");
         return false;
