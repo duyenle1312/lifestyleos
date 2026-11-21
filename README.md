@@ -1,8 +1,11 @@
 # Lifestyle OS — Web
 
+A personal household app for tracking monthly expenses by category and payment method, keeping a
+shopping list, and managing a home inventory with expiry dates. Photograph a supermarket
+receipt and AI translates to English and automatically add the items to your expense list in one go.
+
 Next.js + Tailwind port of the iOS app in `../Lifestyle OS`, using the **same Supabase database**.
-Built mobile-first (iOS look: inset grouped lists, sheets, bottom tab bar); on tablets/desktop the
-tab bar becomes a sidebar and sheets become centered dialogs.
+Built mobile-first (iOS look); on tablets/desktop the tab bar becomes a sidebar and sheets become centered dialogs.
 
 ## Screenshots
 
