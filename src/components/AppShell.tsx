@@ -3,7 +3,8 @@
 // Port of ContentView + MainTabView: signed out → LoginView, signed in → tabs.
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CircleDollarSign, Layers, ScanText, Settings, ShoppingCart, UtensilsCrossed } from "lucide-react";
+import { CircleDollarSign, Layers, ScanText, Settings, ShoppingCart } from "lucide-react";
+import { AppLogo } from "@/components/AppLogo";
 import { useAuth } from "./AuthProvider";
 import { CategoriesProvider } from "./CategoriesProvider";
 import { PaymentMethodsProvider } from "./PaymentMethodsProvider";
@@ -39,9 +40,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Sidebar – tablets / desktop */}
       <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-separator bg-bar px-3 py-5 backdrop-blur-xl md:flex">
         <div className="mb-6 flex items-center gap-2 px-2">
-          <span className="flex size-8 items-center justify-center rounded-full bg-ios-blue text-white">
-            <UtensilsCrossed size={16} />
-          </span>
+          <AppLogo className="size-8" />
           <span className="text-[17px] font-semibold">Lifestyle OS</span>
         </div>
         <nav className="flex flex-col gap-0.5">

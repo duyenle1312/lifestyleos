@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => data.subscription.unsubscribe();
   }, []);
 
-  /** Emails a one-time sign-in link (also creates the user if the email is new). */
+  /** Emails a one-time sign-in link. Only for existing users: new users must sign up first. */
   const sendMagicLink = useCallback(async (email: string): Promise<MagicLinkResult> => {
     setIsLoading(true);
     setError(null);
@@ -56,7 +56,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          shouldCreateUser: true,
+          // Unknown emails are rejected (error code `otp_disabled`) instead of silently creating an account.
+          shouldCreateUser: false,
           // The link brings the user back to the site they asked from (must be in
           // Supabase → Auth → URL Configuration → Redirect URLs, otherwise Site URL is used).
           // The SIGNED_IN listener above then picks up the session and creates the default account.
@@ -68,6 +69,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (error.code === "over_email_send_rate_limit" || error.status === 429) {
           setError("Too many sign-in emails were sent recently. Sign in with your password instead.");
           return "rate_limited";
+        }
+        if (error.code === "otp_disabled" || /signups not allowed/i.test(error.message)) {
+          setError("No account found for this email. Sign up first.");
+          return "error";
         }
         throw error;
       }
