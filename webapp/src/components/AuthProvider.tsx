@@ -32,7 +32,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(data.session);
       setInitializing(false);
     });
-    const { data } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
+    const { data } = supabase.auth.onAuthStateChange((event, next) => {
+      setSession(next);
+      // Covers both instant sign-ups and users arriving from the email confirmation link.
+      // Deferred: Supabase calls inside this callback can deadlock the auth client.
+      if (event === "SIGNED_IN" && next) setTimeout(() => ensureDefaultAccount(next.user.id), 0);
+    });
     return () => data.subscription.unsubscribe();
   }, []);
 
@@ -52,13 +57,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     setError(null);
     try {
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        // Send the confirmation link back to the site the user signed up on (must be in
+        // Supabase → Auth → URL Configuration → Redirect URLs, otherwise Site URL is used).
+        options: { emailRedirectTo: `${window.location.origin}/expenses` },
+      });
       if (error) throw error;
       if (!data.session || !data.user) {
         setError("Check your email to confirm your account, then sign in.");
         return false;
       }
-      await createDefaultAccount(data.user.id);
+      // The default account is created by the SIGNED_IN listener (ensureDefaultAccount).
       return true;
     } catch (e) {
       setError(errorMessage(e));
@@ -91,9 +102,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-/** Same as AuthViewModel.createDefaultAccount: a "My Kitchen" account owned by the new user. */
-async function createDefaultAccount(userId: string) {
+/**
+ * Same as AuthViewModel.createDefaultAccount: a "My Kitchen" account owned by the new user.
+ * iOS runs it right after signUp; with email confirmation there is no session then, so here it
+ * runs on first sign-in and is skipped when the user already belongs to an account.
+ */
+async function ensureDefaultAccount(userId: string) {
   try {
+    const { data: existing, error: lookupError } = await supabase
+      .from("account_users")
+      .select("account_id")
+      .eq("user_id", userId)
+      .limit(1);
+    if (lookupError) throw lookupError;
+    if (existing.length > 0) return;
+
     const { data: account, error } = await supabase.from("accounts").insert({ name: "My Kitchen" }).select().single();
     if (error) throw error;
     const { error: linkError } = await supabase
