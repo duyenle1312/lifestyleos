@@ -7,6 +7,7 @@ import { Camera, CircleCheck, CirclePlus, Image as ImageIcon, Pencil, ScanText, 
 import { useAuth, useUser } from "@/components/AuthProvider";
 import { useCategories } from "@/components/CategoriesProvider";
 import { Alert, LargeTitle, LoadingOverlay, Spinner, Toolbar, useAutoFocus } from "@/components/ui";
+import { PAYMENT_METHODS } from "@/lib/constants";
 import { errorMessage, formatQuantity, parseDecimal, todayInput } from "@/lib/helpers";
 import { createExpensesFromReceipt } from "@/lib/services";
 import { type ReceiptItem, receiptItemDisplayName, type ScannedReceipt } from "@/lib/types";
@@ -61,6 +62,7 @@ export default function ScanPage() {
       const scanned = json as ScannedReceipt;
       setReceipt({
         ...scanned,
+        paymentMethod: "Food Voucher", // previous hard-coded default, now editable
         date: isDateInput(scanned.date) ? scanned.date : todayInput(),
         items: scanned.items.map((i) => ({ ...i, category: matchCategory(i.category, categoryNames) })),
       });
@@ -159,6 +161,7 @@ export default function ScanPage() {
           isSaving={isSaving}
           onChangeStore={(storeName) => setReceipt((r) => (r ? { ...r, storeName } : r))}
           onChangeDate={(date) => setReceipt((r) => (r ? { ...r, date } : r))}
+          onChangePayment={(paymentMethod) => setReceipt((r) => (r ? { ...r, paymentMethod } : r))}
           onUpdateItem={(id, patch) => updateItems((items) => items.map((i) => (i.id === id ? { ...i, ...patch } : i)))}
           onRemoveItem={(id) => updateItems((items) => items.filter((i) => i.id !== id))}
           onSave={save}
@@ -189,6 +192,7 @@ function ReceiptReview({
   isSaving,
   onChangeStore,
   onChangeDate,
+  onChangePayment,
   onUpdateItem,
   onRemoveItem,
   onSave,
@@ -199,6 +203,7 @@ function ReceiptReview({
   isSaving: boolean;
   onChangeStore: (name: string | null) => void;
   onChangeDate: (date: string) => void;
+  onChangePayment: (method: string | null) => void;
   onUpdateItem: (id: string, patch: Partial<ReceiptItem>) => void;
   onRemoveItem: (id: string) => void;
   onSave: () => void;
@@ -206,30 +211,44 @@ function ReceiptReview({
 }) {
   return (
     <div className="flex flex-col">
-      <div className="flex flex-col items-center gap-2 bg-gray6 p-4 dark:bg-cell">
-        <label className="flex w-full max-w-sm items-center justify-center gap-1.5 border-b border-transparent focus-within:border-ios-blue">
+      <div className="flex flex-col gap-2 bg-gray6 px-4 py-3 dark:bg-cell">
+        <div className="flex items-center gap-3">
+          <label className="flex min-w-0 flex-1 items-center gap-1.5 border-b border-transparent focus-within:border-ios-blue">
+            <input
+              aria-label="Store name"
+              className="min-w-0 flex-1 bg-transparent text-[20px] font-bold outline-none placeholder:font-normal"
+              placeholder="Store name"
+              value={receipt.storeName ?? ""}
+              onChange={(e) => onChangeStore(e.target.value || null)}
+            />
+            <Pencil size={14} className="shrink-0 text-label-3" />
+          </label>
+          <span className="shrink-0 text-[20px] font-bold text-ios-blue">
+            {formatCurrency(receipt.total, receipt.currency)}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
           <input
-            aria-label="Store name"
-            className="min-w-0 flex-1 bg-transparent text-center text-[22px] font-bold outline-none placeholder:font-normal"
-            placeholder="Store name"
-            value={receipt.storeName ?? ""}
-            onChange={(e) => onChangeStore(e.target.value || null)}
+            type="date"
+            aria-label="Receipt date"
+            className="rounded-md bg-fill px-2 py-1 text-[15px] text-label outline-none"
+            value={receipt.date ?? todayInput()}
+            max={todayInput()}
+            onChange={(e) => e.target.value && onChangeDate(e.target.value)}
           />
-          <Pencil size={14} className="shrink-0 text-label-3" />
-        </label>
-        <input
-          type="date"
-          aria-label="Receipt date"
-          className="rounded-md bg-fill px-2.5 text-[17px] text-label outline-none"
-          value={receipt.date ?? todayInput()}
-          max={todayInput()}
-          onChange={(e) => e.target.value && onChangeDate(e.target.value)}
-        />
-        <p className="flex items-center gap-2">
-          <span className="text-[17px] font-semibold text-label-2">Total:</span>
-          <span className="text-[22px] font-bold text-ios-blue">{formatCurrency(receipt.total, receipt.currency)}</span>
-        </p>
-        <p className="text-xs text-label-2">{receipt.items.length} items</p>
+          <select
+            aria-label="Payment method"
+            className="min-w-0 rounded-md bg-fill px-2 py-1 text-[15px] text-label outline-none"
+            value={receipt.paymentMethod ?? ""}
+            onChange={(e) => onChangePayment(e.target.value || null)}
+          >
+            <option value="">No method</option>
+            {PAYMENT_METHODS.map((m) => (
+              <option key={m}>{m}</option>
+            ))}
+          </select>
+          <span className="ml-auto shrink-0 text-xs text-label-2">{receipt.items.length} items</span>
+        </div>
       </div>
 
       <ul className="bg-primary-bg">

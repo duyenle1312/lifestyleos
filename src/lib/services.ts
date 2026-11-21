@@ -81,7 +81,7 @@ export async function createExpensesFromReceipt(accountId: string, receipt: Scan
           unit: quantity,
           unit_price: Math.round((item.amount / quantity) * 10_000) / 10_000,
           expire_date: null,
-          payment_method: "Food Voucher",
+          payment_method: receipt.paymentMethod ?? null,
           item: receiptItemDisplayName(item),
         }),
       );

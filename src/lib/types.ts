@@ -89,6 +89,8 @@ export interface ScannedReceipt {
   items: ReceiptItem[];
   total: number;
   currency: string;
+  /** Chosen by the user on the review screen; not returned by the scanner. */
+  paymentMethod?: string | null;
 }
 
 export const receiptItemDisplayName = (item: ReceiptItem) => item.translatedName ?? item.name;
