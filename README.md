@@ -34,7 +34,7 @@ npm run dev                  # http://localhost:3000
 
 | iOS | Web |
 |---|---|
-| `LoginView` / `SignUpView` | `components/LoginView.tsx` |
+| `LoginView` / `SignUpView` (merged: passwordless magic link) | `components/LoginView.tsx` |
 | `ExpenseListView`, `AddExpenseView`, `EditExpenseView`, `ExpenseDetailView`, `MonthPickerView` | `app/expenses`, `components/expenses/*` |
 | `ShoppingListsView`, `AddShoppingListView`, `EditShoppingListView` | `app/shopping`, `components/shopping/*` |
 | `InventoryListView`, `AddInventoryItemView`, `InventoryDetailView` | `app/inventory`, `app/inventory/[id]` |

@@ -14,8 +14,8 @@ interface AuthState {
   isLoading: boolean;
   errorMessage: string | null;
   clearError: () => void;
-  signIn: (email: string, password: string) => Promise<boolean>;
-  signUp: (email: string, password: string) => Promise<boolean>;
+  /** Resolves true once the email has been sent. */
+  sendMagicLink: (email: string) => Promise<boolean>;
   signOut: () => Promise<void>;
 }
 
@@ -34,48 +34,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     const { data } = supabase.auth.onAuthStateChange((event, next) => {
       setSession(next);
-      // Covers both instant sign-ups and users arriving from the email confirmation link.
+      // Fires when a user arrives from the magic link (new and returning users alike).
       // Deferred: Supabase calls inside this callback can deadlock the auth client.
       if (event === "SIGNED_IN" && next) setTimeout(() => ensureDefaultAccount(next.user.id), 0);
     });
     return () => data.subscription.unsubscribe();
   }, []);
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    setIsLoading(true);
-    setError(null);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setIsLoading(false);
-    if (error) {
-      setError(error.message);
-      return false;
-    }
-    return true;
-  }, []);
-
-  const signUp = useCallback(async (email: string, password: string) => {
+  /** Emails a one-time sign-in link. Also creates the account on first use, so there is no separate sign-up. */
+  const sendMagicLink = useCallback(async (email: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signInWithOtp({
         email,
-        password,
-        // Send the confirmation link back to the site the user signed up on (must be in
-        // Supabase → Auth → URL Configuration → Redirect URLs, otherwise Site URL is used).
-        options: { emailRedirectTo: `${window.location.origin}/expenses` },
+        options: {
+          shouldCreateUser: true,
+          // The link brings the user back to the site they asked from (must be in
+          // Supabase → Auth → URL Configuration → Redirect URLs, otherwise Site URL is used).
+          // The SIGNED_IN listener above then picks up the session and creates the default account.
+          emailRedirectTo: `${window.location.origin}/expenses`,
+        },
       });
       if (error) throw error;
-      // Supabase hides whether an email is registered: for an existing account it returns a
-      // user with no identities and sends no email.
-      if (data.user && data.user.identities?.length === 0) {
-        setError("An account with this email already exists. Please sign in instead.");
-        return false;
-      }
-      if (!data.session || !data.user) {
-        setError("Check your email to confirm your account, then sign in.");
-        return false;
-      }
-      // The default account is created by the SIGNED_IN listener (ensureDefaultAccount).
       return true;
     } catch (e) {
       setError(errorMessage(e));
@@ -98,11 +79,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       errorMessage: error,
       clearError: () => setError(null),
-      signIn,
-      signUp,
+      sendMagicLink,
       signOut,
     }),
-    [session, initializing, isLoading, error, signIn, signUp, signOut],
+    [session, initializing, isLoading, error, sendMagicLink, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -110,8 +90,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 /**
  * Same as AuthViewModel.createDefaultAccount: a "My Kitchen" account owned by the new user.
- * iOS runs it right after signUp; with email confirmation there is no session then, so here it
- * runs on first sign-in.
+ * iOS runs it right after signUp; the web app has no sign-up step (magic links create the user),
+ * so here it runs on every sign-in and is a no-op once the account exists.
  *
  * The app writes every row with account_id = the user's id (see services.ts), so the account
  * must have that same id, and the user must be linked to it, or RLS rejects the inserts.
