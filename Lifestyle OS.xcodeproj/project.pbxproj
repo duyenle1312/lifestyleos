@@ -10,6 +10,7 @@
 		DB2E41112EFACCE5008C32A5 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = DB2E41102EFACCE5008C32A5 /* Supabase */; };
 		DB2E41352EFAD9C0008C32A5 /* README.md in Sources */ = {isa = PBXBuildFile; fileRef = DB2E41342EFAD9BA008C32A5 /* README.md */; };
 		DB6ADFC02F119616000EF164 /* FirebaseAILogic in Frameworks */ = {isa = PBXBuildFile; productRef = DB6ADFBF2F119616000EF164 /* FirebaseAILogic */; };
+		DB6ADFC22F119616000EF164 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = DB6ADFC12F119616000EF164 /* FirebaseAppCheck */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -45,6 +46,7 @@
 			files = (
 				DB2E41112EFACCE5008C32A5 /* Supabase in Frameworks */,
 				DB6ADFC02F119616000EF164 /* FirebaseAILogic in Frameworks */,
+				DB6ADFC22F119616000EF164 /* FirebaseAppCheck in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -98,6 +100,7 @@
 			packageProductDependencies = (
 				DB2E41102EFACCE5008C32A5 /* Supabase */,
 				DB6ADFBF2F119616000EF164 /* FirebaseAILogic */,
+				DB6ADFC12F119616000EF164 /* FirebaseAppCheck */,
 			);
 			productName = "Lifestyle OS";
 			productReference = DB895D952EFAC6690068C064 /* Lifestyle OS.app */;
@@ -402,6 +405,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DB6ADFBE2F119616000EF164 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseAILogic;
+		};
+		DB6ADFC12F119616000EF164 /* FirebaseAppCheck */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DB6ADFBE2F119616000EF164 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAppCheck;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

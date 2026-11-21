@@ -92,8 +92,8 @@ class ReceiptScannerService {
         // Initialize the Gemini Developer API backend service
         let ai = FirebaseAI.firebaseAI(backend: .googleAI())
         
-        // Create a GenerativeModel instance with Gemini 2.5 Flash
-        let model = ai.generativeModel(modelName: "gemini-2.5-flash")
+        // Use the supported replacement for the deprecated Gemini 2.5 Flash model.
+        let model = ai.generativeModel(modelName: "gemini-3.5-flash-lite")
         
         let prompt = """
         Extract information from this receipt OCR and translate item names to English. If there is a discount, ignore it and show only the original prices.
@@ -150,6 +150,16 @@ class ReceiptScannerService {
             
             return receipt
             
+        } catch let error as GenerateContentError {
+            // GenerateContentError's localizedDescription hides the real cause; log the underlying error.
+            switch error {
+            case .internalError(let underlying):
+                print("❌ Gemini internal error. Underlying: \(underlying)")
+                throw ReceiptError.apiError(message: String(describing: underlying))
+            default:
+                print("❌ Gemini API Error: \(error)")
+                throw ReceiptError.apiError(message: String(describing: error))
+            }
         } catch {
             print("❌ Gemini API Error: \(error.localizedDescription)")
             throw ReceiptError.apiError(message: error.localizedDescription)

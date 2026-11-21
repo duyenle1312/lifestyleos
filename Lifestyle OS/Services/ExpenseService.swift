@@ -261,6 +261,7 @@ class ExpenseService {
         return response
     }
     
+    // endDate is exclusive, so a month can be passed as [start of month, start of next month)
     func fetchExpensesByDateRange(
         accountId: UUID,
         startDate: Date,
@@ -268,13 +269,13 @@ class ExpenseService {
     ) async throws -> [Expense] {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        
+
         let response: [Expense] = try await client
             .from("expenses")
             .select()
             .eq("account_id", value: accountId.uuidString)
             .gte("expense_date", value: formatter.string(from: startDate))
-            .lte("expense_date", value: formatter.string(from: endDate))
+            .lt("expense_date", value: formatter.string(from: endDate))
             .is("deleted_at", value: nil)
             .order("expense_date", ascending: false)
             .execute()

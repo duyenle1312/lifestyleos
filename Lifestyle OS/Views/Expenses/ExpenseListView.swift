@@ -236,10 +236,10 @@ struct ExpenseListView: View {
             .sheet(isPresented: $showingMonthPicker) {
                 MonthPickerView(selectedMonth: $selectedMonth)
             }
-            .task {
+            .task(id: monthStart) {
                 if let user = authViewModel.currentUser {
-                    print("DEBUG: Loading expenses for user: \(user.id)")
-                    await viewModel.loadExpenses(accountId: user.id)
+                    print("DEBUG: Loading expenses for user: \(user.id), month: \(monthStart)")
+                    await viewModel.loadExpenses(accountId: user.id, month: selectedMonth)
                     print("DEBUG: Loaded \(viewModel.expenses.count) expenses")
 //                    if !viewModel.expenses.isEmpty {
 //                        print("DEBUG: First expense: \(viewModel.expenses[0])")
@@ -252,7 +252,12 @@ struct ExpenseListView: View {
     }
     
     // MARK: - Helper Methods
-    
+
+    // Refetch key: changes only when the month changes, not on every day picked in MonthPickerView
+    private var monthStart: Date {
+        Calendar.current.dateInterval(of: .month, for: selectedMonth)?.start ?? selectedMonth
+    }
+
     private var isCurrentMonth: Bool {
         let calendar = Calendar.current
         return calendar.isDate(selectedMonth, equalTo: Date(), toGranularity: .month)

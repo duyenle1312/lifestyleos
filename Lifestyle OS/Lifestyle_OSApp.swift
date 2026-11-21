@@ -7,10 +7,24 @@
 import SwiftUI
 internal import Auth
 import FirebaseCore
+import FirebaseAppCheck
+
+/// Debug builds (incl. simulator) use the App Check debug provider; release builds use App Attest.
+final class LifestyleAppCheckProviderFactory: NSObject, AppCheckProviderFactory {
+  func createProvider(with app: FirebaseApp) -> AppCheckProvider? {
+    #if DEBUG
+    return AppCheckDebugProvider(app: app)
+    #else
+    return AppAttestProvider(app: app)
+    #endif
+  }
+}
 
 class AppDelegate: NSObject, UIApplicationDelegate {
   func application(_ application: UIApplication,
                    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+    // Must be set BEFORE FirebaseApp.configure(), otherwise Firebase AI Logic sends no App Check token (401).
+    AppCheck.setAppCheckProviderFactory(LifestyleAppCheckProviderFactory())
     FirebaseApp.configure()
 
     return true

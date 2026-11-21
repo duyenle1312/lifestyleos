@@ -83,7 +83,34 @@ struct SupabaseConfig {
 }
 ```
 
-### 3. Database Setup
+### 3. Firebase AI Logic (Receipt Scanning)
+
+Receipt scanning sends OCR text to Gemini through Firebase AI Logic (`Services/ReceiptScannerService.swift`).
+
+- **Google account:** `lengomyduyen@gmail.com`
+- **Firebase project ID:** `lifestyleos` (from `GoogleService-Info.plist`)
+- **API provider:** Gemini Developer API (`FirebaseAI.firebaseAI(backend: .googleAI())`)
+
+Dashboards:
+
+| What | URL |
+|------|-----|
+| Firebase AI Logic | https://console.firebase.google.com/project/lifestyleos/ailogic |
+| Project overview | https://console.firebase.google.com/project/lifestyleos/overview |
+| App Check | https://console.firebase.google.com/project/lifestyleos/appcheck |
+| Gemini API quotas (Google Cloud) | https://console.cloud.google.com/apis/api/generativelanguage.googleapis.com/quotas?project=lifestyleos |
+
+If you see a link saying you have no access, switch to the account above using the avatar in the top-right corner.
+
+#### App Check
+
+App Check makes Firebase reject requests that don't come from your real app. Enforcement is on for Firebase AI Logic, so requests without a valid token fail with `401 "Firebase App Check token is invalid."`
+
+The app sets App Check up in `Lifestyle_OSApp.swift` (`LifestyleAppCheckProviderFactory`). The provider is registered before `FirebaseApp.configure()`:
+- **Debug builds (simulator and devices run from Xcode):** `AppCheckDebugProvider`. On first launch, the Xcode console prints `Firebase App Check debug token: <uuid>`. Add that token in the App Check dashboard → Apps → iOS app → ⋮ → *Manage debug tokens*. Each simulator or device has its own token.
+- **Release / TestFlight / App Store:** `AppAttestProvider`. This needs the **App Attest** capability on the target (Signing & Capabilities) and the App Attest provider registered for the iOS app in the App Check dashboard.
+
+### 4. Database Setup
 
 The SQL schema includes:
 
@@ -96,7 +123,7 @@ The SQL schema includes:
 - **audit_logs**: Change history
 - Row Level Security (RLS) policies for data protection
 
-### 4. Build and Run
+### 5. Build and Run
 
 1. Select your target device/simulator
 2. Press Cmd+R to build and run

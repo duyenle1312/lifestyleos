@@ -16,18 +16,26 @@ class ExpenseViewModel: ObservableObject {
     
     private let expenseService = ExpenseService()
     
-    func loadExpenses(accountId: UUID) async {
+    func loadExpenses(accountId: UUID, month: Date) async {
+        guard let interval = Calendar.current.dateInterval(of: .month, for: month) else { return }
+
         isLoading = true
         errorMessage = nil
-        
+
         do {
-            expenses = try await expenseService.fetchExpenses(accountId: accountId)
-            print("inside expense view model")
-            print(expenses)
+            let result = try await expenseService.fetchExpensesByDateRange(
+                accountId: accountId,
+                startDate: interval.start,
+                endDate: interval.end
+            )
+            // A newer month was selected while this request was in flight
+            guard !Task.isCancelled else { return }
+            expenses = result
         } catch {
+            guard !Task.isCancelled else { return }
             errorMessage = error.localizedDescription
         }
-        
+
         isLoading = false
     }
     
