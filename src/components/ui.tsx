@@ -304,7 +304,7 @@ export function TextFieldRow({
   onChange,
   placeholder,
   inputMode,
-  autoFocus,
+  autoFocus = false,
 }: {
   value: string;
   onChange: (v: string) => void;

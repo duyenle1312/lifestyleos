@@ -35,6 +35,7 @@ const PRIORITY_LABELS: Record<number, string> = {
   2: "⭐⭐ Medium",
   1: "⭐ Low",
 };
+const PRIORITY_NAMES: Record<number, string> = { 5: "Critical", 4: "Urgent", 3: "High", 2: "Medium", 1: "Low" };
 const PRIORITY_ORDER = [...[5, 4, 3, 2, 1].map((p) => PRIORITY_LABELS[p]), "No Priority"];
 
 function scheduleGroup(date: Date) {
@@ -190,6 +191,7 @@ export default function ShoppingPage() {
                 <SwipeRow key={i.id} onDelete={() => remove(i.id)} hoverDelete={false}>
                   <ShoppingRow
                     item={i}
+                    showPriority={grouping !== "priority"}
                     onEdit={() => setEditingId(i.id)}
                     onTogglePurchased={() => update(i.id, { purchased: !i.purchased })}
                   />
@@ -223,10 +225,13 @@ function formatScheduled(date: Date) {
 
 function ShoppingRow({
   item,
+  showPriority,
   onEdit,
   onTogglePurchased,
 }: {
   item: ShoppingItem;
+  /** Off when grouped by priority: the section header already says it. */
+  showPriority: boolean;
   onEdit: () => void;
   onTogglePurchased: () => void;
 }) {
@@ -235,6 +240,7 @@ function ShoppingRow({
   const start = item.available_date_start ? new Date(item.available_date_start) : null;
   const end = item.available_date_end ? new Date(item.available_date_end) : null;
   const total = item.unit_price != null && item.quantity != null ? item.unit_price * item.quantity : null;
+  const priority = showPriority && item.priority ? item.priority : 0;
 
   return (
     <div className="flex items-center gap-3 px-4 py-[10px]">
@@ -266,6 +272,16 @@ function ShoppingRow({
                 <span className="text-ios-blue">€{total.toFixed(2)}</span>
               </>
             )}
+          </p>
+        )}
+        {priority > 0 && (
+          <p className="flex items-center gap-1 pt-0.5 text-[12px] text-label-2">
+            <span className="flex text-ios-orange/60">
+              {Array.from({ length: priority }, (_, n) => (
+                <Star key={n} size={11} className="fill-current" strokeWidth={0} />
+              ))}
+            </span>
+            {PRIORITY_NAMES[priority]}
           </p>
         )}
         {scheduled && (
