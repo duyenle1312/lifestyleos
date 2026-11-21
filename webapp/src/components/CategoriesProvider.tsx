@@ -9,15 +9,24 @@ import { useUser } from "./AuthProvider";
 
 export const MAX_CATEGORY_NAME = 50;
 
+export interface CategoryDraft {
+  name: string;
+  icon: string;
+  color: string;
+}
+
 interface CategoriesState {
   categories: Category[];
   names: string[];
+  byId: Map<string, Category>;
   isLoading: boolean;
   loadError: string | null;
   /** Returns an error message, or null when the name is usable. */
   validateName: (name: string, exceptId?: string) => string | null;
-  addCategory: (name: string) => Promise<Category>;
-  renameCategory: (id: string, name: string) => Promise<Category>;
+  addCategory: (draft: CategoryDraft) => Promise<Category>;
+  updateCategory: (id: string, draft: CategoryDraft) => Promise<Category>;
+  /** Moves the category's expenses to `moveTo` (or uncategorized) and deletes it. */
+  deleteCategory: (id: string, moveTo: string | null) => Promise<number>;
 }
 
 const CategoriesContext = createContext<CategoriesState | null>(null);
@@ -58,10 +67,10 @@ export function CategoriesProvider({ children }: { children: React.ReactNode }) 
   );
 
   const addCategory = useCallback(
-    async (raw: string) => {
+    async ({ name, icon, color }: CategoryDraft) => {
       const nextOrder = categories.reduce((max, c) => Math.max(max, c.sort_order), 0) + 1;
       try {
-        const created = await api.createCategory(user.id, raw.trim(), nextOrder);
+        const created = await api.createCategory(user.id, name.trim(), nextOrder, { icon, color });
         setCategories((list) => [...list, created]);
         return created;
       } catch (e) {
@@ -71,11 +80,29 @@ export function CategoriesProvider({ children }: { children: React.ReactNode }) 
     [categories, user.id],
   );
 
-  const renameCategory = useCallback(async (id: string, raw: string) => {
+  const updateCategory = useCallback(
+    async (id: string, { name, icon, color }: CategoryDraft) => {
+      const current = categories.find((c) => c.id === id);
+      try {
+        let updated = current!;
+        if (current && current.name !== name.trim()) updated = await api.renameCategory(id, name.trim());
+        if (current && (current.icon !== icon || current.color !== color)) {
+          updated = await api.updateCategoryStyle(id, { icon, color });
+        }
+        setCategories((list) => list.map((c) => (c.id === id ? updated : c)));
+        return updated;
+      } catch (e) {
+        throw friendly(e);
+      }
+    },
+    [categories],
+  );
+
+  const deleteCategory = useCallback(async (id: string, moveTo: string | null) => {
     try {
-      const updated = await api.renameCategory(id, raw.trim());
-      setCategories((list) => list.map((c) => (c.id === id ? updated : c)));
-      return updated;
+      const moved = await api.deleteCategory(id, moveTo);
+      setCategories((list) => list.filter((c) => c.id !== id));
+      return moved;
     } catch (e) {
       throw friendly(e);
     }
@@ -85,13 +112,15 @@ export function CategoriesProvider({ children }: { children: React.ReactNode }) 
     () => ({
       categories,
       names: categories.map((c) => c.name),
+      byId: new Map(categories.map((c) => [c.id, c])),
       isLoading,
       loadError,
       validateName,
       addCategory,
-      renameCategory,
+      updateCategory,
+      deleteCategory,
     }),
-    [categories, isLoading, loadError, validateName, addCategory, renameCategory],
+    [categories, isLoading, loadError, validateName, addCategory, updateCategory, deleteCategory],
   );
 
   return <CategoriesContext.Provider value={value}>{children}</CategoriesContext.Provider>;

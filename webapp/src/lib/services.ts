@@ -14,6 +14,7 @@ export interface ExpenseInput {
   currency: string;
   expense_date: string;
   category: string | null;
+  category_id?: string | null;
   description: string | null;
   location: string | null;
   unit: number | null;
@@ -74,7 +75,7 @@ export async function createExpensesFromReceipt(accountId: string, receipt: Scan
           amount: item.amount,
           currency: "EUR",
           expense_date: expenseDate,
-          category: item.category,
+          category: item.category, // linked to category_id by the DB trigger
           description: null,
           location: receipt.storeName,
           unit: quantity,
@@ -151,21 +152,54 @@ export async function fetchCategories(accountId: string) {
   return data as Category[];
 }
 
-export async function createCategory(accountId: string, name: string, sortOrder: number) {
+export interface CategoryStyle {
+  icon: string;
+  color: string;
+}
+
+export async function createCategory(accountId: string, name: string, sortOrder: number, style: CategoryStyle) {
   const { data, error } = await supabase
     .from("categories")
-    .insert({ account_id: accountId, name, sort_order: sortOrder })
+    .insert({ account_id: accountId, name, sort_order: sortOrder, ...style })
     .select()
     .single();
   if (error) throw error;
   return data as Category;
 }
 
-/** Renames the category and re-labels existing expenses that used the old name (one transaction). */
+/** Renames the category; a DB trigger updates the name stored on its expenses. */
 export async function renameCategory(id: string, name: string) {
   const { data, error } = await supabase.rpc("rename_category", { p_id: id, p_name: name });
   if (error) throw error;
   return data as Category;
+}
+
+export async function updateCategoryStyle(id: string, style: CategoryStyle) {
+  const { data, error } = await supabase
+    .from("categories")
+    .update({ ...style, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as Category;
+}
+
+/** Deletes a category; its expenses move to `moveTo`, or become uncategorized. Returns how many moved. */
+export async function deleteCategory(id: string, moveTo: string | null) {
+  const { data, error } = await supabase.rpc("delete_category", { p_id: id, p_move_to: moveTo });
+  if (error) throw error;
+  return data as number;
+}
+
+export async function countCategoryExpenses(id: string) {
+  const { count, error } = await supabase
+    .from("expenses")
+    .select("id", { count: "exact", head: true })
+    .eq("category_id", id)
+    .is("deleted_at", null);
+  if (error) throw error;
+  return count ?? 0;
 }
 
 // MARK: - Inventory

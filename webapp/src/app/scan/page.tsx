@@ -6,7 +6,7 @@ import { useRef, useState } from "react";
 import { Camera, CircleCheck, CirclePlus, Image as ImageIcon, Pencil, ScanText, Trash2 } from "lucide-react";
 import { useAuth, useUser } from "@/components/AuthProvider";
 import { useCategories } from "@/components/CategoriesProvider";
-import { Alert, LargeTitle, LoadingOverlay, Spinner, Toolbar } from "@/components/ui";
+import { Alert, LargeTitle, LoadingOverlay, Spinner, Toolbar, useAutoFocus } from "@/components/ui";
 import { errorMessage, formatQuantity, parseDecimal, todayInput } from "@/lib/helpers";
 import { createExpensesFromReceipt } from "@/lib/services";
 import { type ReceiptItem, receiptItemDisplayName, type ScannedReceipt } from "@/lib/types";
@@ -279,6 +279,7 @@ function ReceiptItemRow({
   onDelete: () => void;
 }) {
   const [isEditing, setIsEditing] = useState(false);
+  const nameRef = useAutoFocus<HTMLInputElement>(isEditing);
   const [name, setName] = useState("");
   const [quantity, setQuantity] = useState("");
   const [amount, setAmount] = useState("");
@@ -312,7 +313,7 @@ function ReceiptItemRow({
       <li className="flex flex-col gap-3 border-b border-separator bg-gray6/60 px-4 py-4 dark:bg-cell/60">
         <label className={labelClass}>
           Item
-          <input className={fieldClass} value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+          <input ref={nameRef} className={fieldClass} value={name} onChange={(e) => setName(e.target.value)} />
         </label>
         <div className="grid grid-cols-2 gap-3">
           <label className={labelClass}>

@@ -1,8 +1,9 @@
 "use client";
 
 // Port of Views/Expenses/ExpenseListView.swift + ExpenseViewModel.swift
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { Calendar, ChevronLeft, ChevronRight, Inbox, Plus } from "lucide-react";
+import { Calendar, ChevronLeft, ChevronRight, Inbox, List, Plus, Settings2 } from "lucide-react";
 import { useUser } from "@/components/AuthProvider";
 import { ExpenseDetail } from "@/components/expenses/ExpenseDetail";
 import { ExpenseForm } from "@/components/expenses/ExpenseForm";
@@ -10,7 +11,7 @@ import { MonthPicker } from "@/components/expenses/MonthPicker";
 import { FilterGlyph, IconBubble } from "@/components/glyphs";
 import { EmptyState, ErrorBanner, IconButton, Menu, SearchBar, Section, Spinner, SwipeRow, Toolbar } from "@/components/ui";
 import { useCategories } from "@/components/CategoriesProvider";
-import { categoryColor, categoryIcon, iosColor } from "@/lib/constants";
+import { categoryVisual } from "@/lib/categoryStyle";
 import {
   addMonths,
   errorMessage,
@@ -21,20 +22,22 @@ import {
   startOfMonth,
 } from "@/lib/helpers";
 import * as api from "@/lib/services";
-import type { Expense } from "@/lib/types";
+import type { Category, Expense } from "@/lib/types";
 
 const byDateDesc = (a: Expense, b: Expense) => b.expense_date.localeCompare(a.expense_date);
 
 export default function ExpensesPage() {
   const user = useUser();
-  const { names: categoryNames } = useCategories();
+  const router = useRouter();
+  const { categories, byId } = useCategories();
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const [expenses, setExpenses] = useState<Expense[]>([]);
   /** Month (timestamp) the current `expenses` were loaded for; loading = it differs from the selected month. */
   const [loadedMonth, setLoadedMonth] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("All");
+  /** "all" or a category id. */
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [showAdd, setShowAdd] = useState(false);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -58,11 +61,11 @@ export default function ExpensesPage() {
     const q = search.trim().toLowerCase();
     return expenses.filter((e) => {
       if (!isSameMonth(new Date(e.expense_date), month)) return false;
-      if (category !== "All" && e.category !== category) return false;
+      if (categoryFilter !== "all" && e.category_id !== categoryFilter) return false;
       if (!q) return true;
       return [e.item, e.description, e.location].some((f) => f?.toLowerCase().includes(q));
     });
-  }, [expenses, month, category, search]);
+  }, [expenses, month, categoryFilter, search]);
 
   const groups = useMemo(() => {
     const map = new Map<number, Expense[]>();
@@ -118,15 +121,25 @@ export default function ExpensesPage() {
             label="Filter by category"
             trigger={
               <>
-                <FilterGlyph active={category !== "All"} />
-                {category !== "All" && <span className="text-xs">{category}</span>}
+                <FilterGlyph active={categoryFilter !== "all"} />
+                {byId.has(categoryFilter) && <span className="text-xs">{byId.get(categoryFilter)!.name}</span>}
               </>
             }
-            entries={["All", ...categoryNames].map((c) => ({
-              label: c,
-              selected: c === category,
-              onSelect: () => setCategory(c),
-            }))}
+            entries={[
+              { label: "All", icon: List, selected: categoryFilter === "all", onSelect: () => setCategoryFilter("all") },
+              ...categories.map((c) => ({
+                label: c.name,
+                icon: categoryVisual(c).Icon,
+                selected: c.id === categoryFilter,
+                onSelect: () => setCategoryFilter(c.id),
+              })),
+              "divider" as const,
+              {
+                label: "Manage Categories…",
+                icon: Settings2,
+                onSelect: () => router.push("/settings/categories?from=expenses"),
+              },
+            ]}
           />
         }
         right={<IconButton icon={Plus} label="Add expense" onClick={() => setShowAdd(true)} />}
@@ -182,7 +195,7 @@ export default function ExpensesPage() {
             <Section key={day} header={formatSectionDate(new Date(day))} inset={74} className="first:pt-2">
               {items.map((e) => (
                 <SwipeRow key={e.id} onDelete={() => remove(e.id)} onPress={() => setSelectedId(e.id)}>
-                  <ExpenseRow expense={e} />
+                  <ExpenseRow expense={e} category={e.category_id ? byId.get(e.category_id) : undefined} />
                 </SwipeRow>
               ))}
             </Section>
@@ -202,13 +215,14 @@ export default function ExpensesPage() {
   );
 }
 
-function ExpenseRow({ expense }: { expense: Expense }) {
+function ExpenseRow({ expense, category }: { expense: Expense; category?: Category }) {
   const meta = [expense.location, expense.payment_method].filter(Boolean).join(" • ");
+  const { Icon, color } = categoryVisual(category);
   return (
     <div className="flex items-center gap-3 px-[18px] py-3">
-      <IconBubble icon={categoryIcon(expense.category)} color={iosColor(categoryColor(expense.category))} />
+      <IconBubble icon={Icon} color={color} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[16px] font-semibold">{expense.item ?? expense.category ?? "Expense"}</p>
+        <p className="truncate text-[16px] font-semibold">{expense.item ?? category?.name ?? expense.category ?? "Expense"}</p>
         {meta && <p className="mt-1 truncate text-[13px] text-label-2">{meta}</p>}
       </div>
       <div className="text-right">

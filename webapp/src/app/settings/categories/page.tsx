@@ -1,29 +1,45 @@
 "use client";
 
-// Manage expense categories: add new ones, tap a row to rename it.
+// Manage expense categories: add, edit (name / icon / color), swipe or tap → delete.
 import Link from "next/link";
-import { useState } from "react";
-import { ChevronLeft, Pencil, Plus, Tag } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
+import { ChevronLeft, ChevronRight, CirclePlus, Plus, Tag } from "lucide-react";
 import { useCategories } from "@/components/CategoriesProvider";
-import { CategoryNameSheet } from "@/components/categories/CategoryNameSheet";
+import { CategoryEditorSheet } from "@/components/categories/CategoryEditorSheet";
+import { DeleteCategorySheet } from "@/components/categories/DeleteCategorySheet";
 import { IconBubble } from "@/components/glyphs";
-import { EmptyState, IconButton, Section, Spinner, Toolbar } from "@/components/ui";
-import { categoryColor, categoryIcon, iosColor } from "@/lib/constants";
+import { ButtonRow, EmptyState, IconButton, Section, Spinner, SwipeRow, Toolbar } from "@/components/ui";
+import { categoryVisual } from "@/lib/categoryStyle";
 import type { Category } from "@/lib/types";
 
 export default function CategoriesPage() {
-  const { categories, isLoading, loadError, addCategory, renameCategory } = useCategories();
+  return (
+    <Suspense>
+      <CategoriesScreen />
+    </Suspense>
+  );
+}
+
+function CategoriesScreen() {
+  const { categories, isLoading, loadError } = useCategories();
+  // ?from=expenses → back button returns to Expenses (opened from the filter menu).
+  const fromExpenses = useSearchParams().get("from") === "expenses";
   const [showAdd, setShowAdd] = useState(false);
-  const [renaming, setRenaming] = useState<Category | null>(null);
+  const [editing, setEditing] = useState<Category | null>(null);
+  const [deleting, setDeleting] = useState<Category | null>(null);
 
   return (
     <>
       <Toolbar
         title="Categories"
         left={
-          <Link href="/settings" className="-ml-2 flex items-center text-[17px] text-ios-blue">
+          <Link
+            href={fromExpenses ? "/expenses" : "/settings"}
+            className="-ml-2 flex items-center text-[17px] text-ios-blue"
+          >
             <ChevronLeft size={28} strokeWidth={2.2} />
-            Settings
+            {fromExpenses ? "Expenses" : "Settings"}
           </Link>
         }
         right={<IconButton icon={Plus} label="New category" onClick={() => setShowAdd(true)} />}
@@ -36,51 +52,42 @@ export default function CategoriesPage() {
       ) : loadError ? (
         <EmptyState icon={Tag} title="Couldn't load categories" subtitle={loadError} />
       ) : categories.length === 0 ? (
-        <EmptyState icon={Tag} title="No categories yet" subtitle="Tap + to create your first category" />
+        <EmptyState icon={Tag} title="No categories yet" subtitle="Create categories to organize your expenses">
+          <button
+            type="button"
+            onClick={() => setShowAdd(true)}
+            className="flex items-center gap-2 rounded-full bg-ios-blue px-5 py-2.5 text-[17px] font-semibold text-white"
+          >
+            <CirclePlus size={20} /> Add Category
+          </button>
+        </EmptyState>
       ) : (
-        <Section
-          className="pt-2"
-          inset={72}
-          footer="Renaming a category also updates the expenses that use it."
-        >
-          {categories.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => setRenaming(c)}
-              className="flex w-full items-center gap-3 px-4 py-[10px] text-left active:bg-gray5"
-            >
-              <IconBubble icon={categoryIcon(c.name)} color={iosColor(categoryColor(c.name))} />
-              <span className="min-w-0 flex-1 truncate text-[17px]">{c.name}</span>
-              <Pencil size={16} className="shrink-0 text-label-3" />
-            </button>
-          ))}
-        </Section>
+        <div className="pb-8">
+          <Section className="pt-2" inset={72} footer="Tap a category to change its name, icon or color. Swipe left to delete.">
+            {categories.map((c) => {
+              const { Icon, color } = categoryVisual(c);
+              return (
+                <SwipeRow key={c.id} onDelete={() => setDeleting(c)} onPress={() => setEditing(c)}>
+                  <div className="flex items-center gap-3 px-4 py-[10px]">
+                    <IconBubble icon={Icon} color={color} />
+                    <span className="min-w-0 flex-1 truncate text-[17px]">{c.name}</span>
+                    <ChevronRight size={18} className="shrink-0 text-label-3" />
+                  </div>
+                </SwipeRow>
+              );
+            })}
+          </Section>
+          <Section>
+            <ButtonRow onPress={() => setShowAdd(true)}>
+              <CirclePlus size={20} /> Add Category
+            </ButtonRow>
+          </Section>
+        </div>
       )}
 
-      {showAdd && (
-        <CategoryNameSheet
-          title="New Category"
-          actionLabel="Add"
-          onSubmit={async (name) => {
-            await addCategory(name);
-          }}
-          onClose={() => setShowAdd(false)}
-        />
-      )}
-      {renaming && (
-        <CategoryNameSheet
-          title="Rename Category"
-          actionLabel="Save"
-          initialName={renaming.name}
-          exceptId={renaming.id}
-          footer="Expenses in this category will be moved to the new name."
-          onSubmit={async (name) => {
-            await renameCategory(renaming.id, name);
-          }}
-          onClose={() => setRenaming(null)}
-        />
-      )}
+      {showAdd && <CategoryEditorSheet onClose={() => setShowAdd(false)} />}
+      {editing && <CategoryEditorSheet key={editing.id} category={editing} onClose={() => setEditing(null)} />}
+      {deleting && <DeleteCategorySheet category={deleting} onClose={() => setDeleting(null)} />}
     </>
   );
 }

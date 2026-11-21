@@ -3,6 +3,24 @@
 // Small set of iOS-style building blocks shared by every screen.
 import { Check, ChevronsUpDown, CircleX, LoaderCircle, type LucideIcon, Search, Trash2 } from "lucide-react";
 import { Children, Fragment, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+
+/**
+ * Overlays render at <body> level. Rendered in place, a sheet opened from inside another sheet sits in
+ * that sheet's scroll container, and focusing its input made the browser scroll the parent form.
+ */
+function portal(node: React.ReactNode) {
+  return typeof document === "undefined" ? node : createPortal(node, document.body);
+}
+
+/** Autofocus without letting the browser scroll ancestors (the sheet may still be sliding in). */
+export function useAutoFocus<T extends HTMLElement>(enabled = true) {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    if (enabled) ref.current?.focus({ preventScroll: true });
+  }, [enabled]);
+  return ref;
+}
 
 // MARK: - Spinner
 
@@ -71,7 +89,7 @@ export function Sheet({
       <span className="min-w-16" />
     );
 
-  return (
+  return portal(
     <div className="fixed inset-0 z-50 flex animate-fade-in items-end justify-center bg-black/40 md:items-center md:p-6">
       <div className="absolute inset-0" onClick={onClose} />
       <div
@@ -90,7 +108,7 @@ export function Sheet({
           {children}
         </div>
       </div>
-    </div>
+    </div>,
   );
 }
 
@@ -294,14 +312,15 @@ export function TextFieldRow({
   inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
   autoFocus?: boolean;
 }) {
+  const ref = useAutoFocus<HTMLInputElement>(autoFocus);
   return (
     <Row>
       <input
+        ref={ref}
         className="min-w-0 flex-1 bg-transparent outline-none"
         value={value}
         placeholder={placeholder}
         inputMode={inputMode}
-        autoFocus={autoFocus}
         onChange={(e) => onChange(e.target.value)}
       />
     </Row>
@@ -652,13 +671,13 @@ export function EmptyState({
 
 export function LoadingOverlay({ message }: { message: string }) {
   useScrollLock();
-  return (
+  return portal(
     <div className="fixed inset-0 z-50 flex animate-fade-in items-center justify-center bg-black/40">
       <div className="flex flex-col items-center gap-5 rounded-[20px] bg-white/20 p-[30px] backdrop-blur-xl">
         <Spinner size={34} className="text-white" />
         <p className="text-[17px] font-semibold text-white">{message}</p>
       </div>
-    </div>
+    </div>,
   );
 }
 
@@ -680,7 +699,7 @@ export function Alert({
   onDismiss: () => void;
 }) {
   useScrollLock();
-  return (
+  return portal(
     <div className="fixed inset-0 z-[60] flex animate-fade-in items-center justify-center bg-black/40 p-6">
       <div role="alertdialog" className="w-[270px] animate-pop-in overflow-hidden rounded-[14px] bg-cell/95 text-center backdrop-blur-xl">
         <div className="px-4 pt-5 pb-5">

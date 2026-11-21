@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Copy } from "lucide-react";
 import { CURRENCIES, PAYMENT_METHODS } from "@/lib/constants";
 import { useCategories } from "../CategoriesProvider";
-import { CategoryNameSheet } from "../categories/CategoryNameSheet";
+import { CategoryEditorSheet } from "../categories/CategoryEditorSheet";
 import { addMonths, noonISO, parseDecimal, toDateInput, todayInput } from "@/lib/helpers";
 import type { ExpenseInput } from "@/lib/services";
 import type { Expense } from "@/lib/types";
@@ -29,6 +29,8 @@ const opts = (values: string[], placeholder?: string) => [
 
 /** Sentinel option in the category picker that opens the "New Category" sheet. */
 const NEW_CATEGORY = "__new_category__";
+/** An old expense whose text category matches none of the user's categories (e.g. written by iOS). */
+const LEGACY_CATEGORY = "__legacy_category__";
 
 /** Strip binary float noise (3 × 1.1 = 3.3000000000000003) without rounding real decimals. */
 const clean = (n: number) => Math.round(n * 1e6) / 1e6;
@@ -46,7 +48,7 @@ export function ExpenseForm({
   onClose: () => void;
 }) {
   const isEdit = !!expense;
-  const { names: categoryNames, addCategory } = useCategories();
+  const { categories, byId } = useCategories();
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [item, setItem] = useState(expense?.item ?? "");
   const [unit, setUnit] = useState(expense ? (expense.unit != null ? String(expense.unit) : "") : "1");
@@ -59,9 +61,16 @@ export function ExpenseForm({
   const [expenseDate, setExpenseDate] = useState(
     expense ? toDateInput(new Date(expense.expense_date)) : todayInput(),
   );
-  const [category, setCategory] = useState(() => {
-    if (expense) return expense.category ?? "";
-    return categoryNames.includes("Food & Drink") ? "Food & Drink" : (categoryNames[0] ?? "");
+  /** Selected category id, "" for none, or LEGACY_CATEGORY. */
+  const [categoryId, setCategoryId] = useState(() => {
+    const byName = (name: string | null | undefined) =>
+      categories.find((c) => c.name.toLowerCase() === name?.toLowerCase())?.id;
+    if (expense) {
+      if (expense.category_id && byId.has(expense.category_id)) return expense.category_id;
+      if (!expense.category) return "";
+      return byName(expense.category) ?? LEGACY_CATEGORY;
+    }
+    return byName("Food & Drink") ?? categories[0]?.id ?? "";
   });
   const [location, setLocation] = useState(expense?.location ?? "");
   const [paymentMethod, setPaymentMethod] = useState(expense?.payment_method ?? "");
@@ -69,14 +78,19 @@ export function ExpenseForm({
   const [saving, setSaving] = useState(false);
   const [showDuplicateAlert, setShowDuplicateAlert] = useState(false);
 
-  // Keep an expense's existing category selectable even if it is not in the user's list.
   const categoryOptions = [
-    ...opts(
-      category && !categoryNames.includes(category) ? [...categoryNames, category] : categoryNames,
-      "Select Category",
-    ),
+    { value: "", label: "Select Category" },
+    ...categories.map((c) => ({ value: c.id, label: c.name })),
+    // Keep an old expense's unmatched category selectable so saving doesn't drop it.
+    ...(categoryId === LEGACY_CATEGORY ? [{ value: LEGACY_CATEGORY, label: expense?.category ?? "" }] : []),
     { value: NEW_CATEGORY, label: "New Category…" },
   ];
+
+  const categoryFields = (): Pick<ExpenseInput, "category" | "category_id"> => {
+    if (categoryId === LEGACY_CATEGORY) return { category: expense?.category ?? null, category_id: null };
+    const selected = byId.get(categoryId);
+    return { category: selected?.name ?? null, category_id: selected?.id ?? null };
+  };
 
   const unitNum = parseDecimal(unit);
   const priceNum = parseDecimal(unitPrice);
@@ -91,7 +105,7 @@ export function ExpenseForm({
       amount: clean(unitNum * priceNum),
       currency,
       expense_date: noonISO(shift(expenseDate)),
-      category: category || null,
+      ...categoryFields(),
       description: description || null,
       location: location || null,
       unit: unitNum,
@@ -150,8 +164,8 @@ export function ExpenseForm({
         <DateRow label="Date" value={expenseDate} onChange={setExpenseDate} />
         <SelectRow
           label="Category"
-          value={category}
-          onChange={(v) => (v === NEW_CATEGORY ? setShowNewCategory(true) : setCategory(v))}
+          value={categoryId}
+          onChange={(v) => (v === NEW_CATEGORY ? setShowNewCategory(true) : setCategoryId(v))}
           options={categoryOptions}
         />
       </Section>
@@ -179,15 +193,7 @@ export function ExpenseForm({
       )}
 
       {showNewCategory && (
-        <CategoryNameSheet
-          title="New Category"
-          actionLabel="Add"
-          onSubmit={async (name) => {
-            const created = await addCategory(name);
-            setCategory(created.name);
-          }}
-          onClose={() => setShowNewCategory(false)}
-        />
+        <CategoryEditorSheet onSaved={(created) => setCategoryId(created.id)} onClose={() => setShowNewCategory(false)} />
       )}
 
       {showDuplicateAlert && onDuplicate && (

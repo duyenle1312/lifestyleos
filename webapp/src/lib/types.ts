@@ -10,7 +10,9 @@ export interface Expense {
   amount: number;
   currency: string;
   expense_date: string;
+  /** Plain name, kept in sync with category_id by a DB trigger (the iOS app still uses it). */
   category: string | null;
+  category_id: string | null;
   description: string | null;
   location: string | null;
   unit: number | null;
@@ -64,6 +66,10 @@ export interface Category {
   account_id: string;
   name: string;
   sort_order: number;
+  /** Key from CATEGORY_ICONS (lib/categoryStyle.ts). */
+  icon: string;
+  /** Key from CATEGORY_COLORS. */
+  color: string;
   created_at: string;
   updated_at: string;
 }
