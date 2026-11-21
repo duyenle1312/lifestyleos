@@ -1,7 +1,7 @@
 // Ports of Services/ExpenseService.swift, ShoppingListService.swift and InventoryService.swift.
 // Like the iOS app, `accountId` is the signed-in user's id, and `created_by_user_id` is set to it too.
 import { supabase } from "./supabase";
-import type { Category, Expense, InventoryItem, ReceiptItem, ScannedReceipt, ShoppingItem } from "./types";
+import type { Category, Expense, InventoryItem, PaymentMethod, ReceiptItem, ScannedReceipt, ShoppingItem } from "./types";
 import { receiptItemDisplayName } from "./types";
 import { noonISO } from "./helpers";
 
@@ -197,6 +197,54 @@ export async function countCategoryExpenses(id: string) {
     .from("expenses")
     .select("id", { count: "exact", head: true })
     .eq("category_id", id)
+    .is("deleted_at", null);
+  if (error) throw error;
+  return count ?? 0;
+}
+
+// MARK: - Payment methods (supabase/migrations/*_payment_methods.sql)
+
+export async function fetchPaymentMethods(accountId: string) {
+  const { data, error } = await supabase
+    .from("payment_methods")
+    .select()
+    .eq("account_id", accountId)
+    .order("sort_order")
+    .order("created_at");
+  if (error) throw error;
+  return data as PaymentMethod[];
+}
+
+export async function createPaymentMethod(accountId: string, name: string, sortOrder: number) {
+  const { data, error } = await supabase
+    .from("payment_methods")
+    .insert({ account_id: accountId, name, sort_order: sortOrder })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as PaymentMethod;
+}
+
+/** Renames the method and the name stored on the expenses that use it. */
+export async function renamePaymentMethod(id: string, name: string) {
+  const { data, error } = await supabase.rpc("rename_payment_method", { p_id: id, p_name: name });
+  if (error) throw error;
+  return data as PaymentMethod;
+}
+
+/** Deletes a method; its expenses move to `moveTo`, or get none. Returns how many changed. */
+export async function deletePaymentMethod(id: string, moveTo: string | null) {
+  const { data, error } = await supabase.rpc("delete_payment_method", { p_id: id, p_move_to: moveTo });
+  if (error) throw error;
+  return data as number;
+}
+
+export async function countPaymentMethodExpenses(accountId: string, name: string) {
+  const { count, error } = await supabase
+    .from("expenses")
+    .select("id", { count: "exact", head: true })
+    .eq("account_id", accountId)
+    .ilike("payment_method", name.replace(/[\\%_]/g, "\\$&"))
     .is("deleted_at", null);
   if (error) throw error;
   return count ?? 0;

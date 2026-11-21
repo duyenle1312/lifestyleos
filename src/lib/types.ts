@@ -83,6 +83,16 @@ export interface ReceiptItem {
   category: string | null;
 }
 
+/** Per-user payment method (supabase/migrations/*_payment_methods.sql). Expenses store its name. */
+export interface PaymentMethod {
+  id: string;
+  account_id: string;
+  name: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ScannedReceipt {
   storeName: string | null;
   date: string | null;

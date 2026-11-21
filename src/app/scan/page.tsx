@@ -6,8 +6,8 @@ import { useRef, useState } from "react";
 import { Camera, CircleCheck, CirclePlus, Image as ImageIcon, Pencil, ScanText, Trash2 } from "lucide-react";
 import { useAuth, useUser } from "@/components/AuthProvider";
 import { useCategories } from "@/components/CategoriesProvider";
+import { usePaymentMethods } from "@/components/PaymentMethodsProvider";
 import { Alert, LargeTitle, LoadingOverlay, Spinner, Toolbar, useAutoFocus } from "@/components/ui";
-import { PAYMENT_METHODS } from "@/lib/constants";
 import { errorMessage, formatQuantity, parseDecimal, todayInput } from "@/lib/helpers";
 import { createExpensesFromReceipt } from "@/lib/services";
 import { type ReceiptItem, receiptItemDisplayName, type ScannedReceipt } from "@/lib/types";
@@ -25,6 +25,23 @@ async function prepareImage(file: File): Promise<{ image: string; mimeType: stri
 }
 
 const sumItems = (items: ReceiptItem[]) => items.reduce((s, i) => s + i.amount, 0);
+/** Remembers the last payment method used for a scanned receipt (per browser). */
+const LAST_SCAN_PAYMENT_KEY = "scan:lastPaymentMethod";
+function readLastPayment() {
+  try {
+    return localStorage.getItem(LAST_SCAN_PAYMENT_KEY);
+  } catch {
+    return null;
+  }
+}
+function writeLastPayment(name: string | null | undefined) {
+  try {
+    if (name) localStorage.setItem(LAST_SCAN_PAYMENT_KEY, name);
+  } catch {
+    // storage unavailable (private mode): just don't remember it
+  }
+}
+
 const isDateInput = (s: string | null): s is string => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
 
 /** Map Gemini's category onto one of the user's categories (case-insensitive), else "Other"/first. */
@@ -38,6 +55,7 @@ export default function ScanPage() {
   const user = useUser();
   const { session } = useAuth();
   const { names: categoryNames } = useCategories();
+  const { names: paymentNames } = usePaymentMethods();
   const [receipt, setReceipt] = useState<ScannedReceipt | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -62,7 +80,9 @@ export default function ScanPage() {
       const scanned = json as ScannedReceipt;
       setReceipt({
         ...scanned,
-        paymentMethod: "Food Voucher", // previous hard-coded default, now editable
+        // Last method used for a scan, else Food Voucher (the old fixed default), else the first one.
+        paymentMethod:
+          [readLastPayment(), "Food Voucher"].find((m) => m && paymentNames.includes(m)) ?? paymentNames[0] ?? null,
         date: isDateInput(scanned.date) ? scanned.date : todayInput(),
         items: scanned.items.map((i) => ({ ...i, category: matchCategory(i.category, categoryNames) })),
       });
@@ -90,6 +110,7 @@ export default function ScanPage() {
       if (created.length < receipt.items.length) {
         throw new Error(`Only ${created.length} of ${receipt.items.length} items were added.`);
       }
+      writeLastPayment(receipt.paymentMethod);
       setShowSuccess(true);
     } catch (e) {
       setError(errorMessage(e));
@@ -158,6 +179,7 @@ export default function ScanPage() {
         <ReceiptReview
           receipt={receipt}
           categories={categoryNames}
+          paymentMethods={paymentNames}
           isSaving={isSaving}
           onChangeStore={(storeName) => setReceipt((r) => (r ? { ...r, storeName } : r))}
           onChangeDate={(date) => setReceipt((r) => (r ? { ...r, date } : r))}
@@ -189,6 +211,7 @@ const formatCurrency = (amount: number, currency: string) =>
 function ReceiptReview({
   receipt,
   categories,
+  paymentMethods,
   isSaving,
   onChangeStore,
   onChangeDate,
@@ -200,6 +223,7 @@ function ReceiptReview({
 }: {
   receipt: ScannedReceipt;
   categories: string[];
+  paymentMethods: string[];
   isSaving: boolean;
   onChangeStore: (name: string | null) => void;
   onChangeDate: (date: string) => void;
@@ -243,7 +267,7 @@ function ReceiptReview({
             onChange={(e) => onChangePayment(e.target.value || null)}
           >
             <option value="">No method</option>
-            {PAYMENT_METHODS.map((m) => (
+            {paymentMethods.map((m) => (
               <option key={m}>{m}</option>
             ))}
           </select>

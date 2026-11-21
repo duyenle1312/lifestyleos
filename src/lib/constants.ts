@@ -3,7 +3,7 @@ export const CURRENCIES = ["EUR", "USD", "GBP", "JPY", "BGN", "CNY", "INR"];
 
 // Expense categories are per user now: see the `categories` table and CategoriesProvider.
 
-export const PAYMENT_METHODS = ["Food Voucher", "T212", "Revolut", "UBB", "Curve", "Paypal", "VCB", "Cash", "Other"];
+// Payment methods are per user too: see the `payment_methods` table and PaymentMethodsProvider.
 
 export const PRIORITY_OPTIONS: { value: number; label: string }[] = [
   { value: 0, label: "None" },

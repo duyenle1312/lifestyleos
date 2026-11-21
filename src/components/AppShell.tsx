@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { CircleDollarSign, Layers, ScanText, Settings, ShoppingCart, UtensilsCrossed } from "lucide-react";
 import { useAuth } from "./AuthProvider";
 import { CategoriesProvider } from "./CategoriesProvider";
+import { PaymentMethodsProvider } from "./PaymentMethodsProvider";
 import { LoginView } from "./LoginView";
 import { Spinner } from "./ui";
 
@@ -61,7 +62,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <main className="min-w-0 flex-1 pb-[var(--tabbar-h)]">
         <div className="mx-auto w-full max-w-3xl">
-          <CategoriesProvider>{children}</CategoriesProvider>
+          <CategoriesProvider>
+            <PaymentMethodsProvider>{children}</PaymentMethodsProvider>
+          </CategoriesProvider>
         </div>
       </main>
 

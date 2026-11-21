@@ -3,9 +3,11 @@
 // Port of AddExpenseView.swift + EditExpenseView.swift (one form, two modes).
 import { useState } from "react";
 import { Copy } from "lucide-react";
-import { CURRENCIES, PAYMENT_METHODS } from "@/lib/constants";
+import { CURRENCIES } from "@/lib/constants";
 import { useCategories } from "../CategoriesProvider";
 import { CategoryEditorSheet } from "../categories/CategoryEditorSheet";
+import { PaymentMethodEditorSheet } from "../payment-methods/PaymentMethodEditorSheet";
+import { usePaymentMethods } from "../PaymentMethodsProvider";
 import { addMonths, noonISO, parseDecimal, toDateInput, todayInput } from "@/lib/helpers";
 import type { ExpenseInput } from "@/lib/services";
 import type { Expense } from "@/lib/types";
@@ -31,6 +33,8 @@ const opts = (values: string[], placeholder?: string) => [
 const NEW_CATEGORY = "__new_category__";
 /** An old expense whose text category matches none of the user's categories (e.g. written by iOS). */
 const LEGACY_CATEGORY = "__legacy_category__";
+/** Sentinel option in the payment picker that opens the "New Payment Method" sheet. */
+const NEW_PAYMENT_METHOD = "__new_payment_method__";
 
 /** Strip binary float noise (3 × 1.1 = 3.3000000000000003) without rounding real decimals. */
 const clean = (n: number) => Math.round(n * 1e6) / 1e6;
@@ -49,7 +53,9 @@ export function ExpenseForm({
 }) {
   const isEdit = !!expense;
   const { categories, byId } = useCategories();
+  const { names: paymentNames } = usePaymentMethods();
   const [showNewCategory, setShowNewCategory] = useState(false);
+  const [showNewPaymentMethod, setShowNewPaymentMethod] = useState(false);
   const [item, setItem] = useState(expense?.item ?? "");
   const [unit, setUnit] = useState(expense ? (expense.unit != null ? String(expense.unit) : "") : "1");
   const [unitPrice, setUnitPrice] = useState(expense?.unit_price != null ? expense.unit_price.toFixed(2) : "");
@@ -175,8 +181,15 @@ export function ExpenseForm({
         <SelectRow
           label="Payment Method"
           value={paymentMethod}
-          onChange={setPaymentMethod}
-          options={opts(PAYMENT_METHODS, "Select Method")}
+          onChange={(v) => (v === NEW_PAYMENT_METHOD ? setShowNewPaymentMethod(true) : setPaymentMethod(v))}
+          options={[
+            ...opts(
+              // Keep an old expense's method selectable even if it's no longer in the list.
+              paymentMethod && !paymentNames.includes(paymentMethod) ? [...paymentNames, paymentMethod] : paymentNames,
+              "Select Method",
+            ),
+            { value: NEW_PAYMENT_METHOD, label: "New Payment Method…" },
+          ]}
         />
       </Section>
 
@@ -194,6 +207,13 @@ export function ExpenseForm({
 
       {showNewCategory && (
         <CategoryEditorSheet onSaved={(created) => setCategoryId(created.id)} onClose={() => setShowNewCategory(false)} />
+      )}
+
+      {showNewPaymentMethod && (
+        <PaymentMethodEditorSheet
+          onSaved={(created) => setPaymentMethod(created.name)}
+          onClose={() => setShowNewPaymentMethod(false)}
+        />
       )}
 
       {showDuplicateAlert && onDuplicate && (
