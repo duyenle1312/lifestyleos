@@ -2,7 +2,7 @@
 
 // Small set of iOS-style building blocks shared by every screen.
 import { Check, ChevronsUpDown, CircleX, LoaderCircle, type LucideIcon, Search, Trash2 } from "lucide-react";
-import { Children, Fragment, useEffect, useRef, useState } from "react";
+import { Children, Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 /**
@@ -177,22 +177,33 @@ export function SearchBar({
   value,
   onChange,
   placeholder,
+  inputRef,
+  className = "px-4 pb-2",
+  shortcut,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder: string;
+  inputRef?: React.Ref<HTMLInputElement>;
+  className?: string;
+  /** Keyboard hint shown while the field is empty (desktop). */
+  shortcut?: string;
 }) {
   return (
-    <div className="px-4 pb-2">
+    <div className={className}>
       <label className="flex h-9 items-center gap-1.5 rounded-[10px] bg-fill px-2 text-label-2">
         <Search size={17} />
         <input
+          ref={inputRef}
           type="search"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           className="min-w-0 flex-1 bg-transparent text-[17px] text-label outline-none"
         />
+        {!value && shortcut && (
+          <kbd className="rounded border border-separator px-1.5 font-sans text-[11px] text-label-3">{shortcut}</kbd>
+        )}
         {value && (
           <button type="button" aria-label="Clear" onClick={() => onChange("")}>
             <CircleX size={17} className="fill-label-3 text-cell" />
@@ -209,7 +220,18 @@ export type MenuEntry =
   | { label: string; icon?: LucideIcon; selected?: boolean; onSelect: () => void; destructive?: boolean }
   | "divider";
 
-export function Menu({ trigger, entries, label }: { trigger: React.ReactNode; entries: MenuEntry[]; label: string }) {
+export function Menu({
+  trigger,
+  entries,
+  label,
+  align = "left",
+}: {
+  trigger: React.ReactNode;
+  entries: MenuEntry[];
+  label: string;
+  /** Edge the dropdown lines up with – use "right" for triggers near the right of the screen. */
+  align?: "left" | "right";
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -234,31 +256,106 @@ export function Menu({ trigger, entries, label }: { trigger: React.ReactNode; en
         {trigger}
       </button>
       {open && (
-        <div className="absolute left-0 top-10 z-40 max-h-[60dvh] w-60 animate-pop-in overflow-y-auto overscroll-contain rounded-[13px] bg-cell/95 shadow-[0_8px_40px_rgba(0,0,0,0.22)] backdrop-blur-xl">
-          {entries.map((entry, i) =>
-            entry === "divider" ? (
-              <div key={`d${i}`} className="h-2 bg-fill" />
-            ) : (
-              <button
-                key={entry.label}
-                type="button"
-                onClick={() => {
-                  entry.onSelect();
-                  setOpen(false);
-                }}
-                className={`flex w-full items-center gap-2 border-b border-separator/60 px-4 py-[11px] text-left text-[17px] last:border-b-0 active:bg-fill ${
-                  entry.destructive ? "text-ios-red" : "text-label"
-                }`}
-              >
-                <span className="w-5 shrink-0">{entry.selected && <Check size={17} strokeWidth={2.6} />}</span>
-                <span className="flex-1">{entry.label}</span>
-                {entry.icon && <entry.icon size={18} className="text-label" />}
-              </button>
-            ),
-          )}
+        <div className={`absolute top-10 z-40 w-60 ${align === "right" ? "right-0" : "left-0"} ${MENU_PANEL}`}>
+          <MenuItems entries={entries} onDone={() => setOpen(false)} />
         </div>
       )}
     </div>
+  );
+}
+
+const MENU_PANEL =
+  "max-h-[60dvh] animate-pop-in overflow-y-auto overscroll-contain rounded-[13px] bg-cell/95 shadow-[0_8px_40px_rgba(0,0,0,0.22)] backdrop-blur-xl";
+
+function MenuItems({ entries, onDone, compact }: { entries: MenuEntry[]; onDone: () => void; compact?: boolean }) {
+  return entries.map((entry, i) =>
+    entry === "divider" ? (
+      <div key={`d${i}`} className={compact ? "my-1 h-[0.5px] bg-separator" : "h-2 bg-fill"} />
+    ) : (
+      <button
+        key={entry.label}
+        type="button"
+        role="menuitem"
+        onClick={() => {
+          entry.onSelect();
+          onDone();
+        }}
+        className={
+          compact
+            ? `mx-1 flex w-[calc(100%-8px)] items-center gap-2 rounded-md px-2 py-1 text-left text-[14px] hover:bg-ios-blue hover:text-white ${
+                entry.destructive ? "text-ios-red" : "text-label"
+              }`
+            : `flex w-full items-center gap-2 border-b border-separator/60 px-4 py-[11px] text-left text-[17px] last:border-b-0 active:bg-fill ${
+                entry.destructive ? "text-ios-red" : "text-label"
+              }`
+        }
+      >
+        {compact ? (
+          entry.icon && <entry.icon size={15} />
+        ) : (
+          <span className="w-5 shrink-0">{entry.selected && <Check size={17} strokeWidth={2.6} />}</span>
+        )}
+        <span className="flex-1">{entry.label}</span>
+        {!compact && entry.icon && <entry.icon size={18} className="text-label" />}
+      </button>
+    ),
+  );
+}
+
+// MARK: - Context menu (macOS-style right-click menu)
+
+export interface ContextMenuState {
+  x: number;
+  y: number;
+  entries: MenuEntry[];
+}
+
+/** Compact, cursor-anchored menu. Closes on outside click, Escape, scroll, resize or window blur. */
+export function ContextMenu({ menu, onClose }: { menu: ContextMenuState; onClose: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Flip so the menu never overflows the viewport (before paint, so it doesn't jump).
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const { width, height } = el.getBoundingClientRect();
+    const pad = 8;
+    el.style.left = `${menu.x + width + pad > window.innerWidth ? Math.max(pad, menu.x - width) : menu.x}px`;
+    el.style.top = `${menu.y + height + pad > window.innerHeight ? Math.max(pad, menu.y - height) : menu.y}px`;
+  }, [menu]);
+
+  useEffect(() => {
+    const onPointer = (e: PointerEvent) => !ref.current?.contains(e.target as Node) && onClose();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose();
+      }
+    };
+    document.addEventListener("pointerdown", onPointer);
+    window.addEventListener("keydown", onKey, true);
+    window.addEventListener("scroll", onClose, true);
+    window.addEventListener("resize", onClose);
+    window.addEventListener("blur", onClose);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      window.removeEventListener("keydown", onKey, true);
+      window.removeEventListener("scroll", onClose, true);
+      window.removeEventListener("resize", onClose);
+      window.removeEventListener("blur", onClose);
+    };
+  }, [onClose]);
+
+  return portal(
+    <div
+      ref={ref}
+      role="menu"
+      className={`fixed z-[70] w-56 py-1 ${MENU_PANEL} rounded-[10px] border border-separator/50`}
+      style={{ left: menu.x, top: menu.y }}
+      onContextMenu={(e) => e.preventDefault()}
+    >
+      <MenuItems entries={menu.entries} onDone={onClose} compact />
+    </div>,
   );
 }
 
@@ -527,10 +624,13 @@ export function SwipeRow({
   onDelete,
   onPress,
   hoverDelete = true,
+  selected = false,
 }: {
   children: React.ReactNode;
   onDelete: () => void;
   onPress?: () => void;
+  /** Highlighted as the row shown in the inspector (split view). */
+  selected?: boolean;
   /** Show a delete button on mouse hover (desktop). */
   hoverDelete?: boolean;
 }) {
@@ -556,7 +656,8 @@ export function SwipeRow({
           onDelete();
         }}
         className="absolute inset-y-0 right-0 flex items-center justify-center bg-ios-red text-[15px] text-white"
-        style={{ width: Math.max(ACTION_WIDTH, -offset) }}
+        // Hidden at rest: otherwise its red edge bleeds through the row's anti-aliased bottom edge.
+        style={{ width: Math.max(ACTION_WIDTH, -offset), visibility: offset === 0 && !dragging ? "hidden" : "visible" }}
         tabIndex={offset === 0 ? -1 : 0}
       >
         <span className="flex flex-col items-center gap-0.5">
@@ -566,7 +667,8 @@ export function SwipeRow({
       </button>
 
       <div
-        className={`relative bg-cell ${dragging ? "" : "transition-transform duration-250 ease-out"} ${
+        aria-selected={selected || undefined}
+        className={`relative ${selected ? "bg-gray5" : "bg-cell [@media(hover:hover)]:hover:bg-[color-mix(in_srgb,var(--bg-cell),var(--label)_4%)]"} ${dragging ? "" : "transition-transform duration-250 ease-out"} ${
           onPress ? "cursor-pointer active:bg-gray5" : ""
         }`}
         style={{ transform: `translateX(${offset}px)`, touchAction: "pan-y" }}
