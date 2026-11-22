@@ -4,6 +4,12 @@
 -- A trigger rather than composite foreign keys: it works on Postgres 14 and 17 and leaves the
 -- existing single-column FKs (on delete set null) untouched.
 -- SQLSTATE 23503 (foreign_key_violation) lets the offline sync treat this as a missing reference.
+--
+-- Pre-flight (run before applying; both should return 0 rows, existing rows are not re-checked):
+--   select e.id from public.expenses e join public.categories c on c.id = e.category_id
+--     where c.account_id <> e.account_id;
+--   select e.id from public.expenses e join public.payment_methods p on p.id = e.payment_method_id
+--     where p.account_id <> e.account_id;
 
 create or replace function public.expenses_check_same_account()
 returns trigger
