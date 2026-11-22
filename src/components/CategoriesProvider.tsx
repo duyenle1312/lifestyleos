@@ -1,11 +1,13 @@
 "use client";
 
 // The signed-in user's expense categories, shared by Expenses, Scan Receipt and Settings.
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
+import { createContext, useCallback, useContext, useMemo } from "react";
 import { errorMessage } from "@/lib/helpers";
 import * as api from "@/lib/services";
 import type { Category } from "@/lib/types";
 import { useUser } from "./AuthProvider";
+import { useLocalDb, useSync, useSyncStatus } from "./OfflineProvider";
 
 export const MAX_CATEGORY_NAME = 50;
 
@@ -41,21 +43,17 @@ function friendly(e: unknown): Error {
 
 export function CategoriesProvider({ children }: { children: React.ReactNode }) {
   const user = useUser();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    api
-      .fetchCategories(user.id)
-      .then((rows) => !cancelled && setCategories(rows))
-      .catch((e) => !cancelled && setLoadError(errorMessage(e)))
-      .finally(() => !cancelled && setIsLoading(false));
-    return () => {
-      cancelled = true;
-    };
-  }, [user.id]);
+  const db = useLocalDb();
+  const { syncNow } = useSync();
+  const { syncing } = useSyncStatus();
+  const rows = useLiveQuery(() => db.categories.toArray(), [db]);
+  const categories = useMemo(
+    () => [...(rows ?? [])].sort((a, b) => a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at)),
+    [rows],
+  );
+  // Empty while a sync is running means "not pulled yet", not "no categories".
+  const isLoading = rows === undefined || (rows.length === 0 && syncing);
+  const loadError: string | null = null;
 
   const validateName = useCallback(
     (raw: string, exceptId?: string) => {
@@ -81,13 +79,14 @@ export function CategoriesProvider({ children }: { children: React.ReactNode }) 
       const nextOrder = categories.reduce((max, c) => Math.max(max, c.sort_order), 0) + 1;
       try {
         const created = await api.createCategory(user.id, name.trim(), nextOrder, { icon, color });
-        setCategories((list) => [...list, created]);
+        await db.categories.put(created);
+        void syncNow();
         return created;
       } catch (e) {
         throw friendly(e);
       }
     },
-    [categories, user.id],
+    [categories, user.id, db, syncNow],
   );
 
   const updateCategory = useCallback(
@@ -99,24 +98,29 @@ export function CategoriesProvider({ children }: { children: React.ReactNode }) 
         if (current && (current.icon !== icon || current.color !== color)) {
           updated = await api.updateCategoryStyle(id, { icon, color });
         }
-        setCategories((list) => list.map((c) => (c.id === id ? updated : c)));
+        await db.categories.put(updated);
+        void syncNow();
         return updated;
       } catch (e) {
         throw friendly(e);
       }
     },
-    [categories],
+    [categories, db, syncNow],
   );
 
   const deleteCategory = useCallback(async (id: string, moveTo: string | null) => {
     try {
       const moved = await api.deleteCategory(id, moveTo);
-      setCategories((list) => list.filter((c) => c.id !== id));
+      await db.transaction("rw", [db.categories, db.expenses], async () => {
+        await db.categories.delete(id);
+        await db.expenses.filter((x) => x.category_id === id).modify({ category_id: moveTo });
+      });
+      void syncNow();
       return moved;
     } catch (e) {
       throw friendly(e);
     }
-  }, []);
+  }, [db, syncNow]);
 
   const value = useMemo<CategoriesState>(
     () => ({

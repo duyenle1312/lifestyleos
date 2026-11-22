@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { ChevronLeft, ChevronRight, CirclePlus, Plus, Tag } from "lucide-react";
+import { useOnline } from "@/lib/useOnline";
 import { useCategories } from "@/components/CategoriesProvider";
 import { CategoryEditorSheet } from "@/components/categories/CategoryEditorSheet";
 import { DeleteCategorySheet } from "@/components/categories/DeleteCategorySheet";
@@ -23,6 +24,7 @@ export default function CategoriesPage() {
 
 function CategoriesScreen() {
   const { categories, isLoading, loadError } = useCategories();
+  const online = useOnline();
   // ?from=expenses → back button returns to Expenses (opened from the filter menu).
   const fromExpenses = useSearchParams().get("from") === "expenses";
   const [showAdd, setShowAdd] = useState(false);
@@ -42,7 +44,7 @@ function CategoriesScreen() {
             {fromExpenses ? "Expenses" : "Settings"}
           </Link>
         }
-        right={<IconButton icon={Plus} label="New category" onClick={() => setShowAdd(true)} />}
+        right={<IconButton icon={Plus} label="New category" disabled={!online} onClick={() => setShowAdd(true)} />}
       />
 
       {isLoading ? (
@@ -52,22 +54,34 @@ function CategoriesScreen() {
       ) : loadError ? (
         <EmptyState icon={Tag} title="Couldn't load categories" subtitle={loadError} />
       ) : categories.length === 0 ? (
-        <EmptyState icon={Tag} title="No categories yet" subtitle="Create categories to organize your expenses">
+        <EmptyState icon={Tag} title="No categories yet" subtitle={online ? "Create categories to organize your expenses" : "Needs a connection"}>
           <button
             type="button"
             onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 rounded-full bg-ios-blue px-5 py-2.5 text-[17px] font-semibold text-white"
+            disabled={!online}
+            className="flex items-center gap-2 rounded-full bg-ios-blue px-5 py-2.5 text-[17px] font-semibold text-white disabled:opacity-40"
           >
             <CirclePlus size={20} /> Add Category
           </button>
         </EmptyState>
       ) : (
         <div className="pb-8">
-          <Section className="pt-2" inset={72} footer="Tap a category to change its name, icon or color. Swipe left to delete.">
+          <Section
+            className="pt-2"
+            inset={72}
+            footer={
+              online ? "Tap a category to change its name, icon or color. Swipe left to delete." : "Needs a connection"
+            }
+          >
             {categories.map((c) => {
               const { Icon, color } = categoryVisual(c);
               return (
-                <SwipeRow key={c.id} onDelete={() => setDeleting(c)} onPress={() => setEditing(c)}>
+                <SwipeRow
+                  key={c.id}
+                  disabled={!online}
+                  onDelete={() => setDeleting(c)}
+                  onPress={online ? () => setEditing(c) : undefined}
+                >
                   <div className="flex items-center gap-3 px-4 py-[10px]">
                     <IconBubble icon={Icon} color={color} />
                     <span className="min-w-0 flex-1 truncate text-[17px]">{c.name}</span>
@@ -78,7 +92,7 @@ function CategoriesScreen() {
             })}
           </Section>
           <Section>
-            <ButtonRow onPress={() => setShowAdd(true)}>
+            <ButtonRow disabled={!online} onPress={() => setShowAdd(true)}>
               <CirclePlus size={20} /> Add Category
             </ButtonRow>
           </Section>
