@@ -1,5 +1,5 @@
 // Receipt scanning, server side so the Gemini key never reaches the browser.
-// iOS: Vision OCR → Gemini (Firebase AI Logic). Web: the image goes straight to Gemini (it is multimodal).
+// The image goes straight to Gemini (it is multimodal), so there is no separate OCR step.
 import { createClient } from "@supabase/supabase-js";
 import { buildReceiptPrompt, parseReceiptResponse, sanitizeCategories } from "@/lib/receipt";
 

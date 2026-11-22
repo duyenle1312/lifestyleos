@@ -1,6 +1,6 @@
 "use client";
 
-// Port of Views/Auth/LoginView.swift + SignUpView.swift: magic-link sign-in by default, which also
+// Magic-link sign-in by default, which also
 // signs up new emails (no password needed). Password sign-in and sign-up stay as the backup for when
 // the email quota is used up: a rate-limited magic link switches the screen to the password form.
 import { useState } from "react";

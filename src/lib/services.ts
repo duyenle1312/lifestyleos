@@ -1,5 +1,5 @@
-// Ports of Services/ExpenseService.swift, ShoppingListService.swift and InventoryService.swift.
-// Like the iOS app, `accountId` is the signed-in user's id, and `created_by_user_id` is set to it too.
+// Expense, shopping list and inventory data access.
+// `accountId` is the signed-in user's id, and `created_by_user_id` is set to it too.
 import { supabase } from "./supabase";
 import type { Category, Expense, InventoryItem, PaymentMethod, ReceiptItem, ScannedReceipt, ShoppingItem } from "./types";
 import { receiptItemDisplayName } from "./types";
@@ -59,8 +59,8 @@ export async function deleteExpense(id: string) {
 }
 
 /**
- * Port of createExpensesFromReceipt: one expense per line item; failures are skipped.
- * Differences from iOS: uses the receipt's date (iOS used "now"), and stores
+ * One expense per line item; failures are skipped.
+ * Uses the receipt's date, and stores
  * unit_price = line price ÷ quantity so that unit × unit_price = amount, like the expense form.
  */
 export async function createExpensesFromReceipt(

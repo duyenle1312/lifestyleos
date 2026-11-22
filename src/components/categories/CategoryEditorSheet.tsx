@@ -1,6 +1,6 @@
 "use client";
 
-// Create or edit a category: name, color and icon (laid out like iOS Reminders' "New List").
+// Create or edit a category: name, color and icon.
 import { useState } from "react";
 import { Check } from "lucide-react";
 import { CATEGORY_COLORS, CATEGORY_ICONS, CategoryIcon, colorFor } from "@/lib/categoryStyle";

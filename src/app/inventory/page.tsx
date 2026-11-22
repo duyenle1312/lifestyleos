@@ -1,6 +1,5 @@
 "use client";
 
-// Port of Views/Inventory/InventoryListView.swift + AddInventoryItemView.swift
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {

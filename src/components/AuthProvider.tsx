@@ -1,6 +1,5 @@
 "use client";
 
-// Port of ViewModels/AuthViewModel.swift
 import type { Session, User } from "@supabase/supabase-js";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -163,8 +162,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * Same as AuthViewModel.createDefaultAccount: a "Personal" account owned by the new user.
- * iOS runs it right after signUp; with magic links there is no session until the link is opened,
+ * Creates a "Personal" account owned by the new user.
+ * With magic links there is no session until the link is opened,
  * so here it runs on every sign-in and is a no-op once the account exists. The account's
  * `signed_up_at` column defaults to now(), so it records the user's first sign-in.
  *

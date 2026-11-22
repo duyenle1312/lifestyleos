@@ -1,4 +1,4 @@
-// Row shapes mirror the Supabase tables used by the iOS app (Models/*.swift).
+// Row shapes mirror the Supabase tables.
 // Dates come back from PostgREST as ISO strings and are kept as strings here.
 
 export type Json = Record<string, unknown>;

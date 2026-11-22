@@ -1,6 +1,6 @@
 "use client";
 
-// Port of ExpenseDetailView (ExpenseListView.swift). Reads the live expense from the list so edits show up.
+// Expense detail. Reads the live expense from the list so edits show up.
 // Narrow screens present it as a sheet; the split view (lg+) shows the same body inline as an inspector pane.
 import { Pencil, Trash2 } from "lucide-react";
 import { IconBubble } from "@/components/glyphs";

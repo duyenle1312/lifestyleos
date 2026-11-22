@@ -4,7 +4,7 @@
 
 A personal household app for tracking monthly expenses by category and payment method, keeping a shopping list, and managing a home inventory with expiry dates. Photograph a supermarket receipt and AI translates to English and automatically add the items to your expense list in one go.
 
-Next.js + Tailwind port of the iOS app in `../Lifestyle OS`, using the **same Supabase database**.
+Next.js + Tailwind app backed by Supabase.
 Built mobile-first (iOS look); on tablets/desktop the tab bar becomes a sidebar and sheets become centered dialogs.
 On wide screens, Expenses becomes an iPadOS-style split view (see [Desktop](#desktop)).
 
@@ -27,9 +27,9 @@ npm run dev                  # http://localhost:3000
 
 | Variable | Purpose |
 |---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Same project + publishable key as `Config/SupabaseConfig.swift` |
+| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase project URL + publishable key |
 | `GEMINI_API_KEY` | Server-only, for receipt scanning ([get one](https://aistudio.google.com/apikey)) |
-| `GEMINI_MODEL` | Defaults to `gemini-3.5-flash-lite`, the iOS model |
+| `GEMINI_MODEL` | Defaults to `gemini-3.5-flash-lite` |
 
 ## Desktop
 
@@ -106,20 +106,20 @@ Supabase's built-in mailer is for testing only and allows very few emails per ho
 
 **3. Raise the email rate limit.** Authentication → **Rate Limits** → **Rate limit for sending emails**: set to **50** emails per hour and save. This field only becomes editable once custom SMTP is on. It caps every auth email (magic links, sign-up confirmations, password resets) across the whole project, not per user. When it is hit, the login screen falls back to the password form (see above).
 
-## Screens (iOS → web)
+## Screens
 
-| iOS | Web |
+| Screen | Code |
 |---|---|
-| `LoginView` / `SignUpView` (merged, see [Sign-in](#sign-in)) | `components/LoginView.tsx` |
-| `ExpenseListView`, `AddExpenseView`, `EditExpenseView`, `ExpenseDetailView`, `MonthPickerView` | `app/expenses`, `components/expenses/*` |
-| `ShoppingListsView`, `AddShoppingListView`, `EditShoppingListView` | `app/shopping`, `components/shopping/*` |
-| `InventoryListView`, `AddInventoryItemView`, `InventoryDetailView` | `app/inventory`, `app/inventory/[id]` |
-| `ReceiptScannerView` | `app/scan` + `app/api/scan-receipt` |
-| `SettingsView` | `app/settings` |
+| Sign-in / sign-up (merged, see [Sign-in](#sign-in)) | `components/LoginView.tsx` |
+| Expenses: list, add, edit, detail, month picker | `app/expenses`, `components/expenses/*` |
+| Shopping lists | `app/shopping`, `components/shopping/*` |
+| Inventory: list, add, detail | `app/inventory`, `app/inventory/[id]` |
+| Receipt scanner | `app/scan` + `app/api/scan-receipt` |
+| Settings | `app/settings` |
 
 ## Notes
 
-- Data access is client-side with supabase-js (like the Swift services), so Row Level Security does the work. As on iOS, `account_id` and `created_by_user_id` are the signed-in user's id.
-- Dates are saved at local noon (`noonISO`), the same as `Calendar.noon(for:)` on iOS.
-- Receipt scanning sends the photo (downscaled to 1600px) to `/api/scan-receipt`. The route checks the Supabase session, then calls Gemini with the iOS prompt. Gemini reads the image directly, so there is no separate OCR step.
+- Data access is client-side with supabase-js so Row Level Security does the work. `account_id` and `created_by_user_id` are the signed-in user's id.
+- Dates are saved at local noon (`noonISO`).
+- Receipt scanning sends the photo (downscaled to 1600px) to `/api/scan-receipt`. The route checks the Supabase session, then calls Gemini with a fixed prompt. Gemini reads the image directly, so there is no separate OCR step.
 - Swipe left on a row to delete it. With a mouse, hover over the row for a delete button.

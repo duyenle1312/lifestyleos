@@ -1,7 +1,6 @@
 "use client";
 
-// Port of Views/ReceiptScanner/ReceiptScannerView.swift + ReceiptScannerViewModel.swift
-// Additions over iOS: editable store name + receipt date, editable quantity, user's own categories.
+// Receipt scanner: editable store name + receipt date, editable quantity, user's own categories.
 import { useRef, useState } from "react";
 import { Camera, CircleCheck, CirclePlus, Image as ImageIcon, Pencil, RotateCcw, ScanText, Trash2 } from "lucide-react";
 import { useAuth, useUser } from "@/components/AuthProvider";

@@ -1,4 +1,4 @@
-// Ports of Config/Helpers.swift plus the date/format helpers scattered across the iOS views.
+// Date and format helpers shared across the screens.
 
 /**
  * Port of `Decimal.fromString`: accepts "1.5", "1,5", "1.234,50", "1,234.50".
@@ -26,7 +26,7 @@ export function parseDecimal(input: string): number | null {
   return Number.isFinite(value) ? value : null;
 }
 
-/** Swift's `Int(string)` – only a plain integer string parses. */
+/** Strict integer parse – only a plain integer string parses. */
 export function parseIntStrict(input: string): number | null {
   const t = input.trim();
   return /^[-+]?\d+$/.test(t) ? Number(t) : null;

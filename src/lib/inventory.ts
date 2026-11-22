@@ -17,8 +17,8 @@ export function expiryStatus(item: InventoryItem): ExpiryStatus {
 export const isExpired = (i: InventoryItem) => expiryStatus(i) === "expired";
 
 /**
- * iOS uses 0 ≤ days ≤ 21, which also matches items that expired earlier today (days truncates to 0),
- * so they showed up as both expired and expiring. Here expired items are excluded.
+ * A plain 0 ≤ days ≤ 21 test would also match items that expired earlier today (days truncates to 0),
+ * so they would show up as both expired and expiring. Expired items are excluded here.
  */
 export const isExpiringSoon = (i: InventoryItem) => expiryStatus(i) === "expiring";
 

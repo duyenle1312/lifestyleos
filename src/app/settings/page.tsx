@@ -1,6 +1,5 @@
 "use client";
 
-// Port of SettingsView (Lifestyle_OSApp.swift) + a Categories entry.
 import { useState } from "react";
 import Link from "next/link";
 import { ChevronRight, CreditCard, KeyRound, Tag } from "lucide-react";

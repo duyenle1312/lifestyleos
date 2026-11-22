@@ -9,7 +9,7 @@ if (!url || !anonKey) {
   );
 }
 
-/** Browser Supabase client — same project + publishable key as the iOS app (SupabaseConfig.swift). */
+/** Browser Supabase client using the project URL + publishable key. */
 export const supabase = createClient(url, anonKey, {
   auth: { persistSession: true, autoRefreshToken: true },
 });

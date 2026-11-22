@@ -1,5 +1,5 @@
 // Icon + color choices for categories. The database stores the keys (categories.icon / .color),
-// so another client (e.g. iOS with SF Symbols) can map the same keys to its own icons.
+// so the UI maps these keys to its own icons.
 import {
   Apple,
   Baby,

@@ -1,6 +1,5 @@
 "use client";
 
-// Port of Views/ShoppingList/ShoppingListsView.swift + ShoppingListViewModel.swift
 import { useEffect, useMemo, useState } from "react";
 import { Calendar, Circle, CircleCheck, Clock, List, MapPin, Plus, ShoppingCart, Star } from "lucide-react";
 import { useUser } from "@/components/AuthProvider";

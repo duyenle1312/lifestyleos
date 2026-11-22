@@ -1,6 +1,5 @@
 "use client";
 
-// Port of AddShoppingListView.swift + EditShoppingListView.swift
 import { useState } from "react";
 import { CircleCheck } from "lucide-react";
 import { PRIORITY_OPTIONS } from "@/lib/constants";

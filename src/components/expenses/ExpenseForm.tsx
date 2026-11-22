@@ -1,6 +1,6 @@
 "use client";
 
-// Port of AddExpenseView.swift + EditExpenseView.swift (one form, two modes).
+// Expense form (one form, two modes: add and edit).
 import { useState } from "react";
 import { Copy } from "lucide-react";
 import { CURRENCIES } from "@/lib/constants";

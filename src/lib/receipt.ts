@@ -1,5 +1,4 @@
-// Prompt + parser ported from Services/ReceiptScannerService.swift.
-// On iOS the image goes through Vision OCR first; Gemini reads the image directly here.
+// Receipt prompt + parser. Gemini reads the image directly (no separate OCR step).
 import type { ScannedReceipt } from "./types";
 
 const FALLBACK_CATEGORIES = ["Food & Drink", "Home", "Other"];
@@ -63,7 +62,7 @@ export function parseReceiptResponse(text: string): ScannedReceipt {
   for (const line of lines) {
     if (line.startsWith("STORE:")) storeName = line.slice(6).trim() || null;
     else if (line.startsWith("DATE:")) date = line.slice(5).trim() || null;
-    else if (line.startsWith("CURRENCY:")) continue; // iOS forces EUR
+    else if (line.startsWith("CURRENCY:")) continue; // currency is forced to EUR
     else if (line.startsWith("TOTAL:")) total = num(line.slice(6), 0);
     else if (line === "ITEMS_START") inItems = true;
     else if (line === "ITEMS_END") inItems = false;

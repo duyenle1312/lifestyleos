@@ -1,6 +1,6 @@
 "use client";
 
-// Port of Views/Inventory/InventoryDetailView.swift (pushed from the list, edits in place).
+// Inventory item detail (pushed from the list, edits in place).
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";

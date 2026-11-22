@@ -42,7 +42,7 @@ function useScrollLock() {
   }, []);
 }
 
-// MARK: - Sheet (SwiftUI .sheet with a NavigationView toolbar)
+// MARK: - Sheet (modal with a navigation-bar style toolbar)
 
 export interface BarButton {
   label: string;
@@ -214,7 +214,7 @@ export function SearchBar({
   );
 }
 
-// MARK: - Menu (SwiftUI Menu with an inline Picker)
+// MARK: - Menu (popup menu with an inline picker)
 
 export type MenuEntry =
   | { label: string; icon?: LucideIcon; selected?: boolean; onSelect: () => void; destructive?: boolean }
@@ -371,7 +371,7 @@ export function Section({
   header?: React.ReactNode;
   footer?: React.ReactNode;
   children: React.ReactNode;
-  /** Left inset of the row separators (iOS aligns them with the text). */
+  /** Left inset of the row separators (aligned with the text). */
   inset?: number;
   className?: string;
 }) {

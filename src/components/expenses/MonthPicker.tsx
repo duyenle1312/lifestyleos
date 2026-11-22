@@ -1,7 +1,6 @@
 "use client";
 
-// Port of MonthPickerView. iOS uses a graphical day picker where any day selects its month;
-// a month grid is the direct equivalent and works better with a mouse too.
+// Month picker: a month grid, which works well with both touch and a mouse.
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Sheet } from "../ui";

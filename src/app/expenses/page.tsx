@@ -1,6 +1,5 @@
 "use client";
 
-// Port of Views/Expenses/ExpenseListView.swift + ExpenseViewModel.swift
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -565,7 +564,7 @@ export default function ExpensesPage() {
     );
   }
 
-  // MARK: - Stacked (phones / narrow windows) – unchanged iOS layout
+  // MARK: - Stacked (phones / narrow windows) – single-column layout
 
   return (
     <>
