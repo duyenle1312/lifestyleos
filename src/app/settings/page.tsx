@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronRight, CreditCard, KeyRound, Tag, UserRound } from "lucide-react";
+import { ChevronRight, CreditCard, KeyRound, Mail, Tag, UserRound } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { useCategories } from "@/components/CategoriesProvider";
 import { usePaymentMethods } from "@/components/PaymentMethodsProvider";
@@ -11,6 +11,9 @@ import { NameSheet } from "@/components/NameSheet";
 import { SetPasswordSheet } from "@/components/SetPasswordSheet";
 import { Alert, ButtonRow, LargeTitle, Row, Section, Toolbar } from "@/components/ui";
 import { useCanEditOnline } from "@/lib/useOnline";
+
+// One tile color for every settings icon, so the list reads calmly.
+const ICON_TILE = "flex size-[29px] shrink-0 items-center justify-center rounded-[7px] bg-ios-blue text-white";
 
 export default function SettingsPage() {
   const { user, signOut } = useAuth();
@@ -46,21 +49,29 @@ export default function SettingsPage() {
           disabled={!canEdit}
           className="flex min-h-11 w-full items-center gap-3 px-4 py-[11px] text-left text-[17px] active:bg-gray5 disabled:opacity-40 disabled:active:bg-transparent"
         >
-          <span className="flex size-[29px] items-center justify-center rounded-[7px] bg-ios-blue text-white">
+          <span className={ICON_TILE}>
             <UserRound size={17} />
           </span>
           <span className="shrink-0">Name</span>
           <span className={`ml-auto truncate ${fullName ? "text-label-2" : "text-label-3"}`}>{fullName || "Add"}</span>
           <ChevronRight size={18} className="shrink-0 text-label-3" />
         </button>
-        {user?.email && <Row>Email: {user.email}</Row>}
+        {user?.email && (
+          <Row>
+            <span className={ICON_TILE}>
+              <Mail size={17} />
+            </span>
+            <span className="shrink-0">Email</span>
+            <span className="ml-auto truncate text-label-2">{user.email}</span>
+          </Row>
+        )}
         <button
           type="button"
           onClick={() => setShowPassword(true)}
           disabled={!canEdit}
           className="flex min-h-11 w-full items-center gap-3 px-4 py-[11px] text-left text-[17px] active:bg-gray5 disabled:opacity-40 disabled:active:bg-transparent"
         >
-          <span className="flex size-[29px] items-center justify-center rounded-[7px] bg-ios-gray text-white">
+          <span className={ICON_TILE}>
             <KeyRound size={17} />
           </span>
           <span className="flex-1">Set Password</span>
@@ -69,7 +80,7 @@ export default function SettingsPage() {
       </Section>
       <Section header="Expenses">
         <Link href="/settings/categories" className="flex min-h-11 items-center gap-3 px-4 py-[11px] text-[17px] active:bg-gray5">
-          <span className="flex size-[29px] items-center justify-center rounded-[7px] bg-ios-orange text-white">
+          <span className={ICON_TILE}>
             <Tag size={17} />
           </span>
           <span className="flex-1">Categories</span>
@@ -80,7 +91,7 @@ export default function SettingsPage() {
           href="/settings/payment-methods"
           className="flex min-h-11 items-center gap-3 px-4 py-[11px] text-[17px] active:bg-gray5"
         >
-          <span className="flex size-[29px] items-center justify-center rounded-[7px] bg-ios-green text-white">
+          <span className={ICON_TILE}>
             <CreditCard size={17} />
           </span>
           <span className="flex-1">Payment Methods</span>
