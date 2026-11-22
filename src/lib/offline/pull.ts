@@ -20,14 +20,16 @@ export const queuedIds = (entries: OutboxEntry[], table: string): Set<string> =>
 
 const PULLED: PullTable[] = ["expenses", "shopping_lists", "inventory_items"];
 
+export async function deleteLocal(db: LocalDb, table: PullTable, id: string): Promise<void> {
+  if (table === "expenses") await db.expenses.delete(id);
+  else if (table === "shopping_lists") await db.shoppingItems.delete(id);
+  else await db.inventoryItems.delete(id);
+}
+
 /** Stores (or, when soft-deleted, removes) a server row locally. */
 export async function applyServerRow(db: LocalDb, table: PullTable, row: Row): Promise<void> {
-  const id = row.id as string;
-  if (row.deleted_at) {
-    if (table === "expenses") await db.expenses.delete(id);
-    else if (table === "shopping_lists") await db.shoppingItems.delete(id);
-    else await db.inventoryItems.delete(id);
-  } else if (table === "expenses") await db.expenses.put(toLocalExpense(row as unknown as Expense));
+  if (row.deleted_at) await deleteLocal(db, table, row.id as string);
+  else if (table === "expenses") await db.expenses.put(toLocalExpense(row as unknown as Expense));
   else if (table === "shopping_lists") await db.shoppingItems.put(row as unknown as ShoppingItem);
   else await db.inventoryItems.put(row as unknown as InventoryItem);
 }
@@ -56,9 +58,14 @@ export async function pullAll(db: LocalDb, remote: Remote, userId: string): Prom
   const categories = (await remote.fetchAll("categories", userId)) as unknown as Category[];
   const methods = (await remote.fetchAll("payment_methods", userId)) as unknown as PaymentMethod[];
   await db.transaction("rw", [db.categories, db.paymentMethods], async () => {
-    await db.categories.clear();
-    await db.categories.bulkPut(categories);
-    await db.paymentMethods.clear();
-    await db.paymentMethods.bulkPut(methods);
+    // An empty answer while local rows exist is more likely a bad response than a real wipe: keep what we have.
+    if (categories.length || !(await db.categories.count())) {
+      await db.categories.clear();
+      await db.categories.bulkPut(categories);
+    }
+    if (methods.length || !(await db.paymentMethods.count())) {
+      await db.paymentMethods.clear();
+      await db.paymentMethods.bulkPut(methods);
+    }
   });
 }

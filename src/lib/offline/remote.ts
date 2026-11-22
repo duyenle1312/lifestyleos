@@ -10,7 +10,10 @@ export interface Remote {
   softDelete(table: RemoteTable, id: string): Promise<void>;
   /** Returns the row including soft-deleted ones, or null if it does not exist. */
   fetchRow(table: RemoteTable, id: string): Promise<object | null>;
-  /** Rows with updated_at >= cursor, including soft-deleted ones. */
+  /**
+   * Rows with updated_at >= cursor, including soft-deleted ones, ordered by updated_at ascending.
+   * MUST return ALL matching rows: implementations paginate past PostgREST's 1000-row cap.
+   */
   fetchChangedSince(table: PullTable, cursor: string | null): Promise<object[]>;
   fetchAll(table: ReferenceTable, accountId: string): Promise<object[]>;
 }

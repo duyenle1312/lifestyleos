@@ -1,6 +1,6 @@
 // Orchestrates sync: push the outbox, then pull server changes. Single-flight, with status for the UI.
 import { type LocalDb, type OutboxEntry } from "./db";
-import { applyServerRow, pullAll, queuedIds } from "./pull";
+import { applyServerRow, deleteLocal, pullAll, queuedIds } from "./pull";
 import { pushOutbox } from "./push";
 import { type Remote, isRetryable } from "./remote";
 
@@ -14,6 +14,7 @@ export class SyncEngine {
   private running: Promise<void> | null = null;
   private again = false;
   private onOnline = () => void this.syncNow();
+  private onOffline = () => this.update({ online: false });
   private onVisible = () => {
     if (document.visibilityState === "visible") void this.syncNow();
   };
@@ -28,13 +29,19 @@ export class SyncEngine {
   }
 
   start(): void {
-    if (typeof window !== "undefined") window.addEventListener("online", this.onOnline);
+    if (typeof window !== "undefined") {
+      window.addEventListener("online", this.onOnline);
+      window.addEventListener("offline", this.onOffline);
+    }
     if (typeof document !== "undefined") document.addEventListener("visibilitychange", this.onVisible);
     void this.syncNow();
   }
 
   stop(): void {
-    if (typeof window !== "undefined") window.removeEventListener("online", this.onOnline);
+    if (typeof window !== "undefined") {
+      window.removeEventListener("online", this.onOnline);
+      window.removeEventListener("offline", this.onOffline);
+    }
     if (typeof document !== "undefined") document.removeEventListener("visibilitychange", this.onVisible);
   }
 
@@ -49,6 +56,10 @@ export class SyncEngine {
 
   dismissNotice(i: number): void {
     this.update({ notices: this.status.notices.filter((_, j) => j !== i) });
+  }
+
+  private addNotice(text: string): void {
+    if (!this.status.notices.includes(text)) this.update({ notices: [...this.status.notices, text] });
   }
 
   private update(patch: Partial<SyncStatus>): void {
@@ -85,19 +96,23 @@ export class SyncEngine {
   }
 
   private async runOnce(): Promise<void> {
-    if (!this.isOnline()) {
-      await this.refreshOutbox();
-      return;
-    }
-    this.update({ syncing: true });
     try {
-      const res = await pushOutbox(this.db, this.remote);
-      if (res.notices.length) this.update({ notices: [...this.status.notices, ...res.notices] });
-      await pullAll(this.db, this.remote, this.userId);
+      if (!this.isOnline()) {
+        await this.refreshOutbox();
+        return;
+      }
+      this.update({ syncing: true });
+      try {
+        const res = await pushOutbox(this.db, this.remote);
+        res.notices.forEach((n) => this.addNotice(n));
+        await pullAll(this.db, this.remote, this.userId);
+      } catch (e) {
+        if (!isRetryable(e)) this.addNotice(`Sync problem: ${messageOf(e)}`);
+      }
+      await this.refreshOutbox();
     } catch (e) {
-      if (!isRetryable(e)) this.update({ notices: [...this.status.notices, `Sync problem: ${messageOf(e)}`] });
+      if (!isRetryable(e)) this.addNotice(`Sync problem: ${messageOf(e)}`);
     }
-    await this.refreshOutbox();
   }
 
   async retry(seq: number): Promise<void> {
@@ -105,22 +120,31 @@ export class SyncEngine {
     await this.syncNow();
   }
 
+  /**
+   * Drops a queued change and makes the local copy match the server. Server rows are fetched first, so a failed
+   * fetch leaves the entry untouched. Throws when offline-ish; non-retryable failures become a notice.
+   */
   async discard(seq: number): Promise<void> {
     const entry = await this.db.outbox.get(seq);
     if (!entry) return;
-    await this.db.outbox.delete(seq);
     const ids = [...queuedIds([entry], entry.table)];
+    const server = new Map<string, Record<string, unknown> | null>();
     try {
-      // Make the local copy match the server: the cursor may already be past a row the failed change touched.
-      for (const id of ids) {
-        const server = (await this.remote.fetchRow(entry.table, id)) as Record<string, unknown> | null;
-        const stillQueued = queuedIds(await this.db.outbox.toArray(), entry.table).has(id);
-        if (stillQueued) continue;
-        await applyServerRow(this.db, entry.table, server ?? { id, deleted_at: "gone" });
-      }
+      for (const id of ids) server.set(id, (await this.remote.fetchRow(entry.table, id)) as Record<string, unknown> | null);
     } catch (e) {
-      if (!isRetryable(e)) this.update({ notices: [...this.status.notices, `Sync problem: ${messageOf(e)}`] });
+      if (isRetryable(e)) throw new Error("Couldn't discard — try again when online");
+      this.addNotice(`Couldn't discard: ${messageOf(e)}`);
+      return;
     }
+    await this.db.transaction("rw", [this.db.outbox, this.db.expenses, this.db.shoppingItems], async () => {
+      await this.db.outbox.delete(seq);
+      const queued = queuedIds(await this.db.outbox.toArray(), entry.table);
+      for (const [id, row] of server) {
+        if (queued.has(id)) continue;
+        if (!row || row.deleted_at) await deleteLocal(this.db, entry.table, id);
+        else await applyServerRow(this.db, entry.table, row);
+      }
+    });
     await this.syncNow();
     await this.refreshOutbox();
   }

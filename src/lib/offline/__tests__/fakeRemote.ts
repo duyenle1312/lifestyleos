@@ -1,5 +1,5 @@
 // Test double for Remote shared by pull/engine tests.
-import { type PullTable, type ReferenceTable, type Remote, type RemoteTable } from "./remote";
+import { type PullTable, type ReferenceTable, type Remote, type RemoteTable } from "../remote";
 
 type Row = Record<string, unknown>;
 

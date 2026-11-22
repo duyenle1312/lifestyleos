@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { type LocalDb, openUserDb } from "./db";
-import { FakeRemote } from "./fakeRemote";
+import { FakeRemote } from "./__tests__/fakeRemote";
 import { saveExpense, saveShoppingItem } from "./mutations";
 import { pullAll } from "./pull";
 
@@ -63,5 +63,11 @@ describe("pullAll", () => {
     await pullAll(db, remote, "u");
     expect((await db.categories.toArray()).map((c) => c.id).sort()).toEqual(["c1", "c2"]);
     expect(await db.paymentMethods.count()).toBe(1);
+  });
+
+  it("keeps local reference rows when the server returns none", async () => {
+    await db.categories.put({ id: "keep" } as never);
+    await pullAll(db, remote, "u");
+    expect(await db.categories.count()).toBe(1);
   });
 });
