@@ -17,16 +17,16 @@
   --ios-gray: #8e8e93;
 
   --bg-primary: #ffffff; /* systemBackground */
-  --bg-grouped: #f2f2f7; /* systemGroupedBackground */
+  --bg-grouped: #f6f5f2; /* warm paper (was iOS #f2f2f7) */
   --bg-cell: #ffffff; /* secondarySystemGroupedBackground */
   --label: #000000;
   --label-secondary: rgba(60, 60, 67, 0.6);
   --label-tertiary: rgba(60, 60, 67, 0.3);
-  --separator: rgba(60, 60, 67, 0.29);
+  --separator: rgba(60, 55, 45, 0.18);
   --fill: rgba(118, 118, 128, 0.12); /* tertiarySystemFill */
-  --gray5: #e5e5ea;
-  --gray6: #f2f2f7;
-  --bar: rgba(249, 249, 249, 0.85);
+  --gray5: #e9e7e2;
+  --gray6: #f6f5f2;
+  --bar: rgba(250, 249, 247, 0.85);
 
   --tabbar-h: calc(50px + env(safe-area-inset-bottom));
 }
