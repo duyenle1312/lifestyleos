@@ -40,9 +40,9 @@
 
 **Interfaces:** Produces DB constraints only.
 
-- [ ] **Step 1: Assertions** — after migrations: unique `(account_id, id)` exists on `categories` and `payment_methods`; inserting an expense for user A with B's `category_id` (and separately B's `payment_method_id`) raises `23503`; deleting A's category sets that expense's `category_id` null **and keeps `account_id`**; same for payment method; migration runs twice cleanly.
+- [ ] **Step 1: Assertions** — inserting or updating an expense for user A with B's `category_id` (and separately B's `payment_method_id`) raises SQLSTATE `23503`; A's own ids and nulls are accepted; deleting A's category / payment method still sets the expense's id to null (existing FKs) and keeps the row; migration runs twice cleanly.
 - [ ] **Step 2: Run `bash scripts/test-migrations.sh`** → FAIL.
-- [ ] **Step 3: Migration** — idempotent (`if not exists` / `do $$` guards on `pg_constraint`): add unique constraints `categories_account_id_id_key`, `payment_methods_account_id_id_key`; drop the single-column FKs on `expenses.category_id` / `expenses.payment_method_id` (look up names in `pg_constraint`); add `expenses_category_same_account_fkey foreign key (account_id, category_id) references categories (account_id, id) on delete set null (category_id)` and `expenses_payment_method_same_account_fkey` likewise with `(payment_method_id)`. No CASCADE.
+- [ ] **Step 3: Migration** — idempotent. A `before insert or update of account_id, category_id, payment_method_id on public.expenses` trigger `expenses_same_account_refs` calling `public.expenses_check_same_account()` (plpgsql, `security invoker`): if `new.category_id` is not null and no `categories` row has that id with `account_id = new.account_id` → `raise exception ... using errcode = '23503'`; same for `payment_method_id` / `payment_methods`. (Trigger instead of composite FKs: the local harness runs Postgres 14, which lacks `on delete set null (column)`; the trigger enforces the same rule on 14 and 17.) No CASCADE.
 - [ ] **Step 4: Run harness** → `ALL MIGRATION TESTS PASSED`.
 - [ ] **Step 5: Commit** `Migration: expenses may only reference their own account's categories and payment methods`.
 
