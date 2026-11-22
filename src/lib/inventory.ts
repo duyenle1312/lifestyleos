@@ -1,4 +1,4 @@
-// Expiration rules shared by InventoryListView + InventoryRowView (21-day "expiring soon" window).
+// Expiration rules shared by the inventory list and row (21-day "expiring soon" window).
 import type { IOSColor } from "./constants";
 import { daysUntil, formatMonthDayYear } from "./helpers";
 import type { InventoryItem } from "./types";

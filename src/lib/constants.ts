@@ -1,4 +1,4 @@
-// Lists copied from AddExpenseView / EditExpenseView / ExpenseListView.
+// Option lists shared by the expense form and list.
 export const CURRENCIES = ["EUR", "USD", "GBP", "JPY", "BGN", "CNY", "INR"];
 
 // Expense categories are per user now: see the `categories` table and CategoriesProvider.

@@ -67,7 +67,7 @@ export function ExpenseForm({
   );
   /** Selected category id, "" for none. */
   const [categoryId, setCategoryId] = useState(() => {
-    if (expense) return expense.category_id && byId.has(expense.category_id) ? expense.category_id : "";
+    if (expense) return expense.category_id ?? "";
     return idByName("Food & Drink") ?? categories[0]?.id ?? "";
   });
   const [location, setLocation] = useState(expense?.location ?? "");
@@ -78,6 +78,7 @@ export function ExpenseForm({
 
   const categoryOptions = [
     { value: "", label: "Select Category" },
+    ...(categoryId && !byId.has(categoryId) ? [{ value: categoryId, label: "Current category" }] : []),
     ...categories.map((c) => ({ value: c.id, label: c.name })),
     { value: NEW_CATEGORY, label: "New Category…" },
   ];
@@ -168,6 +169,9 @@ export function ExpenseForm({
           onChange={(v) => (v === NEW_PAYMENT_METHOD ? setShowNewPaymentMethod(true) : setPaymentMethodId(v))}
           options={[
             { value: "", label: "Select Method" },
+            ...(paymentMethodId && !methods.some((m) => m.id === paymentMethodId)
+              ? [{ value: paymentMethodId, label: "Current payment method" }]
+              : []),
             ...methods.map((m) => ({ value: m.id, label: m.name })),
             { value: NEW_PAYMENT_METHOD, label: "New Payment Method…" },
           ]}

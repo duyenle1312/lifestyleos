@@ -1,7 +1,7 @@
 // Date and format helpers shared across the screens.
 
 /**
- * Port of `Decimal.fromString`: accepts "1.5", "1,5", "1.234,50", "1,234.50".
+ * Parses a user-typed decimal: accepts "1.5", "1,5", "1.234,50", "1,234.50".
  * When both separators appear, the last one is the decimal separator.
  */
 export function parseDecimal(input: string): number | null {
@@ -34,7 +34,7 @@ export function parseIntStrict(input: string): number | null {
 
 export const toFixed2 = (n: number) => n.toFixed(2);
 
-/** NumberFormatter .decimal with max 2 fraction digits (used for quantities). */
+/** Decimal format with max 2 fraction digits (used for quantities). */
 export const formatQuantity = (n: number) =>
   n.toLocaleString("en-US", { maximumFractionDigits: 2 });
 
@@ -48,7 +48,7 @@ export function toDateInput(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-/** Port of `Calendar.noon(for:)`: local noon of the picked day, as ISO for Supabase. */
+/** Local noon of the picked day, as ISO for Supabase. */
 export function noonISO(dateInput: string): string {
   const [y, m, d] = dateInput.split("-").map(Number);
   return new Date(y, m - 1, d, 12, 0, 0).toISOString();

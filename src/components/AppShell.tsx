@@ -1,6 +1,6 @@
 "use client";
 
-// Port of ContentView + MainTabView: signed out → LoginView, signed in → tabs.
+// Root shell: signed out → login, signed in → tabs.
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CircleDollarSign, Layers, ScanText, Settings, ShoppingCart } from "lucide-react";

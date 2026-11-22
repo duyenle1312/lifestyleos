@@ -72,7 +72,7 @@ export function MonthSummary({
   const groups = new Map<string, { id?: string; name: string; category?: Category; amount: number; count: number }>();
   for (const e of expenses) {
     const category = e.category_id ? byId.get(e.category_id) : undefined;
-    const key = e.category_id ?? "none";
+    const key = category?.id ?? "none";
     const g = groups.get(key) ?? { id: category?.id, name: category?.name ?? "Uncategorized", category, amount: 0, count: 0 };
     g.amount += e.amount;
     g.count += 1;
@@ -159,7 +159,7 @@ export function MonthSummary({
                 {content}
               </button>
             ) : (
-              <div key={r.name} className="flex items-center gap-3 px-3 py-2.5">
+              <div key="none" className="flex items-center gap-3 px-3 py-2.5">
                 {content}
               </div>
             );

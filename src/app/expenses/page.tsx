@@ -156,7 +156,7 @@ export default function ExpensesPage() {
   const groups = useMemo(() => {
     const map = new Map<string | number, Expense[]>();
     for (const e of [...filtered].sort(byDateDesc)) {
-      const key = sort === "date" ? startOfDay(new Date(e.expense_date)).getTime() : (e.payment_method_id ?? "");
+      const key = sort === "date" ? startOfDay(new Date(e.expense_date)).getTime() : (e.payment_method_id && paymentById.has(e.payment_method_id) ? e.payment_method_id : "");
       map.set(key, [...(map.get(key) ?? []), e]);
     }
     const entries = [...map.entries()];
@@ -191,7 +191,7 @@ export default function ExpensesPage() {
   /** Rows in on-screen order, for keyboard navigation. */
   const flat = useMemo(() => groups.flatMap((g) => g.items), [groups]);
 
-  // MARK: - Mutations (ExpenseViewModel)
+  // MARK: - Mutations
 
   const add = async (input: api.ExpenseInput) => {
     try {
