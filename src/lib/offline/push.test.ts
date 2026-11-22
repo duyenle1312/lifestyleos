@@ -49,7 +49,14 @@ beforeEach(() => { db = openUserDb(`p${++n}-${Math.random()}`); remote = new Fak
 describe("isRetryable", () => {
   it("classifies errors", () => {
     expect(isRetryable(new TypeError("Failed to fetch"))).toBe(true);
-    expect(isRetryable(new RemoteError("offline"))).toBe(true);
+    expect(isRetryable(new RemoteError("offline", { status: 0 }))).toBe(true);
+    expect(isRetryable(new RemoteError("Failed to fetch"))).toBe(true);
+    expect(isRetryable(new RemoteError("jwt", { status: 401 }))).toBe(true);
+    expect(isRetryable(new RemoteError("jwt", { code: "PGRST303", status: 401 }))).toBe(true);
+    expect(isRetryable(new RemoteError("slow", { status: 408 }))).toBe(true);
+    expect(isRetryable(new RemoteError("rate", { status: 429 }))).toBe(true);
+    expect(isRetryable(new TypeError("x is not a function"))).toBe(false);
+    expect(isRetryable(new RemoteError("mystery"))).toBe(false);
     expect(isRetryable(new RemoteError("boom", { status: 503 }))).toBe(true);
     expect(isRetryable(new RemoteError("rls", { code: "42501", status: 403 }))).toBe(false);
     expect(isRetryable(new RemoteError("bad", { status: 400 }))).toBe(false);
@@ -178,5 +185,55 @@ describe("pushOutbox", () => {
     await pushOutbox(db, remote);
     expect(remote.rows.expenses.get(row.id)?.amount).toBe(99);
     expect(await db.outbox.count()).toBe(0);
+  });
+
+  it("a 401 or PGRST303 stops the push and leaves the entry pending", async () => {
+    for (const err of [new RemoteError("jwt expired", { status: 401 }), new RemoteError("jwt", { code: "PGRST303", status: 401 })]) {
+      await db.outbox.clear();
+      await saveExpense(db, "u", input());
+      remote.upsertErrors.push({ error: err });
+      const res = await pushOutbox(db, remote);
+      expect(res).toMatchObject({ sent: 0, failed: 0 });
+      expect((await db.outbox.toArray())[0]).toMatchObject({ status: "pending" });
+    }
+  });
+
+  it("a non-network TypeError marks the entry failed and the next unrelated entry sends", async () => {
+    await saveExpense(db, "u", input());
+    await saveShoppingItem(db, "u", { item: "B" });
+    remote.upsertErrors.push({ error: new TypeError("x is not a function") });
+    const res = await pushOutbox(db, remote);
+    expect(res).toMatchObject({ sent: 1, failed: 1 });
+    expect((await db.outbox.toArray())[0]).toMatchObject({ status: "failed", error: "x is not a function" });
+  });
+
+  it("a failed upsertMany blocks later entries for its rows", async () => {
+    const [line] = await saveReceipt(db, "u", [input({ item: "A" }), input({ item: "B" })]);
+    await db.outbox.toCollection().modify({ attempts: 1 });
+    await saveExpense(db, "u", input({ amount: 8 }), line.id);
+    remote.upsertErrors.push({ error: new RemoteError("rls", { code: "42501", status: 403 }) });
+    const res = await pushOutbox(db, remote);
+    expect(res).toMatchObject({ sent: 0, failed: 1 });
+    expect(remote.calls).toHaveLength(1);
+    expect(await db.outbox.count()).toBe(2);
+    const again = await pushOutbox(db, remote);
+    expect(again).toMatchObject({ sent: 0, failed: 0 });
+    expect(remote.calls).toHaveLength(1);
+  });
+
+  it("restore history and server-only metadata survive an edit made during the restoring upsert", async () => {
+    const row = await saveExpense(db, "u", input({ amount: 5 }));
+    remote.rows.expenses.set(row.id, {
+      id: row.id, deleted_at: "2026-11-05T00:00:00.000Z", metadata: { keep: "me" },
+    });
+    remote.onUpsert = async () => { await saveExpense(db, "u", input({ amount: 99 }), row.id); };
+    await pushOutbox(db, remote);
+    remote.onUpsert = undefined;
+    await pushOutbox(db, remote);
+    const meta = (remote.rows.expenses.get(row.id) as { metadata: { keep: string; restored_after_delete: Row[] } }).metadata;
+    expect(meta.keep).toBe("me");
+    expect(meta.restored_after_delete).toHaveLength(1);
+    expect(meta.restored_after_delete[0]).toMatchObject({ deleted_at: "2026-11-05T00:00:00.000Z" });
+    expect(remote.rows.expenses.get(row.id)?.amount).toBe(99);
   });
 });

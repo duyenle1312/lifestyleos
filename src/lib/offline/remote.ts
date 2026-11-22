@@ -23,12 +23,19 @@ export class RemoteError extends Error {
   }
 }
 
-/** True for failures worth retrying later: the network is down or the server had a hiccup, not a rejection. */
+const NETWORK_MESSAGE = /Failed to fetch|NetworkError|Load failed|fetch failed|network/i;
+const JWT_CODES = new Set(["PGRST301", "PGRST302", "PGRST303"]);
+
+/**
+ * True for failures worth retrying later: network down, server hiccup, or an expired session.
+ * Everything else (rejections, constraint/RLS errors, programming bugs) is not retryable.
+ */
 export function isRetryable(e: unknown): boolean {
-  if (e instanceof TypeError) return true;
-  if (typeof e !== "object" || e === null) return true;
-  const { code, status } = e as { code?: unknown; status?: unknown };
-  if (code) return false;
-  if (typeof status === "number" && status >= 400 && status < 500) return false;
-  return true;
+  const message = e instanceof Error ? e.message : "";
+  if (e instanceof TypeError) return NETWORK_MESSAGE.test(message);
+  const { code, status } = (typeof e === "object" && e !== null ? e : {}) as { code?: unknown; status?: unknown };
+  if (typeof code === "string" && JWT_CODES.has(code)) return true;
+  if (typeof status === "number" && (status === 0 || status === 401 || status === 408 || status === 429 || status >= 500)) return true;
+  if (code || typeof status === "number") return false;
+  return NETWORK_MESSAGE.test(message);
 }

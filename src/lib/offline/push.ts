@@ -16,19 +16,30 @@ const toServerRow = ({ updated_at, ...row }: Row): Row => {
   return { ...row, deleted_at: null };
 };
 
-/** If the server copy was deleted elsewhere, keep its metadata and record the restore. */
-function restoreMetadata(row: Row, server: Row, now: string): Row {
+type Restore = { deleted_at: unknown; restored_at: string };
+
+/**
+ * Merges the server's metadata underneath the local payload's, so server-only keys survive.
+ * `restored_after_delete` is a union: server entries, then unseen local ones, then this push's restore (if any).
+ */
+function mergeMetadata(row: Row, server: Row, restore: Restore | null): Row {
   const serverMeta = (server.metadata ?? {}) as Row;
-  const history = Array.isArray(serverMeta.restored_after_delete) ? serverMeta.restored_after_delete : [];
-  return {
-    ...row,
-    metadata: {
-      ...serverMeta,
-      ...((row.metadata ?? {}) as Row),
-      restored_after_delete: [...history, { deleted_at: server.deleted_at, restored_at: now }],
-    },
-  };
+  const localMeta = (row.metadata ?? {}) as Row;
+  const listOf = (m: Row) => (Array.isArray(m.restored_after_delete) ? (m.restored_after_delete as Restore[]) : []);
+  const seen = new Set<string>();
+  const history = [...listOf(serverMeta), ...listOf(localMeta), ...(restore ? [restore] : [])].filter((r) => {
+    const key = `${r.deleted_at}|${r.restored_at}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  const metadata = { ...serverMeta, ...localMeta, ...(history.length ? { restored_after_delete: history } : {}) };
+  return { ...row, metadata };
 }
+
+/** Row ids an entry touches, used to hold back later entries behind a failed one. */
+const rowIdsOf = (e: OutboxEntry): string[] =>
+  e.op === "upsertMany" ? (e.payload as Row[]).map((r) => r.id as string) : e.rowId ? [e.rowId] : [];
 
 const nullRefs = (rows: Row[]): Row[] => rows.map((r) => ({ ...r, category_id: null, payment_method_id: null }));
 
@@ -69,9 +80,10 @@ async function send(entry: OutboxEntry, remote: Remote, notices: string[]): Prom
   } else {
     let row = toServerRow(entry.payload as Row);
     const server = (await remote.fetchRow(entry.table, entry.rowId!)) as Row | null;
-    if (server?.deleted_at) {
-      row = restoreMetadata(row, server, now);
-      restored = 1;
+    if (server) {
+      const wasDeleted = Boolean(server.deleted_at);
+      row = mergeMetadata(row, server, wasDeleted ? { deleted_at: server.deleted_at, restored_at: now } : null);
+      restored = wasDeleted ? 1 : 0;
     }
     rows = [row];
   }
@@ -93,21 +105,22 @@ export async function pushOutbox(db: LocalDb, remote: Remote): Promise<PushResul
 
   for (const snapshot of entries) {
     if (snapshot.status === "failed") {
-      if (snapshot.rowId) blocked.add(snapshot.rowId);
+      rowIdsOf(snapshot).forEach((id) => blocked.add(id));
       continue;
     }
-    if (snapshot.rowId && blocked.has(snapshot.rowId)) continue;
+    if (rowIdsOf(snapshot).some((id) => blocked.has(id))) continue;
 
     const entry = await markInFlight(db, snapshot.seq!);
     if (!entry) continue;
     try {
       const returned = await send(entry, remote, result.notices);
+      // If this throws after the remote succeeded, the entry stays queued and is re-sent next push; upserts are idempotent.
       await applySuccess(db, entry, returned);
       result.sent++;
     } catch (e) {
       if (isRetryable(e)) break;
       await db.outbox.update(entry.seq!, { status: "failed", error: messageOf(e) });
-      if (entry.rowId) blocked.add(entry.rowId);
+      rowIdsOf(entry).forEach((id) => blocked.add(id));
       result.failed++;
     }
   }
