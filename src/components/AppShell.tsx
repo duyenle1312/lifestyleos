@@ -9,7 +9,7 @@ import { useAuth } from "./AuthProvider";
 import { CategoriesProvider } from "./CategoriesProvider";
 import { PaymentMethodsProvider } from "./PaymentMethodsProvider";
 import { LoginView } from "./LoginView";
-import { Spinner } from "./ui";
+import { Alert, Spinner } from "./ui";
 
 const TABS = [
   { href: "/expenses", label: "Expenses", icon: CircleDollarSign },
@@ -22,7 +22,7 @@ const TABS = [
 const SPLIT_VIEW_ROUTES = ["/expenses"];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, initializing } = useAuth();
+  const { user, initializing, accountSetupError, retryAccountSetup, dismissAccountSetupError } = useAuth();
   const pathname = usePathname();
 
   // The email-link landing page works signed in or out, without the app chrome.
@@ -44,6 +44,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh md:flex">
+      {accountSetupError && (
+        <Alert
+          title="Account Setup Failed"
+          message={`Your account couldn't be set up, so your data may not load or save. ${accountSetupError}`}
+          buttons={[{ label: "OK" }, { label: "Try Again", onPress: retryAccountSetup }]}
+          onDismiss={dismissAccountSetupError}
+        />
+      )}
       {/* Sidebar – tablets / desktop */}
       <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-separator bg-bar px-3 py-5 backdrop-blur-xl md:flex">
         <Link href="/" aria-label="Lifestyle OS home" className="mb-6 flex items-center gap-2 self-start rounded-lg px-2">

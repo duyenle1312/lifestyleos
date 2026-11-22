@@ -6,7 +6,7 @@ import { Camera, CircleCheck, CirclePlus, Image as ImageIcon, Pencil, RotateCcw,
 import { useAuth, useUser } from "@/components/AuthProvider";
 import { useCategories } from "@/components/CategoriesProvider";
 import { usePaymentMethods } from "@/components/PaymentMethodsProvider";
-import { Alert, LargeTitle, LoadingOverlay, Spinner, Toolbar, useAutoFocus } from "@/components/ui";
+import { Alert, LoadingOverlay, Spinner, Toolbar, useAutoFocus } from "@/components/ui";
 import { errorMessage, formatQuantity, parseDecimal, todayInput } from "@/lib/helpers";
 import { createExpensesFromReceipt } from "@/lib/services";
 import { type ReceiptItem, receiptItemDisplayName, type ScannedReceipt } from "@/lib/types";
@@ -135,13 +135,11 @@ export default function ScanPage() {
   return (
     <>
       <Toolbar />
-      {/* <LargeTitle>Scan Receipt</LargeTitle> */}
-
       <input ref={cameraInput} type="file" accept="image/*" capture="environment" hidden onChange={onFile} />
       <input ref={libraryInput} type="file" accept="image/*" hidden onChange={onFile} />
 
       {!receipt ? (
-        <div className="flex flex-col gap-8 p-4">
+        <div className="flex flex-col gap-8 px-4">
           <div className="flex flex-col items-center gap-4 pt-10 text-center">
             <ScanText size={80} strokeWidth={1.3} className="animate-pulse text-ios-blue" />
             <h2 className="text-[28px] font-bold">Scan Receipt</h2>

@@ -27,6 +27,13 @@ interface AuthState {
    */
   signUp: (email: string, password: string) => Promise<boolean>;
   signOut: () => Promise<void>;
+  /**
+   * Set when the signed-in user's account or account link could not be created/checked.
+   * Without it RLS rejects every read and write, so the app shows it instead of failing silently.
+   */
+  accountSetupError: string | null;
+  retryAccountSetup: () => void;
+  dismissAccountSetupError: () => void;
 }
 
 export type MagicLinkResult = "sent" | "rate_limited" | "error";
@@ -38,6 +45,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [initializing, setInitializing] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [accountSetupError, setAccountSetupError] = useState<string | null>(null);
+
+  const setUpAccount = useCallback(async (userId: string) => {
+    try {
+      await ensureDefaultAccount(userId);
+      setAccountSetupError(null);
+    } catch (e) {
+      console.error("Error creating account:", e);
+      setAccountSetupError(errorMessage(e));
+    }
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -48,10 +66,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(next);
       // Covers password sign-ins, email-confirmation links and magic links alike.
       // Deferred: Supabase calls inside this callback can deadlock the auth client.
-      if (event === "SIGNED_IN" && next) setTimeout(() => ensureDefaultAccount(next.user.id), 0);
+      if (event === "SIGNED_IN" && next) setTimeout(() => setUpAccount(next.user.id), 0);
+      if (event === "SIGNED_OUT") setAccountSetupError(null);
     });
     return () => data.subscription.unsubscribe();
-  }, []);
+  }, [setUpAccount]);
 
   /** Emails a one-time sign-in link. A new email gets an account (no password) on its first link. */
   const sendMagicLink = useCallback(async (email: string): Promise<MagicLinkResult> => {
@@ -154,8 +173,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithPassword,
       signUp,
       signOut,
+      accountSetupError,
+      retryAccountSetup: () => {
+        if (session) setUpAccount(session.user.id);
+      },
+      dismissAccountSetupError: () => setAccountSetupError(null),
     }),
-    [session, initializing, isLoading, error, sendMagicLink, signInWithPassword, signUp, signOut],
+    [session, initializing, isLoading, error, sendMagicLink, signInWithPassword, signUp, signOut, accountSetupError, setUpAccount],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -165,34 +189,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
  * Creates a "Personal" account owned by the new user.
  * The database already does this on sign-up (trigger on_auth_user_created_account, see
  * supabase/migrations/20261122170000_create_account_on_signup.sql); this is a fallback repair.
+ * Throws on failure; AuthProvider turns that into accountSetupError, which AppShell shows.
  * With magic links there is no session until the link is opened,
- * so here it runs on every sign-in and is a no-op once the account exists. The account's
- * `signed_up_at` column defaults to now(), so it records the user's first sign-in.
+ * so here it runs on every sign-in and is a no-op once the account exists.
  *
  * The app writes every row with account_id = the user's id (see services.ts), so the account
  * must have that same id, and the user must be linked to it, or RLS rejects the inserts.
  * The check is for that specific account, so users whose account got a random id are repaired.
  */
 async function ensureDefaultAccount(userId: string) {
-  try {
-    const { data: existing, error: lookupError } = await supabase
-      .from("account_users")
-      .select("account_id")
-      .eq("user_id", userId)
-      .eq("account_id", userId)
-      .limit(1);
-    if (lookupError) throw lookupError;
-    if (existing.length > 0) return;
+  const { data: existing, error: lookupError } = await supabase
+    .from("account_users")
+    .select("account_id")
+    .eq("user_id", userId)
+    .eq("account_id", userId)
+    .limit(1);
+  if (lookupError) throw lookupError;
+  if (existing.length > 0) return;
 
-    const { error } = await supabase.from("accounts").upsert({ id: userId, name: "Personal" }, { onConflict: "id", ignoreDuplicates: true });
-    if (error) throw error;
-    const { error: linkError } = await supabase
-      .from("account_users")
-      .insert({ account_id: userId, user_id: userId, role: "owner" });
-    if (linkError) throw linkError;
-  } catch (e) {
-    console.error("Error creating account:", e);
-  }
+  const { error } = await supabase.from("accounts").upsert({ id: userId, name: "Personal" }, { onConflict: "id", ignoreDuplicates: true });
+  if (error) throw error;
+  const { error: linkError } = await supabase
+    .from("account_users")
+    .insert({ account_id: userId, user_id: userId, role: "owner" });
+  if (linkError) throw linkError;
 }
 
 export function useAuth() {

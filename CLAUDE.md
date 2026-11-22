@@ -10,3 +10,9 @@ For any non-trivial feature or behavior change, follow the superpowers workflow 
 4. **Execute** — `superpowers:subagent-driven-development` to implement the plan task by task with subagents.
 
 Small fixes (one-line changes, copy tweaks, styling nudges) can skip straight to implementation.
+
+## Keep the README current
+
+When a change alters the architecture — data flow, storage, sync/offline behaviour, auth, the database
+schema or migrations, deployment, or how the app is run or tested — update `README.md` in the same branch
+so it describes how things work now. Include it as a task in the plan for such features.
