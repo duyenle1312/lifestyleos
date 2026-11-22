@@ -8,6 +8,19 @@ Next.js + Tailwind app backed by Supabase.
 Built mobile-first (iOS look); on tablets/desktop the tab bar becomes a sidebar and sheets become centered dialogs.
 On wide screens, Expenses becomes an iPadOS-style split view (see [Desktop](#desktop)).
 
+## Contents
+
+- [Screenshots](#screenshots)
+- [Run](#run)
+- [Desktop](#desktop)
+  - [Keyboard shortcuts (Expenses)](#keyboard-shortcuts-expenses)
+- [Sign-in](#sign-in)
+  - [Admin view: users](#admin-view-users)
+  - [Email delivery (Resend)](#email-delivery-resend)
+- [Users and accounts](#users-and-accounts)
+- [Screens](#screens)
+- [Notes](#notes)
+
 ## Screenshots
 
 <p>
@@ -128,6 +141,25 @@ Supabase's built-in mailer is for testing only and allows very few emails per ho
 | Sender name | `Lifestyle OS` |
 
 **3. Raise the email rate limit.** Authentication → **Rate Limits** → **Rate limit for sending emails**: set to **50** emails per hour and save. This field only becomes editable once custom SMTP is on. It caps every auth email (magic links, sign-up confirmations, password resets) across the whole project, not per user. When it is hit, the login screen falls back to the password form (see above).
+
+## Users and accounts
+
+Two separate ideas. A **user** is a person who signs in. An **account** is the space their data lives in.
+
+| | User | Account |
+|---|---|---|
+| Table | `auth.users` (managed by Supabase Auth) | `public.accounts` |
+| Holds | Email, password, sign-in history, display name (`user_metadata.full_name`) | Account name ("Personal"), `signed_up_at` |
+| Owns data? | No | Yes: expenses, categories, payment methods, shopping lists and inventory all have `account_id` |
+| Linked by | `public.account_users` (`account_id`, `user_id`, `role` = `owner` / `member`) | |
+
+The schema lets one account have several users, like a shared household. Today every user has exactly one account, created on sign-up, whose id equals their user id. That's why the app writes `account_id = auth.uid()`.
+
+What follows from this:
+
+- **Personal details belong to the user, not the account.** Email and name stay in `auth.users`. A shared account has no single email, and a copy in `accounts` would go stale when someone changes their email. `admin.users` joins the two for viewing.
+- **RLS goes through `account_users`.** A user can reach an account's rows only if a link row connects them. A missing link (`has_owner_link = false` in `admin.users`) locks the user out of all their data.
+- **`accounts.name` is the account's name**, not the person's. Use Settings → Name for the person.
 
 ## Screens
 
