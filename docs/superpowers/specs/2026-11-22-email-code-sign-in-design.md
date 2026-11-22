@@ -73,6 +73,14 @@ asked for it.
 (home-screen app storage is separate from Safari), list Email OTP Length = 6 under "Supabase settings this
 relies on", and update the offline table row ("sign-in by email code or link").
 
+## ⚠️ Manual Supabase dashboard steps (user, before testing on a real email)
+
+1. **Authentication → Providers → Email → Email OTP Length: set to 6.** Otherwise codes are 8 digits and the
+   6-digit field rejects every one.
+2. **Authentication → Emails → Templates: re-paste Magic Link and Confirm signup** from the updated
+   `supabase/templates/magic_link.html` and `confirmation.html`, with the new subjects. Until then, emails
+   carry no code.
+
 ## Left to the builder
 
 - Exact email typography for the code block and exact wording within the tone above.
