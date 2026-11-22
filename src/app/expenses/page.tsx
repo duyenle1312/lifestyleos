@@ -110,17 +110,45 @@ export default function ExpensesPage() {
     };
   }, [user.id, month]);
 
+  // Previous month, for the overview's "vs last month" comparison (split view only).
+  // Best-effort: on failure the comparison is simply omitted rather than raising an error alert.
+  const [previous, setPrevious] = useState<{ month: number; rows: Expense[] } | null>(null);
+  useEffect(() => {
+    if (!isSplit) return;
+    let cancelled = false;
+    const prevMonth = addMonths(month, -1);
+    api
+      .fetchExpensesByDateRange(user.id, prevMonth, month)
+      .then((rows) => !cancelled && setPrevious({ month: prevMonth.getTime(), rows }))
+      .catch((e) => console.warn("Previous month comparison unavailable:", e));
+    return () => {
+      cancelled = true;
+    };
+  }, [user.id, month, isSplit]);
+
   const isLoading = loadedMonth !== month.getTime();
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return expenses.filter((e) => {
-      if (!isSameMonth(new Date(e.expense_date), month)) return false;
+  /** Category + search filter, shared by the list and the previous-month comparison. */
+  const matchesFilters = useCallback(
+    (e: Expense) => {
       if (categoryFilter !== "all" && e.category_id !== categoryFilter) return false;
+      const q = search.trim().toLowerCase();
       if (!q) return true;
       return [e.item, e.description, e.location].some((f) => f?.toLowerCase().includes(q));
-    });
-  }, [expenses, month, categoryFilter, search]);
+    },
+    [categoryFilter, search],
+  );
+
+  const filtered = useMemo(
+    () => expenses.filter((e) => isSameMonth(new Date(e.expense_date), month) && matchesFilters(e)),
+    [expenses, month, matchesFilters],
+  );
+
+  const previousFiltered = useMemo(() => {
+    const prevMonth = addMonths(month, -1);
+    if (previous?.month !== prevMonth.getTime()) return null;
+    return previous.rows.filter((e) => isSameMonth(new Date(e.expense_date), prevMonth) && matchesFilters(e));
+  }, [previous, month, matchesFilters]);
 
   /** Sections of [key, header, expenses]: by day (newest first) or by payment method (A–Z, none last). */
   const groups = useMemo(() => {
@@ -461,7 +489,7 @@ export default function ExpensesPage() {
     return (
       <div className="flex h-dvh flex-col">
         <header className="flex h-13 shrink-0 items-center gap-4 border-b border-separator bg-bar px-5 backdrop-blur-xl">
-          <h1 className="text-[20px] font-bold">Expenses</h1>
+          <h1 className="shrink-0 text-[20px] font-bold">Expenses</h1>
           {monthSwitcher}
           <div className="flex-1" />
           <SearchBar
@@ -469,7 +497,7 @@ export default function ExpensesPage() {
             value={search}
             onChange={setSearch}
             placeholder="Search expenses"
-            className="w-64 xl:w-80"
+            className="w-44 xl:w-72"
             shortcut="/"
           />
           <div className="flex items-center">
@@ -480,9 +508,11 @@ export default function ExpensesPage() {
             type="button"
             onClick={() => setShowAdd(true)}
             title="Add Expense (N)"
-            className="flex items-center gap-1 rounded-lg bg-ios-blue py-1.5 pr-3 pl-2 text-[15px] font-medium text-white hover:opacity-90"
+            aria-label="Add Expense"
+            className="flex shrink-0 items-center gap-1 rounded-lg bg-ios-blue p-1.5 text-[15px] font-medium whitespace-nowrap text-white hover:opacity-90 xl:pr-3 xl:pl-2"
           >
-            <Plus size={18} strokeWidth={2.4} /> Add Expense
+            {/* Icon-only below xl so the toolbar fits a 1024px window. */}
+            <Plus size={18} strokeWidth={2.4} /> <span className="hidden xl:inline">Add Expense</span>
           </button>
         </header>
 
@@ -499,7 +529,7 @@ export default function ExpensesPage() {
             {list}
           </div>
           <div className="min-w-0 flex-1 overflow-y-auto overscroll-contain">
-            <div className="mx-auto max-w-xl">
+            <div className="mx-auto max-w-2xl">
               {selected ? (
                 <ExpenseInspector
                   key={selected.id}
@@ -511,8 +541,9 @@ export default function ExpensesPage() {
               ) : (
                 !isLoading && (
                   <MonthSummary
-                    monthLabel={formatMonthYear(month)}
+                    month={month}
                     expenses={filtered}
+                    previous={previousFiltered}
                     byId={byId}
                     onSelectCategory={setCategoryFilter}
                   />
