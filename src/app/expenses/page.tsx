@@ -18,7 +18,9 @@ import {
   Settings2,
   Trash2,
 } from "lucide-react";
+import { useLiveQuery } from "dexie-react-hooks";
 import { useUser } from "@/components/AuthProvider";
+import { useLocalDb, useSync } from "@/components/OfflineProvider";
 import { ExpenseDetail, ExpenseInspector } from "@/components/expenses/ExpenseDetail";
 import { MonthSummary } from "@/components/expenses/MonthSummary";
 import { ExpenseForm } from "@/components/expenses/ExpenseForm";
@@ -52,7 +54,9 @@ import {
   startOfDay,
   startOfMonth,
 } from "@/lib/helpers";
-import * as api from "@/lib/services";
+import { deleteExpense, saveExpense } from "@/lib/offline/mutations";
+import { useAwaitingFirstPull } from "@/lib/offline/useAwaitingFirstPull";
+import type { ExpenseInput } from "@/lib/services";
 import { FINE_POINTER_QUERY, SPLIT_VIEW_QUERY, useMediaQuery } from "@/lib/useMediaQuery";
 import type { Category, Expense } from "@/lib/types";
 
@@ -73,9 +77,9 @@ export default function ExpensesPage() {
   const { categories, byId } = useCategories();
   const { byId: paymentById } = usePaymentMethods();
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  /** Month (timestamp) the current `expenses` were loaded for; loading = it differs from the selected month. */
-  const [loadedMonth, setLoadedMonth] = useState<number | null>(null);
+  const db = useLocalDb();
+  const { syncNow } = useSync();
+  const awaitingFirstPull = useAwaitingFirstPull("expenses");
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   /** "all" or a category id. */
@@ -99,36 +103,22 @@ export default function ExpensesPage() {
     if (!isSplit) setSelectedId(null);
   }
 
-  // loadExpenses(accountId:month:) – refetch whenever the month changes, ignoring stale responses.
-  useEffect(() => {
-    let cancelled = false;
-    api
-      .fetchExpensesByDateRange(user.id, month, addMonths(month, 1))
-      .then((rows) => !cancelled && setExpenses(rows))
-      .catch((e) => !cancelled && setError(errorMessage(e)))
-      .finally(() => !cancelled && setLoadedMonth(month.getTime()));
-    return () => {
-      cancelled = true;
-    };
-  }, [user.id, month]);
+  // Expenses of the selected month from the local store; re-runs on every local or synced change.
+  const monthRows = useLiveQuery(
+    () => db.expenses.where("_ts").between(month.getTime(), addMonths(month, 1).getTime(), true, false).toArray(),
+    [db, month],
+  );
+  const expenses = useMemo(() => [...(monthRows ?? [])].sort(byDateDesc), [monthRows]);
 
   // Previous month, for the overview's "vs last month" comparison (split view only).
-  // Best-effort: on failure the comparison is simply omitted rather than raising an error alert.
-  const [previous, setPrevious] = useState<{ month: number; rows: Expense[] } | null>(null);
-  useEffect(() => {
-    if (!isSplit) return;
-    let cancelled = false;
-    const prevMonth = addMonths(month, -1);
-    api
-      .fetchExpensesByDateRange(user.id, prevMonth, month)
-      .then((rows) => !cancelled && setPrevious({ month: prevMonth.getTime(), rows }))
-      .catch((e) => console.warn("Previous month comparison unavailable:", e));
-    return () => {
-      cancelled = true;
-    };
-  }, [user.id, month, isSplit]);
+  const previous = useLiveQuery(async () => {
+    if (!isSplit) return null;
+    const prev = addMonths(month, -1);
+    const rows = await db.expenses.where("_ts").between(prev.getTime(), month.getTime(), true, false).toArray();
+    return { month: prev.getTime(), rows };
+  }, [db, month, isSplit]);
 
-  const isLoading = loadedMonth !== month.getTime();
+  const isLoading = monthRows === undefined || (monthRows.length === 0 && awaitingFirstPull);
 
   /** Category + search filter, shared by the list and the previous-month comparison. */
   const matchesFilters = useCallback(
@@ -148,7 +138,7 @@ export default function ExpensesPage() {
 
   const previousFiltered = useMemo(() => {
     const prevMonth = addMonths(month, -1);
-    if (previous?.month !== prevMonth.getTime()) return null;
+    if (!previous || previous.month !== prevMonth.getTime()) return null;
     return previous.rows.filter((e) => isSameMonth(new Date(e.expense_date), prevMonth) && matchesFilters(e));
   }, [previous, month, matchesFilters]);
 
@@ -193,10 +183,10 @@ export default function ExpensesPage() {
 
   // MARK: - Mutations
 
-  const add = async (input: api.ExpenseInput) => {
+  const add = async (input: ExpenseInput) => {
     try {
-      const created = await api.createExpense(user.id, input);
-      setExpenses((list) => [...list, created].sort(byDateDesc));
+      await saveExpense(db, user.id, input);
+      void syncNow();
       return true;
     } catch (e) {
       setError(errorMessage(e));
@@ -204,10 +194,10 @@ export default function ExpensesPage() {
     }
   };
 
-  const update = async (id: string, input: api.ExpenseInput) => {
+  const update = async (id: string, input: ExpenseInput) => {
     try {
-      const updated = await api.updateExpense(id, input);
-      setExpenses((list) => list.map((e) => (e.id === id ? updated : e)));
+      await saveExpense(db, user.id, input, id);
+      void syncNow();
       return true;
     } catch (e) {
       setError(errorMessage(e));
@@ -222,8 +212,8 @@ export default function ExpensesPage() {
       setSelectedId(isSplit ? (flat[i + 1] ?? flat[i - 1])?.id ?? null : null);
     }
     try {
-      await api.deleteExpense(id);
-      setExpenses((list) => list.filter((e) => e.id !== id));
+      await deleteExpense(db, id);
+      void syncNow();
     } catch (e) {
       setError(errorMessage(e));
     }

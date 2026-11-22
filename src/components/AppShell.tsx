@@ -9,7 +9,9 @@ import { useAuth } from "./AuthProvider";
 import { CategoriesProvider } from "./CategoriesProvider";
 import { PaymentMethodsProvider } from "./PaymentMethodsProvider";
 import { LoginView } from "./LoginView";
-import { Spinner } from "./ui";
+import { OfflineProvider } from "./OfflineProvider";
+import { SyncBadge } from "./SyncBadge";
+import { Alert, Spinner } from "./ui";
 
 const TABS = [
   { href: "/expenses", label: "Expenses", icon: CircleDollarSign },
@@ -22,7 +24,7 @@ const TABS = [
 const SPLIT_VIEW_ROUTES = ["/expenses"];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, initializing } = useAuth();
+  const { user, initializing, accountSetupError, retryAccountSetup, dismissAccountSetupError } = useAuth();
   const pathname = usePathname();
 
   // The email-link landing page works signed in or out, without the app chrome.
@@ -43,13 +45,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isWide = SPLIT_VIEW_ROUTES.includes(pathname);
 
   return (
+    <OfflineProvider>
     <div className="min-h-dvh md:flex">
+      {accountSetupError && (
+        <Alert
+          title="Account Setup Failed"
+          message={`Your account couldn't be set up, so your data may not load or save. ${accountSetupError}`}
+          buttons={[{ label: "OK" }, { label: "Try Again", onPress: retryAccountSetup }]}
+          onDismiss={dismissAccountSetupError}
+        />
+      )}
       {/* Sidebar – tablets / desktop */}
       <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-separator bg-bar px-3 py-5 backdrop-blur-xl md:flex">
-        <div className="mb-6 flex items-center gap-2 px-2">
+        <Link href="/" aria-label="Lifestyle OS home" className="mb-6 flex items-center gap-2 self-start rounded-lg px-2">
           <AppLogo className="size-8" />
           <span className="text-[17px] font-semibold">Lifestyle OS</span>
-        </div>
+        </Link>
         <nav className="flex flex-col gap-0.5">
           {TABS.map(({ href, label, icon: Icon }) => (
             <Link
@@ -64,6 +75,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </Link>
           ))}
         </nav>
+        <SyncBadge className="mt-auto" />
       </aside>
 
       <main className="min-w-0 flex-1 pb-[var(--tabbar-h)]">
@@ -72,6 +84,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <PaymentMethodsProvider>{children}</PaymentMethodsProvider>
           </CategoriesProvider>
         </div>
+        {/* Mobile sync badge: in flow after the content (so it never covers it), floating above the tab bar */}
+        <SyncBadge className="sticky bottom-[calc(var(--tabbar-h)+8px)] z-20 mx-3 mt-2 md:hidden" />
       </main>
 
       {/* Bottom tab bar – phones */}
@@ -90,5 +104,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         ))}
       </nav>
     </div>
+    </OfflineProvider>
   );
 }

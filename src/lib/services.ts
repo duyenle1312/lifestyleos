@@ -1,9 +1,7 @@
 // Expense, shopping list and inventory data access.
 // `accountId` is the signed-in user's id, and `created_by_user_id` is set to it too.
 import { supabase } from "./supabase";
-import type { Category, Expense, InventoryItem, PaymentMethod, ReceiptItem, ScannedReceipt, ShoppingItem } from "./types";
-import { receiptItemDisplayName } from "./types";
-import { noonISO } from "./helpers";
+import type { Category, InventoryItem, PaymentMethod } from "./types";
 
 const softDelete = () => ({ deleted_at: new Date().toISOString() });
 
@@ -23,82 +21,6 @@ export interface ExpenseInput {
   item: string | null;
 }
 
-/** endDate is exclusive, so a month is [start of month, start of next month). */
-export async function fetchExpensesByDateRange(accountId: string, start: Date, end: Date) {
-  const { data, error } = await supabase
-    .from("expenses")
-    .select()
-    .eq("account_id", accountId)
-    .gte("expense_date", start.toISOString())
-    .lt("expense_date", end.toISOString())
-    .is("deleted_at", null)
-    .order("expense_date", { ascending: false });
-  if (error) throw error;
-  return data as Expense[];
-}
-
-export async function createExpense(accountId: string, input: ExpenseInput) {
-  const { data, error } = await supabase
-    .from("expenses")
-    .insert({ account_id: accountId, created_by_user_id: accountId, metadata: {}, ...input })
-    .select()
-    .single();
-  if (error) throw error;
-  return data as Expense;
-}
-
-export async function updateExpense(id: string, input: Partial<ExpenseInput>) {
-  const { data, error } = await supabase.from("expenses").update(input).eq("id", id).select().single();
-  if (error) throw error;
-  return data as Expense;
-}
-
-export async function deleteExpense(id: string) {
-  const { error } = await supabase.from("expenses").update(softDelete()).eq("id", id);
-  if (error) throw error;
-}
-
-/**
- * One expense per line item; failures are skipped.
- * Uses the receipt's date, and stores
- * unit_price = line price ÷ quantity so that unit × unit_price = amount, like the expense form.
- */
-export async function createExpensesFromReceipt(
-  accountId: string,
-  receipt: ScannedReceipt,
-  items: ReceiptItem[],
-  resolve: {
-    categoryId: (name: string | null) => string | null;
-    paymentMethodId: (name: string | null) => string | null;
-  },
-) {
-  const expenseDate = receipt.date && /^\d{4}-\d{2}-\d{2}$/.test(receipt.date) ? noonISO(receipt.date) : new Date().toISOString();
-  const created: Expense[] = [];
-  for (const item of items) {
-    const quantity = item.quantity && item.quantity > 0 ? item.quantity : 1;
-    try {
-      created.push(
-        await createExpense(accountId, {
-          amount: item.amount,
-          currency: "EUR",
-          expense_date: expenseDate,
-          category_id: resolve.categoryId(item.category),
-          description: null,
-          location: receipt.storeName,
-          unit: quantity,
-          unit_price: Math.round((item.amount / quantity) * 10_000) / 10_000,
-          expire_date: null,
-          payment_method_id: resolve.paymentMethodId(receipt.paymentMethod ?? null),
-          item: receiptItemDisplayName(item),
-        }),
-      );
-    } catch (e) {
-      console.error(`Failed to create expense for ${item.name}`, e);
-    }
-  }
-  return created;
-}
-
 // MARK: - Shopping list
 
 export interface ShoppingInput {
@@ -112,38 +34,6 @@ export interface ShoppingInput {
   purchased: boolean;
   scheduled_date: string | null;
   priority: number | null;
-}
-
-export async function fetchShoppingItems(accountId: string) {
-  const { data, error } = await supabase
-    .from("shopping_lists")
-    .select()
-    .eq("account_id", accountId)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return data as ShoppingItem[];
-}
-
-export async function createShoppingItem(accountId: string, input: ShoppingInput) {
-  const { data, error } = await supabase
-    .from("shopping_lists")
-    .insert({ account_id: accountId, created_by_user_id: accountId, metadata: {}, ...input })
-    .select()
-    .single();
-  if (error) throw error;
-  return data as ShoppingItem;
-}
-
-export async function updateShoppingItem(id: string, input: Partial<ShoppingInput>) {
-  const { data, error } = await supabase.from("shopping_lists").update(input).eq("id", id).select().single();
-  if (error) throw error;
-  return data as ShoppingItem;
-}
-
-export async function deleteShoppingItem(id: string) {
-  const { error } = await supabase.from("shopping_lists").update(softDelete()).eq("id", id);
-  if (error) throw error;
 }
 
 // MARK: - Categories (supabase/migrations/*_categories.sql)

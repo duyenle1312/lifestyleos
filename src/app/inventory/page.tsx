@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
+import { useMemo, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -19,6 +20,7 @@ import {
   Type,
 } from "lucide-react";
 import { useUser } from "@/components/AuthProvider";
+import { useLocalDb, useSync } from "@/components/OfflineProvider";
 import { FilterGlyph, IconBubble } from "@/components/glyphs";
 import {
   DateRow,
@@ -38,8 +40,10 @@ import {
 import { type IOSColor, iosColor, iosTint } from "@/lib/constants";
 import { errorMessage, formatQuantity, noonISO, parseDecimal, todayInput } from "@/lib/helpers";
 import { expirationText, expiryStatus, isExpired, isExpiringSoon, STATUS_COLOR } from "@/lib/inventory";
+import { useAwaitingFirstPull } from "@/lib/offline/useAwaitingFirstPull";
 import * as api from "@/lib/services";
 import type { InventoryItem } from "@/lib/types";
+import { useCanEditOnline } from "@/lib/useOnline";
 
 type SortOption = "name" | "expiration" | "quantity";
 type Filter = "all" | "expiringSoon" | "expired";
@@ -67,26 +71,19 @@ function compare(a: InventoryItem, b: InventoryItem, sort: SortOption): number {
 export default function InventoryPage() {
   const user = useUser();
   const router = useRouter();
-  const [items, setItems] = useState<InventoryItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const db = useLocalDb();
+  const { syncNow } = useSync();
+  const canEdit = useCanEditOnline();
+  const awaitingFirstPull = useAwaitingFirstPull("inventory_items");
+  const rows = useLiveQuery(() => db.inventoryItems.toArray(), [db]);
+  const items = useMemo(() => rows ?? [], [rows]);
+  const isLoading = rows === undefined || (rows.length === 0 && awaitingFirstPull);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortOption>("name");
   const [ascending, setAscending] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
   const [showAdd, setShowAdd] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    api
-      .fetchInventoryItems(user.id)
-      .then((rows) => !cancelled && setItems(rows))
-      .catch((e) => !cancelled && setError(errorMessage(e)))
-      .finally(() => !cancelled && setIsLoading(false));
-    return () => {
-      cancelled = true;
-    };
-  }, [user.id]);
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -112,7 +109,8 @@ export default function InventoryPage() {
   const add = async (input: api.InventoryInput) => {
     try {
       const created = await api.createInventoryItem(user.id, input);
-      setItems((list) => [...list, created].sort((a, b) => a.name.localeCompare(b.name)));
+      await db.inventoryItems.put(created);
+      void syncNow();
       return true;
     } catch (e) {
       setError(errorMessage(e));
@@ -123,7 +121,8 @@ export default function InventoryPage() {
   const remove = async (id: string) => {
     try {
       await api.deleteInventoryItem(id);
-      setItems((list) => list.filter((i) => i.id !== id));
+      await db.inventoryItems.delete(id);
+      void syncNow();
     } catch (e) {
       setError(errorMessage(e));
     }
@@ -136,7 +135,7 @@ export default function InventoryPage() {
 
   const renderRows = (list: readonly InventoryItem[]) =>
     list.map((i) => (
-      <SwipeRow key={i.id} onDelete={() => remove(i.id)} onPress={() => router.push(`/inventory/${i.id}`)}>
+      <SwipeRow key={i.id} disabled={!canEdit} onDelete={() => remove(i.id)} onPress={() => router.push(`/inventory/${i.id}`)}>
         <InventoryRow item={i} />
       </SwipeRow>
     ));
@@ -169,10 +168,12 @@ export default function InventoryPage() {
             ]}
           />
         }
-        right={<IconButton icon={Plus} label="Add item" onClick={() => setShowAdd(true)} />}
+        right={<IconButton icon={Plus} label="Add item" disabled={!canEdit} onClick={() => setShowAdd(true)} />}
       >
         <SearchBar value={search} onChange={setSearch} placeholder="Search items..." />
       </Toolbar>
+
+      {!canEdit && <p className="px-8 pt-3 text-[13px] text-label-2">Needs a connection</p>}
 
       {isLoading ? (
         <div className="flex min-h-[60dvh] flex-col items-center justify-center gap-4 text-label-2">
@@ -184,7 +185,8 @@ export default function InventoryPage() {
           <button
             type="button"
             onClick={() => setShowAdd(true)}
-            className="flex items-center gap-2 rounded-full bg-ios-blue px-5 py-2.5 text-[17px] font-semibold text-white"
+            disabled={!canEdit}
+            className="flex items-center gap-2 rounded-full bg-ios-blue px-5 py-2.5 text-[17px] font-semibold text-white disabled:opacity-40"
           >
             <CirclePlus size={20} /> Add Your First Item
           </button>

@@ -1,11 +1,15 @@
 "use client";
 
 // The signed-in user's payment methods, shared by Expenses, Scan Receipt and Settings.
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
+import { createContext, useCallback, useContext, useMemo } from "react";
 import { errorMessage } from "@/lib/helpers";
 import * as api from "@/lib/services";
 import type { PaymentMethod } from "@/lib/types";
 import { useUser } from "./AuthProvider";
+import { rewriteRefInOutbox } from "@/lib/offline/rewriteRef";
+import { useAwaitingFirstPull } from "@/lib/offline/useAwaitingFirstPull";
+import { useLocalDb, useSync } from "./OfflineProvider";
 
 export const MAX_PAYMENT_METHOD_NAME = 50;
 
@@ -16,7 +20,6 @@ interface PaymentMethodsState {
   /** Case-insensitive, trimmed lookup; null when unknown. */
   idByName: (name: string | null) => string | null;
   isLoading: boolean;
-  loadError: string | null;
   /** Returns an error message, or null when the name is usable. */
   validateName: (name: string, exceptId?: string) => string | null;
   addMethod: (name: string) => Promise<PaymentMethod>;
@@ -35,21 +38,16 @@ function friendly(e: unknown): Error {
 
 export function PaymentMethodsProvider({ children }: { children: React.ReactNode }) {
   const user = useUser();
-  const [methods, setMethods] = useState<PaymentMethod[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    api
-      .fetchPaymentMethods(user.id)
-      .then((rows) => !cancelled && setMethods(rows))
-      .catch((e) => !cancelled && setLoadError(errorMessage(e)))
-      .finally(() => !cancelled && setIsLoading(false));
-    return () => {
-      cancelled = true;
-    };
-  }, [user.id]);
+  const db = useLocalDb();
+  const { syncNow } = useSync();
+  const awaitingFirstPull = useAwaitingFirstPull("refs");
+  const rows = useLiveQuery(() => db.paymentMethods.toArray(), [db]);
+  const methods = useMemo(
+    () => [...(rows ?? [])].sort((a, b) => a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at)),
+    [rows],
+  );
+  // Empty before the first pull of reference data has finished means "not pulled yet", not "no payment methods".
+  const isLoading = rows === undefined || (rows.length === 0 && awaitingFirstPull);
 
   const validateName = useCallback(
     (raw: string, exceptId?: string) => {
@@ -75,34 +73,41 @@ export function PaymentMethodsProvider({ children }: { children: React.ReactNode
       const nextOrder = methods.reduce((max, m) => Math.max(max, m.sort_order), 0) + 1;
       try {
         const created = await api.createPaymentMethod(user.id, name.trim(), nextOrder);
-        setMethods((list) => [...list, created]);
+        await db.paymentMethods.put(created);
+        void syncNow();
         return created;
       } catch (e) {
         throw friendly(e);
       }
     },
-    [methods, user.id],
+    [methods, user.id, db, syncNow],
   );
 
   const renameMethod = useCallback(async (id: string, name: string) => {
     try {
       const updated = await api.renamePaymentMethod(id, name.trim());
-      setMethods((list) => list.map((m) => (m.id === id ? updated : m)));
+      await db.paymentMethods.put(updated);
+      void syncNow();
       return updated;
     } catch (e) {
       throw friendly(e);
     }
-  }, []);
+  }, [db, syncNow]);
 
   const deleteMethod = useCallback(async (id: string, moveTo: string | null) => {
     try {
       const moved = await api.deletePaymentMethod(id, moveTo);
-      setMethods((list) => list.filter((m) => m.id !== id));
+      await db.transaction("rw", [db.paymentMethods, db.expenses, db.outbox], async () => {
+        await db.paymentMethods.delete(id);
+        await db.expenses.filter((x) => x.payment_method_id === id).modify({ payment_method_id: moveTo });
+        await rewriteRefInOutbox(db, "payment_method_id", id, moveTo);
+      });
+      void syncNow();
       return moved;
     } catch (e) {
       throw friendly(e);
     }
-  }, []);
+  }, [db, syncNow]);
 
   const value = useMemo<PaymentMethodsState>(
     () => ({
@@ -111,13 +116,12 @@ export function PaymentMethodsProvider({ children }: { children: React.ReactNode
       byId: new Map(methods.map((m) => [m.id, m])),
       idByName,
       isLoading,
-      loadError,
       validateName,
       addMethod,
       renameMethod,
       deleteMethod,
     }),
-    [methods, idByName, isLoading, loadError, validateName, addMethod, renameMethod, deleteMethod],
+    [methods, idByName, isLoading, validateName, addMethod, renameMethod, deleteMethod],
   );
 
   return <PaymentMethodsContext.Provider value={value}>{children}</PaymentMethodsContext.Provider>;

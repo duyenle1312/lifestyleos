@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Applies the migrations to a throwaway local Postgres and checks the ids-only migration.
+# Applies the migrations to a throwaway local Postgres and checks both the ids-only migration and the same-account trigger (incl. an RLS test).
 # Phases: stub + fixtures -> existing migrations -> mid fixtures -> new migration (twice) -> assertions.
 # Uses whatever local Postgres PGBIN points at (Homebrew may be older than production PG 17); nothing in the migration is version-specific.
 set -euo pipefail
@@ -25,13 +25,20 @@ run() { "$PGBIN/psql" -h "$DIR" -p "$PORT" -U postgres -d test -v ON_ERROR_STOP=
 
 run "$ROOT/supabase/tests/stub_schema.sql"
 run "$ROOT/supabase/tests/expenses_ids_only_fixtures.sql"
+LAST=""
 for f in "$ROOT"/supabase/migrations/*.sql; do
-  [ "$(basename "$f")" = "$NEW" ] && continue
+  if [ "$(basename "$f")" = "$NEW" ]; then
+    run "$ROOT/supabase/tests/expenses_ids_only_mid_fixtures.sql"
+    run "$f"
+    run "$f"
+    continue
+  fi
   run "$f"
+  LAST="$f"
 done
-run "$ROOT/supabase/tests/expenses_ids_only_mid_fixtures.sql"
-run "$ROOT/supabase/migrations/$NEW"
-run "$ROOT/supabase/migrations/$NEW"
+# Idempotence of the newest migration.
+run "$LAST"
 "$PGBIN/psql" -h "$DIR" -p "$PORT" -U postgres -d test -v ON_ERROR_STOP=1 -q -t -f "$ROOT/supabase/tests/expenses_ids_only_assert.sql"
+"$PGBIN/psql" -h "$DIR" -p "$PORT" -U postgres -d test -v ON_ERROR_STOP=1 -q -t -f "$ROOT/supabase/tests/expenses_same_account_assert.sql"
 
 echo "ALL MIGRATION TESTS PASSED"

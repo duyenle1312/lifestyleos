@@ -6,9 +6,11 @@ import { ChevronRight, CreditCard, KeyRound, Mail, Tag, UserRound } from "lucide
 import { useAuth } from "@/components/AuthProvider";
 import { useCategories } from "@/components/CategoriesProvider";
 import { usePaymentMethods } from "@/components/PaymentMethodsProvider";
+import { useSyncStatus } from "@/components/OfflineProvider";
 import { NameSheet } from "@/components/NameSheet";
 import { SetPasswordSheet } from "@/components/SetPasswordSheet";
-import { ButtonRow, LargeTitle, Row, Section, Toolbar } from "@/components/ui";
+import { Alert, ButtonRow, LargeTitle, Row, Section, Toolbar } from "@/components/ui";
+import { useCanEditOnline } from "@/lib/useOnline";
 
 // One tile color for every settings icon, so the list reads calmly.
 const ICON_TILE = "flex size-[29px] shrink-0 items-center justify-center rounded-[7px] bg-ios-blue text-white";
@@ -20,6 +22,11 @@ export default function SettingsPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [passwordSaved, setPasswordSaved] = useState(false);
   const [showName, setShowName] = useState(false);
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
+  const sync = useSyncStatus();
+  // Name and password are saved straight to Supabase Auth, so they need a connection and a live session.
+  const canEdit = useCanEditOnline();
+  const unsynced = sync.pending + sync.failed.length;
   const fullName = typeof user?.user_metadata?.full_name === "string" ? user.user_metadata.full_name : "";
   return (
     <>
@@ -28,12 +35,19 @@ export default function SettingsPage() {
       <Section
         header="Account"
         className="pt-2"
-        footer={passwordSaved ? "Password saved." : "A password lets you sign in when a sign-in link can't be emailed."}
+        footer={
+          !canEdit
+            ? "Needs a connection"
+            : passwordSaved
+              ? "Password saved."
+              : "A password lets you sign in when a sign-in link can't be emailed."
+        }
       >
         <button
           type="button"
           onClick={() => setShowName(true)}
-          className="flex min-h-11 w-full items-center gap-3 px-4 py-[11px] text-left text-[17px] active:bg-gray5"
+          disabled={!canEdit}
+          className="flex min-h-11 w-full items-center gap-3 px-4 py-[11px] text-left text-[17px] active:bg-gray5 disabled:opacity-40 disabled:active:bg-transparent"
         >
           <span className={ICON_TILE}>
             <UserRound size={17} />
@@ -54,7 +68,8 @@ export default function SettingsPage() {
         <button
           type="button"
           onClick={() => setShowPassword(true)}
-          className="flex min-h-11 w-full items-center gap-3 px-4 py-[11px] text-left text-[17px] active:bg-gray5"
+          disabled={!canEdit}
+          className="flex min-h-11 w-full items-center gap-3 px-4 py-[11px] text-left text-[17px] active:bg-gray5 disabled:opacity-40 disabled:active:bg-transparent"
         >
           <span className={ICON_TILE}>
             <KeyRound size={17} />
@@ -85,12 +100,20 @@ export default function SettingsPage() {
         </Link>
       </Section>
       <Section>
-        <ButtonRow destructive onPress={signOut}>
+        <ButtonRow destructive onPress={() => (unsynced > 0 ? setConfirmSignOut(true) : void signOut())}>
           Sign Out
         </ButtonRow>
       </Section>
-      {showName && <NameSheet initialName={fullName} onClose={() => setShowName(false)} />}
-      {showPassword && user?.email && (
+      {confirmSignOut && (
+        <Alert
+          title="Unsynced Changes"
+          message={`${unsynced === 1 ? "1 change hasn't" : `${unsynced} changes haven't`} synced yet. They'll be sent next time you sign in.`}
+          buttons={[{ label: "Cancel", role: "cancel" }, { label: "Sign Out", role: "destructive", onPress: () => void signOut() }]}
+          onDismiss={() => setConfirmSignOut(false)}
+        />
+      )}
+      {showName && canEdit && <NameSheet initialName={fullName} onClose={() => setShowName(false)} />}
+      {showPassword && canEdit && user?.email && (
         <SetPasswordSheet
           email={user.email}
           onDone={() => {

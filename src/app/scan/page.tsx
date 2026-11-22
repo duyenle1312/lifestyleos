@@ -4,11 +4,14 @@
 import { useRef, useState } from "react";
 import { Camera, CircleCheck, CirclePlus, Image as ImageIcon, Pencil, RotateCcw, ScanText, Trash2 } from "lucide-react";
 import { useAuth, useUser } from "@/components/AuthProvider";
+import { useLocalDb, useSync } from "@/components/OfflineProvider";
 import { useCategories } from "@/components/CategoriesProvider";
 import { usePaymentMethods } from "@/components/PaymentMethodsProvider";
-import { Alert, LargeTitle, LoadingOverlay, Spinner, Toolbar, useAutoFocus } from "@/components/ui";
+import { Alert, LoadingOverlay, Spinner, Toolbar, useAutoFocus } from "@/components/ui";
 import { errorMessage, formatQuantity, parseDecimal, todayInput } from "@/lib/helpers";
-import { createExpensesFromReceipt } from "@/lib/services";
+import { saveReceipt } from "@/lib/offline/mutations";
+import { receiptToExpenseInputs } from "@/lib/receipt";
+import { useOnline } from "@/lib/useOnline";
 import { type ReceiptItem, receiptItemDisplayName, type ScannedReceipt } from "@/lib/types";
 
 /** Downscale to ≤1600px JPEG so uploads stay small (phone photos are often 5–10 MB). */
@@ -52,6 +55,9 @@ function matchCategory(raw: string | null, names: string[]): string | null {
 
 export default function ScanPage() {
   const user = useUser();
+  const db = useLocalDb();
+  const { syncNow } = useSync();
+  const online = useOnline();
   const { session } = useAuth();
   const { names: categoryNames, idByName: categoryIdByName } = useCategories();
   const { names: paymentNames, idByName: paymentIdByName } = usePaymentMethods();
@@ -105,13 +111,12 @@ export default function ScanPage() {
     setIsSaving(true);
     setError(null);
     try {
-      const created = await createExpensesFromReceipt(user.id, receipt, receipt.items, {
+      const rows = receiptToExpenseInputs(receipt, receipt.items, {
         categoryId: categoryIdByName,
         paymentMethodId: paymentIdByName,
       });
-      if (created.length < receipt.items.length) {
-        throw new Error(`Only ${created.length} of ${receipt.items.length} items were added.`);
-      }
+      await saveReceipt(db, user.id, rows);
+      void syncNow();
       writeLastPayment(receipt.paymentMethod);
       setShowSuccess(true);
     } catch (e) {
@@ -135,13 +140,11 @@ export default function ScanPage() {
   return (
     <>
       <Toolbar />
-      {/* <LargeTitle>Scan Receipt</LargeTitle> */}
-
-      <input ref={cameraInput} type="file" accept="image/*" capture="environment" hidden onChange={onFile} />
-      <input ref={libraryInput} type="file" accept="image/*" hidden onChange={onFile} />
+      <input ref={cameraInput} type="file" accept="image/*" capture="environment" hidden disabled={!online} onChange={onFile} />
+      <input ref={libraryInput} type="file" accept="image/*" hidden disabled={!online} onChange={onFile} />
 
       {!receipt ? (
-        <div className="flex flex-col gap-8 p-4">
+        <div className="flex flex-col gap-8 px-4">
           <div className="flex flex-col items-center gap-4 pt-10 text-center">
             <ScanText size={80} strokeWidth={1.3} className="animate-pulse text-ios-blue" />
             <h2 className="text-[28px] font-bold">Scan Receipt</h2>
@@ -152,17 +155,20 @@ export default function ScanPage() {
             <button
               type="button"
               onClick={() => cameraInput.current?.click()}
-              className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-ios-blue/85 to-ios-blue p-4 text-[17px] font-semibold text-white"
+              disabled={!online}
+              className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-ios-blue/85 to-ios-blue p-4 text-[17px] font-semibold text-white disabled:opacity-40"
             >
               <Camera size={20} /> Take Photo
             </button>
             <button
               type="button"
               onClick={() => libraryInput.current?.click()}
-              className="flex items-center justify-center gap-2 rounded-xl bg-ios-blue/10 p-4 text-[17px] font-semibold text-ios-blue"
+              disabled={!online}
+              className="flex items-center justify-center gap-2 rounded-xl bg-ios-blue/10 p-4 text-[17px] font-semibold text-ios-blue disabled:opacity-40"
             >
               <ImageIcon size={20} /> Choose from Library
             </button>
+            {!online && <p className="text-center text-[13px] text-label-2">Scanning needs a connection</p>}
           </div>
 
           <div className="flex flex-col gap-3 rounded-xl bg-gray6 p-4 dark:bg-cell">

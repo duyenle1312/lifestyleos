@@ -516,7 +516,7 @@ export function SelectRow<T extends string | number>({
   label: string;
   value: T;
   onChange: (v: T) => void;
-  options: { value: T; label: string }[];
+  options: { value: T; label: string; disabled?: boolean }[];
 }) {
   const current = options.find((o) => o.value === value)?.label ?? "";
   return (
@@ -536,7 +536,7 @@ export function SelectRow<T extends string | number>({
         }}
       >
         {options.map((o) => (
-          <option key={String(o.value)} value={String(o.value)}>
+          <option key={String(o.value)} value={String(o.value)} disabled={o.disabled}>
             {o.label}
           </option>
         ))}
@@ -596,17 +596,20 @@ export function ButtonRow({
   onPress,
   destructive,
   center,
+  disabled,
 }: {
   children: React.ReactNode;
   onPress: () => void;
   destructive?: boolean;
   center?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onPress}
-      className={`flex min-h-11 w-full items-center gap-2 px-4 py-[11px] text-[17px] active:bg-fill ${
+      disabled={disabled}
+      className={`flex min-h-11 w-full items-center gap-2 px-4 py-[11px] text-[17px] active:bg-fill disabled:opacity-40 ${
         destructive ? "text-ios-red" : "text-ios-blue"
       } ${center ? "justify-center" : ""}`}
     >
@@ -625,6 +628,7 @@ export function SwipeRow({
   onPress,
   hoverDelete = true,
   selected = false,
+  disabled = false,
 }: {
   children: React.ReactNode;
   onDelete: () => void;
@@ -633,6 +637,8 @@ export function SwipeRow({
   selected?: boolean;
   /** Show a delete button on mouse hover (desktop). */
   hoverDelete?: boolean;
+  /** No swipe or hover delete (e.g. offline); `onPress` still works. */
+  disabled?: boolean;
 }) {
   const [offset, setOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -649,31 +655,33 @@ export function SwipeRow({
 
   return (
     <div className="group relative overflow-hidden">
-      <button
-        type="button"
-        onClick={() => {
-          set(0);
-          onDelete();
-        }}
-        className="absolute inset-y-0 right-0 flex items-center justify-center bg-ios-red text-[15px] text-white"
-        // Hidden at rest: otherwise its red edge bleeds through the row's anti-aliased bottom edge.
-        style={{ width: Math.max(ACTION_WIDTH, -offset), visibility: offset === 0 && !dragging ? "hidden" : "visible" }}
-        tabIndex={offset === 0 ? -1 : 0}
-      >
-        <span className="flex flex-col items-center gap-0.5">
-          <Trash2 size={18} />
-          Delete
-        </span>
-      </button>
+      {!disabled && (
+        <button
+          type="button"
+          onClick={() => {
+            set(0);
+            onDelete();
+          }}
+          className="absolute inset-y-0 right-0 flex items-center justify-center bg-ios-red text-[15px] text-white"
+          // Hidden at rest: otherwise its red edge bleeds through the row's anti-aliased bottom edge.
+          style={{ width: Math.max(ACTION_WIDTH, -offset), visibility: offset === 0 && !dragging ? "hidden" : "visible" }}
+          tabIndex={offset === 0 ? -1 : 0}
+        >
+          <span className="flex flex-col items-center gap-0.5">
+            <Trash2 size={18} />
+            Delete
+          </span>
+        </button>
+      )}
 
       <div
         aria-selected={selected || undefined}
         className={`relative ${selected ? "bg-gray5" : "bg-cell [@media(hover:hover)]:hover:bg-[color-mix(in_srgb,var(--bg-cell),var(--label)_4%)]"} ${dragging ? "" : "transition-transform duration-250 ease-out"} ${
           onPress ? "cursor-pointer active:bg-gray5" : ""
         }`}
-        style={{ transform: `translateX(${offset}px)`, touchAction: "pan-y" }}
+        style={{ transform: `translateX(${disabled ? 0 : offset}px)`, touchAction: "pan-y" }}
         onPointerDown={(e) => {
-          if (e.pointerType === "mouse" && e.button !== 0) return;
+          if (disabled || (e.pointerType === "mouse" && e.button !== 0)) return;
           gesture.current = { x: e.clientX, y: e.clientY, base: offsetRef.current, axis: "none", moved: false };
         }}
         onPointerMove={(e) => {
@@ -714,7 +722,7 @@ export function SwipeRow({
             suppressClick.current = false;
             e.stopPropagation();
             e.preventDefault();
-          } else if (offsetRef.current !== 0) {
+          } else if (!disabled && offsetRef.current !== 0) {
             set(0);
             e.stopPropagation();
             e.preventDefault();
@@ -730,7 +738,7 @@ export function SwipeRow({
           {children}
         </div>
         {/* Mouse users: reveal a delete button on hover instead of dragging. */}
-        {hoverDelete && (
+        {hoverDelete && !disabled && (
           <button
             type="button"
             aria-label="Delete"
