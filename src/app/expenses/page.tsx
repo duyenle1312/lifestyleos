@@ -25,6 +25,7 @@ import { MonthSummary } from "@/components/expenses/MonthSummary";
 import { ExpenseForm } from "@/components/expenses/ExpenseForm";
 import { MonthPicker } from "@/components/expenses/MonthPicker";
 import { FilterGlyph, IconBubble } from "@/components/glyphs";
+import { ThemeMenu } from "@/components/ThemeMenu";
 import {
   Alert,
   ContextMenu,
@@ -504,6 +505,7 @@ export default function ExpensesPage() {
             {filterMenu}
             {sortMenu}
           </div>
+          <ThemeMenu />
           <button
             type="button"
             onClick={() => setShowAdd(true)}
@@ -568,7 +570,12 @@ export default function ExpensesPage() {
             {sortMenu}
           </>
         }
-        right={<IconButton icon={Plus} label="Add expense" onClick={() => setShowAdd(true)} />}
+        right={
+          <div className="flex items-center gap-3">
+            <ThemeMenu />
+            <IconButton icon={Plus} label="Add expense" onClick={() => setShowAdd(true)} />
+          </div>
+        }
       >
         <SearchBar inputRef={searchRef} value={search} onChange={setSearch} placeholder="Search expenses" />
       </Toolbar>
