@@ -185,7 +185,7 @@ The app can be installed ("Add to Home Screen") and opens offline.
 
 **Testing it.** The service worker only runs in a production build, and needs HTTPS or `localhost`.
 
-1. Build and run in a separate folder (or a different port), not over your dev server: `npm run build && npm start`. A service worker on `localhost:3000` would also take over `npm run dev` there.
+1. Build and run in a separate copy of the repo on its own port: `npm run build && npx next start -p 3100`, then open `http://localhost:3100`. Don't do this on port 3000, or the service worker would also take over `npm run dev` there.
 2. Open the app, sign in, visit the tabs once, then check Chrome DevTools → Application → Service Workers.
 3. Tick **Offline** (Application → Service Workers, or Network → Throttling) and reload. Tabs should open from the cache and show your data.
 4. On a phone: serve it over HTTPS (a deployed preview), then Safari → Share → Add to Home Screen (iOS) or Chrome → Install app (Android).
@@ -251,11 +251,11 @@ Expenses and the shopping list are read from and written to a database on the de
 ## Testing
 
 ```bash
-npm test                      # Vitest + fake-indexeddb (IndexedDB in Node); TZ pinned to Europe/Helsinki
-bash scripts/test-migrations.sh   # applies the migrations to a throwaway local Postgres and checks ids-only
+npm test                      # Vitest + fake-indexeddb (IndexedDB in Node); TZ pinned in vitest.setup.ts (Europe/Helsinki)
+bash scripts/test-migrations.sh   # applies the migrations to a throwaway local Postgres and runs the SQL assertions
 ```
 
-`npm test` covers the outbox, push, pull, engine, paging, error mapping and session helpers (`src/lib/offline/*.test.ts`). The migration script needs a local Postgres (`PGBIN` defaults to `/opt/homebrew/bin`); it starts and removes its own temporary cluster.
+`npm test` runs every `*.test.ts` under `src/`: outbox, push, pull, engine, paging, error mapping, session helpers and more. The migration script checks both the ids-only migration (`supabase/tests/expenses_ids_only_assert.sql`) and the same-account trigger, including a row-level-security test (`supabase/tests/expenses_same_account_assert.sql`). It needs a local Postgres (`PGBIN` defaults to `/opt/homebrew/bin`); it starts and removes its own temporary cluster.
 
 ## Screens
 

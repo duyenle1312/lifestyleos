@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Applies the migrations to a throwaway local Postgres and checks the ids-only migration.
+# Applies the migrations to a throwaway local Postgres and checks both the ids-only migration and the same-account trigger (incl. an RLS test).
 # Phases: stub + fixtures -> existing migrations -> mid fixtures -> new migration (twice) -> assertions.
 # Uses whatever local Postgres PGBIN points at (Homebrew may be older than production PG 17); nothing in the migration is version-specific.
 set -euo pipefail
