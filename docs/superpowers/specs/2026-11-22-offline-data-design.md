@@ -1,6 +1,6 @@
 # Offline data — design
 
-Date: 2026-11-22 · Status: draft · Branch: `feature/pwa`
+Date: 2026-11-22 · Status: awaiting approval · Branch: `feature/pwa`
 
 ## Why
 
@@ -89,13 +89,22 @@ reaches Supabase on its own once you are back online.
   append an outbox entry `{ id, table, rowId, op: upsert|delete, payload, createdAt, attempts, error }`.
 - New rows get their id on the device (`crypto.randomUUID()`), plus `account_id` / `created_by_user_id`.
 - Push drains the outbox oldest-first, one entry at a time:
-  - create/edit → `upsert` on `id` (so a retry after a lost response is harmless — no duplicate);
+  - create/edit → `upsert` on `id` (so a retry after a lost response is harmless — no duplicate). The
+    payload always carries `deleted_at: null` (see "Edit vs. delete on another device");
   - delete → set `deleted_at` (soft delete, as today);
   - successful → remove the entry and store the server's returned row locally.
 - Consecutive edits to the same row may be collapsed before sending (last payload wins); order across rows
   is preserved.
 - Network failure / offline → stop and retry on the next trigger. Non-network errors → see Failures.
 - Online behaviour stays snappy: the local write makes the UI update immediately; push happens right after.
+
+### Edit vs. delete on another device (user decision: the edit wins, and it is logged)
+
+If a row edited offline was soft-deleted on the server in the meantime, the edit brings it back
+(`deleted_at` → null). Push detects this (read the server row's `deleted_at` before the upsert, or compare
+afterwards) and appends to the row's `metadata` JSON:
+`restored_after_delete: [{ deleted_at: <server value>, restored_at: <now> }]` (append, never overwrite
+other metadata keys). The badge briefly says "1 item restored — it had been deleted on another device".
 
 ### Failures
 
@@ -115,14 +124,19 @@ reaches Supabase on its own once you are back online.
   not drop to the login screen just because a token refresh failed for lack of network). Once online, if
   the refresh fails for a non-network reason, sign out (user's rule).
 - **Queued changes survive sign-out:** the per-user database (outbox included) is kept. Signing back in as
-  the same user pushes it. Signing in as a different user: that user gets their own database; the previous
-  user's database is deleted.
+  the same user pushes it. Signing in as a different user (user decision): that user gets their own
+  database; a previous user's database is deleted **only if its outbox is empty** — one with unsynced
+  changes is kept until its owner signs back in. Nothing from it is shown to, or sent as, the other user.
 - Explicit **Sign Out** with pending changes: confirm first ("N changes haven't synced yet and will be sent
   next time you sign in"). *(my call)*
 
 ### Other writers
 
-- Receipt scanning stays online-only; on success its created expenses are also written to the local store.
+- **Receipt save is all-or-nothing and queued.** The scan call (`/api/scan-receipt`) still needs a
+  connection, but saving the reviewed receipt goes through the outbox as **one entry holding all line
+  items**, pushed as **one bulk upsert request** (a single Postgres statement, so all lines are saved or
+  none). Line ids are created on the device, so a retry can't duplicate the receipt. This replaces today's
+  one-insert-per-line loop that skips failures.
 - Inventory / categories / payment-method edits stay online-only (direct Supabase calls as today), then
   update the local copy; offline their controls are disabled.
 
