@@ -44,6 +44,7 @@ import { useAwaitingFirstPull } from "@/lib/offline/useAwaitingFirstPull";
 import * as api from "@/lib/services";
 import type { InventoryItem } from "@/lib/types";
 import { useCanEditOnline } from "@/lib/useOnline";
+import { OfflineEditAlert } from "@/components/OfflineEditAlert";
 
 type SortOption = "name" | "expiration" | "quantity";
 type Filter = "all" | "expiringSoon" | "expired";
@@ -84,6 +85,7 @@ export default function InventoryPage() {
   const [ascending, setAscending] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
   const [showAdd, setShowAdd] = useState(false);
+  const [showOffline, setShowOffline] = useState(false);
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -135,7 +137,7 @@ export default function InventoryPage() {
 
   const renderRows = (list: readonly InventoryItem[]) =>
     list.map((i) => (
-      <SwipeRow key={i.id} disabled={!canEdit} onDelete={() => remove(i.id)} onPress={() => router.push(`/inventory/${i.id}`)}>
+      <SwipeRow key={i.id} disabled={!canEdit} onDelete={() => remove(i.id)} onPress={() => (canEdit ? router.push(`/inventory/${i.id}`) : setShowOffline(true))}>
         <InventoryRow item={i} />
       </SwipeRow>
     ));
@@ -240,6 +242,7 @@ export default function InventoryPage() {
       )}
 
       {showAdd && <AddInventorySheet onSave={add} onClose={() => setShowAdd(false)} />}
+      {showOffline && <OfflineEditAlert onDismiss={() => setShowOffline(false)} />}
       <ErrorBanner message={error} onDismiss={() => setError(null)} />
     </>
   );

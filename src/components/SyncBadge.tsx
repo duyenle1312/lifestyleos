@@ -8,7 +8,8 @@ import { useAwaitingFirstPull } from "@/lib/offline/useAwaitingFirstPull";
 import { useSync, useSyncStatus } from "./OfflineProvider";
 import { Alert, ButtonRow, Row, Section, Sheet } from "./ui";
 
-export function SyncBadge({ className = "" }: { className?: string }) {
+/** `floating`: the mobile badge sits over scrolling content, so it gets an opaque surface instead of the translucent fill. */
+export function SyncBadge({ className = "", floating = false }: { className?: string; floating?: boolean }) {
   const { online, syncing, pending, failed, notices } = useSyncStatus();
   const { retry, discard, dismissNotice } = useSync();
   // The reference tables are pulled last, so their marker means the very first full pull has finished.
@@ -33,7 +34,8 @@ export function SyncBadge({ className = "" }: { className?: string }) {
     }
   };
 
-  const pill = `flex items-center gap-2 rounded-lg bg-fill px-3 py-2 text-left text-[13px] font-medium ${tone}`;
+  const surface = floating ? "bg-cell shadow-md ring-[0.5px] ring-separator" : "bg-fill";
+  const pill = `flex items-center gap-2 rounded-lg ${surface} px-3 py-2 text-left text-[13px] font-medium ${tone}`;
   const content = (
     <>
       <Icon size={14} className={state === "syncing" ? "animate-spin" : ""} />
@@ -44,7 +46,7 @@ export function SyncBadge({ className = "" }: { className?: string }) {
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       {notices.map((n, i) => (
-        <div key={n} className="flex items-start gap-2 rounded-lg bg-fill px-3 py-2 text-[13px] text-label">
+        <div key={n} className={`flex items-start gap-2 rounded-lg ${surface} px-3 py-2 text-[13px] text-label`}>
           <span className="min-w-0 flex-1">{n}</span>
           <button type="button" aria-label="Dismiss" onClick={() => dismissNotice(i)} className="mt-0.5 text-label-2">
             <X size={14} />
