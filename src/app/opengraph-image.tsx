@@ -62,6 +62,9 @@ export default function OpengraphImage() {
           <div style={{ fontSize: 28, fontWeight: 500, color: "rgba(60, 60, 67, 0.6)", marginTop: 18 }}>
             Your household, in one place.
           </div>
+          <div style={{ fontSize: 24, fontWeight: 500, color: "#007aff", marginTop: 16 }}>
+            www.lifestyleos.homes
+          </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 40, width: 400 }}>
             {FEATURES.map((f) => (
               <div
@@ -82,9 +85,6 @@ export default function OpengraphImage() {
                 {f.label}
               </div>
             ))}
-          </div>
-          <div style={{ fontSize: 24, fontWeight: 500, color: "rgba(60, 60, 67, 0.6)", marginTop: 40 }}>
-            www.lifestyleos.homes
           </div>
         </div>
 
