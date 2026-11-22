@@ -7,6 +7,9 @@ do $$ begin
   if not exists (select 1 from pg_roles where rolname = 'authenticated') then
     create role authenticated;
   end if;
+  if not exists (select 1 from pg_roles where rolname = 'anon') then
+    create role anon;
+  end if;
 end $$;
 
 create schema if not exists auth;
@@ -14,6 +17,9 @@ create schema if not exists auth;
 create table auth.users (
   id uuid primary key default gen_random_uuid(),
   email text,
+  last_sign_in_at timestamptz,
+  email_confirmed_at timestamptz,
+  raw_user_meta_data jsonb,
   created_at timestamptz not null default now()
 );
 

@@ -7,6 +7,7 @@ set -euo pipefail
 PGBIN="${PGBIN:-/opt/homebrew/bin}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 NEW=20261122150000_expenses_ids_only.sql
+SAME=20261122170000_expenses_same_account_refs.sql
 DIR="$(mktemp -d)"
 PORT=54329
 
@@ -27,11 +28,16 @@ run "$ROOT/supabase/tests/stub_schema.sql"
 run "$ROOT/supabase/tests/expenses_ids_only_fixtures.sql"
 for f in "$ROOT"/supabase/migrations/*.sql; do
   [ "$(basename "$f")" = "$NEW" ] && continue
+  [ "$(basename "$f")" = "$SAME" ] && continue
   run "$f"
 done
 run "$ROOT/supabase/tests/expenses_ids_only_mid_fixtures.sql"
 run "$ROOT/supabase/migrations/$NEW"
 run "$ROOT/supabase/migrations/$NEW"
 "$PGBIN/psql" -h "$DIR" -p "$PORT" -U postgres -d test -v ON_ERROR_STOP=1 -q -t -f "$ROOT/supabase/tests/expenses_ids_only_assert.sql"
+# Same-account reference check: applied last, twice (idempotent), then asserted.
+run "$ROOT/supabase/migrations/$SAME"
+run "$ROOT/supabase/migrations/$SAME"
+"$PGBIN/psql" -h "$DIR" -p "$PORT" -U postgres -d test -v ON_ERROR_STOP=1 -q -t -f "$ROOT/supabase/tests/expenses_same_account_assert.sql"
 
 echo "ALL MIGRATION TESTS PASSED"
