@@ -4,10 +4,17 @@ import type { Session, User } from "@supabase/supabase-js";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { errorMessage } from "@/lib/helpers";
+import { isRetryable } from "@/lib/offline/remote";
+import { cleanupOtherUserDbs, forgetRememberedUser, rememberUser, resolveInitialUser } from "@/lib/offline/session";
 
 interface AuthState {
   user: User | null;
   session: Session | null;
+  /**
+   * True when there is no live session but the remembered user is shown (offline with an expired login).
+   * They keep working with their local data until the connection returns and the login is refreshed.
+   */
+  isOfflineSession: boolean;
   /** True until the stored session has been checked on first load. */
   initializing: boolean;
   isLoading: boolean;
@@ -42,6 +49,7 @@ const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
+  const [offlineUser, setOfflineUser] = useState<User | null>(null);
   const [initializing, setInitializing] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,19 +66,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setInitializing(false);
-    });
+    // getSession returns no session (plus an error) when the token is expired and cannot be refreshed offline.
+    supabase.auth
+      .getSession()
+      .then(({ data, error }) => ({ session: data.session, error }))
+      .catch((error: unknown) => ({ session: null, error }))
+      .then(({ session: found, error }) => {
+        setSession(found);
+        if (found) rememberUser(found.user);
+        else setOfflineUser(resolveInitialUser(null, error, navigator.onLine));
+        setInitializing(false);
+      });
     const { data } = supabase.auth.onAuthStateChange((event, next) => {
       setSession(next);
+      if (next) {
+        setOfflineUser(null);
+        rememberUser(next.user);
+      }
+      if (event === "SIGNED_OUT") setOfflineUser(null);
       // Covers password sign-ins, email-confirmation links and magic links alike.
       // Deferred: Supabase calls inside this callback can deadlock the auth client.
-      if (event === "SIGNED_IN" && next) setTimeout(() => setUpAccount(next.user.id), 0);
+      if (event === "SIGNED_IN" && next) {
+        setTimeout(() => {
+          void setUpAccount(next.user.id);
+          void cleanupOtherUserDbs(next.user.id);
+        }, 0);
+      }
       if (event === "SIGNED_OUT") setAccountSetupError(null);
     });
     return () => data.subscription.unsubscribe();
   }, [setUpAccount]);
+
+  const isOfflineSession = !session && !!offlineUser;
+
+  // An offline-session user who gets a connection back: refresh the login. A rejected login signs out locally
+  // (the user's database and queued changes are kept for their next sign-in); a network failure keeps the offline session.
+  useEffect(() => {
+    if (!isOfflineSession) return;
+    let cancelled = false;
+    const tryRefresh = async () => {
+      if (!navigator.onLine) return;
+      let failure: unknown = null;
+      try {
+        const { error } = await supabase.auth.refreshSession();
+        failure = error;
+      } catch (e) {
+        failure = e;
+      }
+      if (cancelled || !failure || isRetryable(failure)) return;
+      await supabase.auth.signOut({ scope: "local" });
+      if (!cancelled) setOfflineUser(null);
+    };
+    void tryRefresh();
+    window.addEventListener("online", tryRefresh);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("online", tryRefresh);
+    };
+  }, [isOfflineSession]);
 
   /** Emails a one-time sign-in link. A new email gets an account (no password) on its first link. */
   const sendMagicLink = useCallback(async (email: string): Promise<MagicLinkResult> => {
@@ -157,14 +210,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    forgetRememberedUser();
+    setOfflineUser(null);
     const { error } = await supabase.auth.signOut();
     if (error) setError(error.message);
   }, []);
 
   const value = useMemo<AuthState>(
     () => ({
-      user: session?.user ?? null,
+      user: session?.user ?? offlineUser,
       session,
+      isOfflineSession,
       initializing,
       isLoading,
       errorMessage: error,
@@ -179,7 +235,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       dismissAccountSetupError: () => setAccountSetupError(null),
     }),
-    [session, initializing, isLoading, error, sendMagicLink, signInWithPassword, signUp, signOut, accountSetupError, setUpAccount],
+    [session, offlineUser, isOfflineSession, initializing, isLoading, error, sendMagicLink, signInWithPassword, signUp, signOut, accountSetupError, setUpAccount],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

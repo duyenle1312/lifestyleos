@@ -6,9 +6,10 @@ import { ChevronRight, CreditCard, KeyRound, Tag, UserRound } from "lucide-react
 import { useAuth } from "@/components/AuthProvider";
 import { useCategories } from "@/components/CategoriesProvider";
 import { usePaymentMethods } from "@/components/PaymentMethodsProvider";
+import { useSyncStatus } from "@/components/OfflineProvider";
 import { NameSheet } from "@/components/NameSheet";
 import { SetPasswordSheet } from "@/components/SetPasswordSheet";
-import { ButtonRow, LargeTitle, Row, Section, Toolbar } from "@/components/ui";
+import { Alert, ButtonRow, LargeTitle, Row, Section, Toolbar } from "@/components/ui";
 
 export default function SettingsPage() {
   const { user, signOut } = useAuth();
@@ -17,6 +18,9 @@ export default function SettingsPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [passwordSaved, setPasswordSaved] = useState(false);
   const [showName, setShowName] = useState(false);
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
+  const sync = useSyncStatus();
+  const unsynced = sync.pending + sync.failed.length;
   const fullName = typeof user?.user_metadata?.full_name === "string" ? user.user_metadata.full_name : "";
   return (
     <>
@@ -74,10 +78,18 @@ export default function SettingsPage() {
         </Link>
       </Section>
       <Section>
-        <ButtonRow destructive onPress={signOut}>
+        <ButtonRow destructive onPress={() => (unsynced > 0 ? setConfirmSignOut(true) : void signOut())}>
           Sign Out
         </ButtonRow>
       </Section>
+      {confirmSignOut && (
+        <Alert
+          title="Unsynced Changes"
+          message={`${unsynced === 1 ? "1 change hasn't" : `${unsynced} changes haven't`} synced yet. They'll be sent next time you sign in.`}
+          buttons={[{ label: "Cancel", role: "cancel" }, { label: "Sign Out", role: "destructive", onPress: () => void signOut() }]}
+          onDismiss={() => setConfirmSignOut(false)}
+        />
+      )}
       {showName && <NameSheet initialName={fullName} onClose={() => setShowName(false)} />}
       {showPassword && user?.email && (
         <SetPasswordSheet
