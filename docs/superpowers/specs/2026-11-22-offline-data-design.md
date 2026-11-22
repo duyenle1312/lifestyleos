@@ -1,6 +1,6 @@
 # Offline data — design
 
-Date: 2026-11-22 · Status: awaiting approval · Branch: `feature/pwa`
+Date: 2026-11-22 · Status: approved · Branch: `feature/pwa`
 
 ## Why
 
