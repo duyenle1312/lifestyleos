@@ -6,10 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.2",
+    "dexie": "4.4.7",
+    "dexie-react-hooks": "4.4.0",
     "lucide-react": "^1.77.0",
     "next": "16.4.6",
     "react": "19.3.0",
@@ -22,7 +25,10 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
+    "fake-indexeddb": "6.2.8",
     "tailwindcss": "4.3.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite": "8.3.8",
+    "vitest": "5.1.1"
   }
 }
