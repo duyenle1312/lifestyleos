@@ -5,7 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { supabase } from "@/lib/supabase";
 import { errorMessage } from "@/lib/helpers";
 import { isRetryable } from "@/lib/offline/remote";
-import { cleanupOtherUserDbs, forgetRememberedUser, rememberUser, resolveInitialUser } from "@/lib/offline/session";
+import { cleanupOtherUserDbs, forgetRememberedUser, needsLocalSignOut, rememberUser, rememberedUserId, resolveInitialUser } from "@/lib/offline/session";
 
 interface AuthState {
   user: User | null;
@@ -79,6 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
     const { data } = supabase.auth.onAuthStateChange((event, next) => {
       setSession(next);
+      const previousUserId = rememberedUserId();
       if (next) {
         setOfflineUser(null);
         rememberUser(next.user);
@@ -89,7 +90,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (event === "SIGNED_IN" && next) {
         setTimeout(() => {
           void setUpAccount(next.user.id);
-          void cleanupOtherUserDbs(next.user.id);
+          // Only when a different account signed in than the one remembered (not on every launch).
+          if (previousUserId !== next.user.id) void cleanupOtherUserDbs(next.user.id);
         }, 0);
       }
       if (event === "SIGNED_OUT") setAccountSetupError(null);
@@ -99,12 +101,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const isOfflineSession = !session && !!offlineUser;
 
-  // An offline-session user who gets a connection back: refresh the login. A rejected login signs out locally
-  // (the user's database and queued changes are kept for their next sign-in); a network failure keeps the offline session.
+  // An offline-session user who gets a connection back: refresh the login. A rejected login signs out locally and
+  // forgets the remembered user (so later offline launches don't open their data without a valid session); their
+  // database and queued changes are kept for their next sign-in. A network failure keeps the offline session.
+  // refreshSession often returns a cached failure (Supabase's ~60s refresh-failure cooldown), so retry once later.
   useEffect(() => {
     if (!isOfflineSession) return;
     let cancelled = false;
-    const tryRefresh = async () => {
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    const tryRefresh = async (isRetry = false) => {
       if (!navigator.onLine) return;
       let failure: unknown = null;
       try {
@@ -113,15 +118,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {
         failure = e;
       }
-      if (cancelled || !failure || isRetryable(failure)) return;
+      if (cancelled || !failure) return;
+      if (isRetryable(failure)) {
+        if (!isRetry) retryTimer = setTimeout(() => void tryRefresh(true), 65_000);
+        return;
+      }
+      forgetRememberedUser();
       await supabase.auth.signOut({ scope: "local" });
       if (!cancelled) setOfflineUser(null);
     };
-    void tryRefresh();
-    window.addEventListener("online", tryRefresh);
+    const onOnline = () => void tryRefresh();
+    onOnline();
+    window.addEventListener("online", onOnline);
     return () => {
       cancelled = true;
-      window.removeEventListener("online", tryRefresh);
+      clearTimeout(retryTimer);
+      window.removeEventListener("online", onOnline);
     };
   }, [isOfflineSession]);
 
@@ -210,11 +222,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    // Forgetting first is self-healing: if sign-out fails online, the live session is still found on next load and re-remembered.
     forgetRememberedUser();
     setOfflineUser(null);
     const { error } = await supabase.auth.signOut();
-    if (error) setError(error.message);
-  }, []);
+    // A global sign-out that fails (offline) leaves the stored session and refresh token, which would silently sign
+    // the user back in once online. Always sign this device out locally; the server-side revoke is simply skipped.
+    if (needsLocalSignOut(error, isOfflineSession)) {
+      const { error: localError } = await supabase.auth.signOut({ scope: "local" });
+      if (localError) setError(localError.message);
+    }
+  }, [isOfflineSession]);
 
   const value = useMemo<AuthState>(
     () => ({

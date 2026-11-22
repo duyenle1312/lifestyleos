@@ -26,6 +26,20 @@ export function forgetRememberedUser(): void {
   }
 }
 
+/** Id of the remembered user, if any. */
+export function rememberedUserId(): string | null {
+  return readRemembered()?.id ?? null;
+}
+
+/**
+ * Whether sign-out must also clear this device's stored session. A global sign-out that fails (offline) leaves the
+ * expired session and refresh token in storage, which would silently sign the user back in once online; an offline
+ * session has no live session to revoke at all.
+ */
+export function needsLocalSignOut(error: unknown, isOfflineSession: boolean): boolean {
+  return !!error || isOfflineSession;
+}
+
 function readRemembered(): User | null {
   try {
     const raw = localStorage.getItem(KEY);

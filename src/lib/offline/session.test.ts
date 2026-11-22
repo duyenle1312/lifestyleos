@@ -2,7 +2,7 @@ import Dexie from "dexie";
 import type { Session, User } from "@supabase/supabase-js";
 import { beforeEach, describe, expect, it } from "vitest";
 import { openUserDb } from "./db";
-import { cleanupOtherUserDbs, forgetRememberedUser, rememberUser, resolveInitialUser } from "./session";
+import { cleanupOtherUserDbs, forgetRememberedUser, needsLocalSignOut, rememberUser, rememberedUserId, resolveInitialUser } from "./session";
 
 const store = new Map<string, string>();
 beforeEach(() => {
@@ -42,6 +42,10 @@ describe("resolveInitialUser", () => {
     rememberUser(user);
     expect(resolveInitialUser(null, { status: 400, code: "refresh_token_not_found" }, true)).toBeNull();
   });
+  it("returns null when online with no error even if a user is remembered", () => {
+    rememberUser(user);
+    expect(resolveInitialUser(null, null, true)).toBeNull();
+  });
   it("returns null when nothing is remembered", () => {
     expect(resolveInitialUser(null, null, false)).toBeNull();
   });
@@ -64,5 +68,18 @@ describe("cleanupOtherUserDbs", () => {
     expect(names).toContain("lifestyleos-cur");
     expect(names).toContain("lifestyleos-dirty");
     expect(names).not.toContain("lifestyleos-clean");
+  });
+});
+
+describe("rememberedUserId / needsLocalSignOut", () => {
+  it("reads the remembered id", () => {
+    expect(rememberedUserId()).toBeNull();
+    rememberUser(user);
+    expect(rememberedUserId()).toBe("u1");
+  });
+  it("needs a local sign-out on error or offline session only", () => {
+    expect(needsLocalSignOut(null, false)).toBe(false);
+    expect(needsLocalSignOut(new Error("x"), false)).toBe(true);
+    expect(needsLocalSignOut(null, true)).toBe(true);
   });
 });
