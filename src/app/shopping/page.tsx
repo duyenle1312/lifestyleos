@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Calendar, Circle, CircleCheck, Clock, List, MapPin, Plus, ShoppingCart, Star } from "lucide-react";
+import { useLiveQuery } from "dexie-react-hooks";
 import { useUser } from "@/components/AuthProvider";
+import { useLocalDb, useSync } from "@/components/OfflineProvider";
 import { FilterGlyph, PencilCircleGlyph } from "@/components/glyphs";
 import { ShoppingForm } from "@/components/shopping/ShoppingForm";
 import { EmptyState, ErrorBanner, IconButton, Menu, SearchBar, Section, Spinner, SwipeRow, Toolbar } from "@/components/ui";
@@ -14,7 +16,9 @@ import {
   isToday,
   isTomorrow,
 } from "@/lib/helpers";
-import * as api from "@/lib/services";
+import { deleteShoppingItem, saveShoppingItem } from "@/lib/offline/mutations";
+import { useAwaitingFirstPull } from "@/lib/offline/useAwaitingFirstPull";
+import type { ShoppingInput } from "@/lib/services";
 import type { ShoppingItem } from "@/lib/types";
 
 type Grouping = "none" | "location" | "schedule" | "priority";
@@ -57,25 +61,20 @@ const orderBy = (order: string[]) => (a: [string, unknown], b: [string, unknown]
 
 export default function ShoppingPage() {
   const user = useUser();
-  const [items, setItems] = useState<ShoppingItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const db = useLocalDb();
+  const { syncNow } = useSync();
+  const awaitingFirstPull = useAwaitingFirstPull("shopping_lists");
+  const rows = useLiveQuery(() => db.shoppingItems.toArray(), [db]);
+  const items = useMemo(
+    () => [...(rows ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at)),
+    [rows],
+  );
+  const isLoading = rows === undefined || (rows.length === 0 && awaitingFirstPull);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [grouping, setGrouping] = useState<Grouping>("none");
   const [showAdd, setShowAdd] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    api
-      .fetchShoppingItems(user.id)
-      .then((rows) => !cancelled && setItems(rows))
-      .catch((e) => !cancelled && setError(errorMessage(e)))
-      .finally(() => !cancelled && setIsLoading(false));
-    return () => {
-      cancelled = true;
-    };
-  }, [user.id]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -105,10 +104,10 @@ export default function ShoppingPage() {
 
   // MARK: - Mutations
 
-  const add = async (input: api.ShoppingInput) => {
+  const add = async (input: ShoppingInput) => {
     try {
-      const created = await api.createShoppingItem(user.id, input);
-      setItems((list) => [created, ...list].sort((a, b) => b.created_at.localeCompare(a.created_at)));
+      await saveShoppingItem(db, user.id, input);
+      void syncNow();
       return true;
     } catch (e) {
       setError(errorMessage(e));
@@ -116,10 +115,10 @@ export default function ShoppingPage() {
     }
   };
 
-  const update = async (id: string, input: Partial<api.ShoppingInput>) => {
+  const update = async (id: string, input: Partial<ShoppingInput>) => {
     try {
-      const updated = await api.updateShoppingItem(id, input);
-      setItems((list) => list.map((i) => (i.id === id ? updated : i)));
+      await saveShoppingItem(db, user.id, input, id);
+      void syncNow();
       return true;
     } catch (e) {
       setError(errorMessage(e));
@@ -129,8 +128,8 @@ export default function ShoppingPage() {
 
   const remove = async (id: string) => {
     try {
-      await api.deleteShoppingItem(id);
-      setItems((list) => list.filter((i) => i.id !== id));
+      await deleteShoppingItem(db, id);
+      void syncNow();
     } catch (e) {
       setError(errorMessage(e));
     }

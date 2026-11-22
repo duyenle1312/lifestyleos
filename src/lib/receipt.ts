@@ -1,5 +1,7 @@
 // Receipt prompt + parser. Gemini reads the image directly (no separate OCR step).
-import type { ScannedReceipt } from "./types";
+import { noonISO } from "./helpers";
+import type { ExpenseInput } from "./services";
+import { type ReceiptItem, receiptItemDisplayName, type ScannedReceipt } from "./types";
 
 const FALLBACK_CATEGORIES = ["Food & Drink", "Home", "Other"];
 
@@ -83,4 +85,36 @@ export function parseReceiptResponse(text: string): ScannedReceipt {
   }
 
   return { storeName, date, items, total, currency: "EUR" };
+}
+
+/**
+ * One expense input per receipt line item, dated with the receipt's date (noon, local) or now if it is
+ * missing/invalid. unit_price = line price / quantity (rounded to 4 decimals) so unit x unit_price = amount.
+ */
+export function receiptToExpenseInputs(
+  receipt: ScannedReceipt,
+  items: ReceiptItem[],
+  resolve: {
+    categoryId: (name: string | null) => string | null;
+    paymentMethodId: (name: string | null) => string | null;
+  },
+): ExpenseInput[] {
+  const expenseDate =
+    receipt.date && /^\d{4}-\d{2}-\d{2}$/.test(receipt.date) ? noonISO(receipt.date) : new Date().toISOString();
+  return items.map((item) => {
+    const quantity = item.quantity && item.quantity > 0 ? item.quantity : 1;
+    return {
+      amount: item.amount,
+      currency: "EUR",
+      expense_date: expenseDate,
+      category_id: resolve.categoryId(item.category),
+      description: null,
+      location: receipt.storeName,
+      unit: quantity,
+      unit_price: Math.round((item.amount / quantity) * 10_000) / 10_000,
+      expire_date: null,
+      payment_method_id: resolve.paymentMethodId(receipt.paymentMethod ?? null),
+      item: receiptItemDisplayName(item),
+    };
+  });
 }
