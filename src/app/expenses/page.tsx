@@ -56,6 +56,8 @@ import {
 } from "@/lib/helpers";
 import { deleteExpense, saveExpense } from "@/lib/offline/mutations";
 import { useAwaitingFirstPull } from "@/lib/offline/useAwaitingFirstPull";
+import { useCanEditOnline } from "@/lib/useOnline";
+import { OfflineEditAlert } from "@/components/OfflineEditAlert";
 import type { ExpenseInput } from "@/lib/services";
 import { FINE_POINTER_QUERY, SPLIT_VIEW_QUERY, useMediaQuery } from "@/lib/useMediaQuery";
 import type { Category, Expense } from "@/lib/types";
@@ -84,6 +86,8 @@ export default function ExpensesPage() {
   const [search, setSearch] = useState("");
   /** "all" or a category id. */
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [showOffline, setShowOffline] = useState(false);
+  const canEditOnline = useCanEditOnline();
   const [sort, setSort] = useState<SortOption>("date");
   const [showAdd, setShowAdd] = useState(false);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
@@ -355,7 +359,7 @@ export default function ExpensesPage() {
         {
           label: "Manage Categories…",
           icon: Settings2,
-          onSelect: () => router.push("/settings/categories?from=expenses"),
+          onSelect: () => (canEditOnline ? router.push("/settings/categories?from=expenses") : setShowOffline(true)),
         },
       ]}
     />
@@ -471,6 +475,7 @@ export default function ExpensesPage() {
           onDismiss={() => setConfirmDeleteId(null)}
         />
       )}
+      {showOffline && <OfflineEditAlert onDismiss={() => setShowOffline(false)} />}
       {contextMenu && <ContextMenu menu={contextMenu} onClose={closeContextMenu} />}
       {showMonthPicker && (
         <MonthPicker selected={month} onSelect={setMonth} onClose={() => setShowMonthPicker(false)} />

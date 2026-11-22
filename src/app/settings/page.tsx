@@ -11,6 +11,7 @@ import { NameSheet } from "@/components/NameSheet";
 import { SetPasswordSheet } from "@/components/SetPasswordSheet";
 import { Alert, ButtonRow, LargeTitle, Row, Section, Toolbar } from "@/components/ui";
 import { useCanEditOnline } from "@/lib/useOnline";
+import { OfflineEditAlert } from "@/components/OfflineEditAlert";
 
 // One tile color for every settings icon, so the list reads calmly.
 const ICON_TILE = "flex size-[29px] shrink-0 items-center justify-center rounded-[7px] bg-ios-blue text-white";
@@ -23,9 +24,16 @@ export default function SettingsPage() {
   const [passwordSaved, setPasswordSaved] = useState(false);
   const [showName, setShowName] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
+  const [showOffline, setShowOffline] = useState(false);
   const sync = useSyncStatus();
   // Name and password are saved straight to Supabase Auth, so they need a connection and a live session.
   const canEdit = useCanEditOnline();
+  // The category and payment-method editors aren't cached for offline use: explain instead of navigating.
+  const guardOffline = (e: React.MouseEvent) => {
+    if (canEdit) return;
+    e.preventDefault();
+    setShowOffline(true);
+  };
   const unsynced = sync.pending + sync.failed.length;
   const fullName = typeof user?.user_metadata?.full_name === "string" ? user.user_metadata.full_name : "";
   return (
@@ -79,7 +87,7 @@ export default function SettingsPage() {
         </button>
       </Section>
       <Section header="Expenses">
-        <Link href="/settings/categories" className="flex min-h-11 items-center gap-3 px-4 py-[11px] text-[17px] active:bg-gray5">
+        <Link href="/settings/categories" onClick={guardOffline} className="flex min-h-11 items-center gap-3 px-4 py-[11px] text-[17px] active:bg-gray5">
           <span className={ICON_TILE}>
             <Tag size={17} />
           </span>
@@ -89,6 +97,7 @@ export default function SettingsPage() {
         </Link>
         <Link
           href="/settings/payment-methods"
+          onClick={guardOffline}
           className="flex min-h-11 items-center gap-3 px-4 py-[11px] text-[17px] active:bg-gray5"
         >
           <span className={ICON_TILE}>
@@ -112,6 +121,7 @@ export default function SettingsPage() {
           onDismiss={() => setConfirmSignOut(false)}
         />
       )}
+      {showOffline && <OfflineEditAlert onDismiss={() => setShowOffline(false)} />}
       {showName && canEdit && <NameSheet initialName={fullName} onClose={() => setShowName(false)} />}
       {showPassword && canEdit && user?.email && (
         <SetPasswordSheet

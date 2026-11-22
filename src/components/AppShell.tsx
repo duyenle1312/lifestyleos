@@ -85,7 +85,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </CategoriesProvider>
         </div>
         {/* Mobile sync badge: in flow after the content (so it never covers it), floating above the tab bar */}
-        <SyncBadge className="sticky bottom-[calc(var(--tabbar-h)+8px)] z-20 mx-3 mt-2 md:hidden" />
+        <SyncBadge floating className="sticky bottom-[calc(var(--tabbar-h)+8px)] z-20 mx-3 mt-2 md:hidden" />
       </main>
 
       {/* Bottom tab bar – phones */}
