@@ -19,6 +19,8 @@ const TABS = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
+const SPLIT_VIEW_ROUTES = ["/expenses"];
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, initializing } = useAuth();
   const pathname = usePathname();
@@ -34,6 +36,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (!user) return <LoginView />;
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  // Screens with a list + inspector split view take the full width on large screens.
+  const isWide = SPLIT_VIEW_ROUTES.includes(pathname);
 
   return (
     <div className="min-h-dvh md:flex">
@@ -60,7 +64,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main className="min-w-0 flex-1 pb-[var(--tabbar-h)]">
-        <div className="mx-auto w-full max-w-3xl">
+        <div className={`mx-auto w-full max-w-3xl ${isWide ? "lg:max-w-none" : ""}`}>
           <CategoriesProvider>
             <PaymentMethodsProvider>{children}</PaymentMethodsProvider>
           </CategoriesProvider>
