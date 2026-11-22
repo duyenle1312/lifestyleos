@@ -35,7 +35,7 @@ export async function applyServerRow(db: LocalDb, table: PullTable, row: Row): P
 }
 
 /** Rows from another account (a stale response after a user switch) are never stored. */
-const ownRows = (rows: Row[], userId: string) => rows.filter((r) => r.account_id === undefined || r.account_id === userId);
+const ownRows = (rows: Row[], userId: string) => rows.filter((r) => r.account_id === userId);
 
 async function pullTable(db: LocalDb, remote: Remote, table: PullTable, userId: string, stopped: () => boolean): Promise<void> {
   const key = cursorKey(table);

@@ -67,7 +67,7 @@ function applySuccess(db: LocalDb, entry: OutboxEntry, returned: Row[]): Promise
   });
 }
 
-async function send(entry: OutboxEntry, remote: Remote, notices: string[]): Promise<Row[]> {
+async function send(entry: OutboxEntry, remote: Remote, notices: string[], stopped: Halt): Promise<Row[]> {
   if (entry.op === "delete") {
     await remote.softDelete(entry.table, entry.rowId!);
     return [];
@@ -92,19 +92,25 @@ async function send(entry: OutboxEntry, remote: Remote, notices: string[]): Prom
     returned = (await remote.upsert(entry.table, rows)) as Row[];
   } catch (e) {
     if ((e as { code?: string } | null)?.code !== "23503") throw e;
+    if (await stopped()) throw new HaltError("halted");
     returned = (await remote.upsert(entry.table, nullRefs(rows))) as Row[];
   }
   if (restored) notices.push(RESTORED_NOTICE);
   return returned;
 }
 
-export async function pushOutbox(db: LocalDb, remote: Remote, stopped: () => boolean = () => false): Promise<PushResult> {
+/** `stopped` may be async (identity guard); returning true halts the push, leaving remaining entries queued. */
+export type Halt = () => boolean | Promise<boolean>;
+
+class HaltError extends Error {}
+
+export async function pushOutbox(db: LocalDb, remote: Remote, stopped: Halt = () => false): Promise<PushResult> {
   const result: PushResult = { sent: 0, failed: 0, notices: [] };
   const entries = await db.outbox.orderBy("seq").toArray();
   const blocked = new Set<string>();
 
   for (const snapshot of entries) {
-    if (stopped()) break;
+    if (await stopped()) break;
     if (snapshot.status === "failed") {
       rowIdsOf(snapshot).forEach((id) => blocked.add(id));
       continue;
@@ -114,13 +120,13 @@ export async function pushOutbox(db: LocalDb, remote: Remote, stopped: () => boo
     const entry = await markInFlight(db, snapshot.seq!);
     if (!entry) continue;
     try {
-      const returned = await send(entry, remote, result.notices);
-      if (stopped()) break; // leave the entry queued; the next run re-sends it (upserts are idempotent)
+      const returned = await send(entry, remote, result.notices, stopped);
+      if (await stopped()) break; // leave the entry queued; the next run re-sends it (upserts are idempotent)
       // If this throws after the remote succeeded, the entry stays queued and is re-sent next push; upserts are idempotent.
       await applySuccess(db, entry, returned);
       result.sent++;
     } catch (e) {
-      if (isRetryable(e)) break;
+      if (e instanceof HaltError || isRetryable(e)) break;
       await db.outbox.update(entry.seq!, { status: "failed", error: messageOf(e) });
       rowIdsOf(entry).forEach((id) => blocked.add(id));
       result.failed++;

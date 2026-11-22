@@ -15,6 +15,8 @@ export class SyncEngine {
   private again = false;
   private stopped = false;
   private isStopped = () => this.stopped;
+  /** Checked before each outbox entry: stopped, or the session now belongs to someone else. */
+  private shouldHalt = async () => this.stopped || !(await this.isCurrentUser());
   private onOnline = () => void this.syncNow();
   private onOffline = () => this.update({ online: false });
   private onVisible = () => {
@@ -122,10 +124,16 @@ export class SyncEngine {
       }
       this.update({ syncing: true });
       try {
-        if (!(await this.isCurrentUser()) || this.stopped) return;
-        const res = await pushOutbox(this.db, this.remote, this.isStopped);
+        if (!(await this.isCurrentUser()) || this.stopped) {
+          await this.refreshOutbox();
+          return;
+        }
+        const res = await pushOutbox(this.db, this.remote, this.shouldHalt);
         res.notices.forEach((n) => this.addNotice(n));
-        if (!(await this.isCurrentUser()) || this.stopped) return;
+        if (!(await this.isCurrentUser()) || this.stopped) {
+          await this.refreshOutbox();
+          return;
+        }
         await pullAll(this.db, this.remote, this.userId, this.isStopped);
       } catch (e) {
         if (!this.quiet(e) && !isRetryable(e)) this.addNotice(`Sync problem: ${messageOf(e)}`);

@@ -5,7 +5,7 @@ import { saveExpense, saveShoppingItem } from "./mutations";
 import { pullAll } from "./pull";
 
 const exp = (id: string, over = {}) => ({
-  id, amount: 5, currency: "EUR", expense_date: "2026-11-10T12:00:00.000Z", item: "Milk", deleted_at: null,
+  id, amount: 5, currency: "EUR", expense_date: "2026-11-10T12:00:00.000Z", item: "Milk", deleted_at: null, account_id: "u",
   updated_at: "2026-11-10T00:00:00.000Z", ...over,
 });
 
@@ -17,8 +17,8 @@ beforeEach(() => { db = openUserDb(`pl${++n}-${Math.random()}`); remote = new Fa
 describe("pullAll", () => {
   it("fills an empty db from all tables", async () => {
     remote.seed("expenses", exp("e1"));
-    remote.seed("shopping_lists", { id: "s1", updated_at: "2026-11-10T00:00:00.000Z", deleted_at: null });
-    remote.seed("inventory_items", { id: "i1", updated_at: "2026-11-10T00:00:00.000Z", deleted_at: null });
+    remote.seed("shopping_lists", { id: "s1", account_id: "u", updated_at: "2026-11-10T00:00:00.000Z", deleted_at: null });
+    remote.seed("inventory_items", { id: "i1", account_id: "u", updated_at: "2026-11-10T00:00:00.000Z", deleted_at: null });
     await pullAll(db, remote, "u");
     expect((await db.expenses.get("e1"))?._ts).toBe(Date.parse("2026-11-10T12:00:00.000Z"));
     expect(await db.shoppingItems.count()).toBe(1);
@@ -50,7 +50,7 @@ describe("pullAll", () => {
     });
     const s = await saveShoppingItem(db, "u", { item: "Bread" });
     remote.seed("expenses", exp(local.id, { item: "Server", updated_at: "2026-11-12T00:00:00.000Z" }));
-    remote.seed("shopping_lists", { id: s.id, item: "Server", updated_at: "2026-11-12T00:00:00.000Z", deleted_at: null });
+    remote.seed("shopping_lists", { id: s.id, account_id: "u", item: "Server", updated_at: "2026-11-12T00:00:00.000Z", deleted_at: null });
     await pullAll(db, remote, "u");
     expect((await db.expenses.get(local.id))?.item).toBe("Local");
     expect((await db.shoppingItems.get(s.id))?.item).toBe("Bread");
@@ -58,8 +58,8 @@ describe("pullAll", () => {
 
   it("replaces categories and payment methods fully", async () => {
     await db.categories.put({ id: "old" } as never);
-    remote.ref.categories = [{ id: "c1" }, { id: "c2" }];
-    remote.ref.payment_methods = [{ id: "p1" }];
+    remote.ref.categories = [{ id: "c1", account_id: "u" }, { id: "c2", account_id: "u" }];
+    remote.ref.payment_methods = [{ id: "p1", account_id: "u" }];
     await pullAll(db, remote, "u");
     expect((await db.categories.toArray()).map((c) => c.id).sort()).toEqual(["c1", "c2"]);
     expect(await db.paymentMethods.count()).toBe(1);

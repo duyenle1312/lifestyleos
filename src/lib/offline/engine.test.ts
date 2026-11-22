@@ -191,4 +191,32 @@ describe("SyncEngine shutdown and identity", () => {
     await engine.syncNow();
     expect(engine.getStatus().notices).toEqual([]);
   });
+
+  it("a new engine on a fresh db instance for the same user syncs after the old one was stopped (StrictMode/Fast Refresh)", async () => {
+    const name = `lc-${Math.random()}`;
+    const first = openUserDb(name);
+    const e1 = new SyncEngine(first, remote, "u", () => true);
+    e1.start();
+    await e1.stop();
+    first.close({ disableAutoOpen: false });
+    remote.seed("expenses", { id: "e1", account_id: "u", updated_at: "2026-11-10T00:00:00.000Z", deleted_at: null, amount: 1, currency: "EUR", expense_date: "2026-11-10T12:00:00.000Z", item: "x" });
+    const second = openUserDb(name);
+    const e2 = new SyncEngine(second, remote, "u", () => true);
+    e2.start();
+    await e2.syncNow();
+    expect(await second.expenses.count()).toBe(1);
+    await e2.stop();
+  });
+
+  it("a guard that flips mid-push halts before the next entry", async () => {
+    await saveExpense(db, "u", input);
+    await saveExpense(db, "u", { ...input, item: "Eggs" });
+    let calls = 0;
+    const g = new SyncEngine(db, remote, "u", () => true, async () => (++calls <= 2 ? "u" : "other"));
+    await g.syncNow();
+    expect(remote.calls.filter((c) => c.startsWith("upsert")).length).toBe(1);
+    // the sent entry was not applied (halted first) and nothing was marked failed; both stay queued
+    expect(await db.outbox.count()).toBe(2);
+    expect((await db.outbox.toArray()).every((e) => e.status === "pending")).toBe(true);
+  });
 });
