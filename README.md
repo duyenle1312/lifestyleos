@@ -18,6 +18,11 @@ On wide screens, Expenses becomes an iPadOS-style split view (see [Desktop](#des
   - [Admin view: users](#admin-view-users)
   - [Email delivery (Resend)](#email-delivery-resend)
 - [Users and accounts](#users-and-accounts)
+- [Installable app (PWA)](#installable-app-pwa)
+- [Offline data](#offline-data)
+  - [What works offline](#what-works-offline)
+  - [Sign-in and accounts while offline](#sign-in-and-accounts-while-offline)
+- [Testing](#testing)
 - [Screens](#screens)
 - [Notes](#notes)
 
@@ -160,6 +165,97 @@ What follows from this:
 - **Personal details belong to the user, not the account.** Email and name stay in `auth.users`. A shared account has no single email, and a copy in `accounts` would go stale when someone changes their email. `admin.users` joins the two for viewing.
 - **RLS goes through `account_users`.** A user can reach an account's rows only if a link row connects them. A missing link (`has_owner_link = false` in `admin.users`) locks the user out of all their data.
 - **`accounts.name` is the account's name**, not the person's. Use Settings → Name for the person.
+
+Two migrations support the offline sync (see [Offline data](#offline-data)):
+
+- `20261122150000_expenses_ids_only.sql`: expenses reference categories and payment methods by id only. It adds `payment_method_id`, backfills both ids from the old text columns, then drops those columns and the iOS-era triggers, functions and `account_data_view`. Safe to run twice.
+- `20261122200000_expenses_same_account_refs.sql`: a trigger (`expenses_check_same_account`) rejects an expense whose category or payment method belongs to another account, with SQLSTATE `23503` so the sync treats it like a missing reference. Existing rows are not re-checked; the file has two pre-flight queries to run first.
+
+## Installable app (PWA)
+
+The app can be installed ("Add to Home Screen") and opens offline.
+
+- **Manifest:** `src/app/manifest.ts`. Standalone display, `start_url` `/expenses`, shortcuts for Shopping List and Scan Receipt. Icons are in `public/icons/` (`icon-192.png`, `icon-512.png`, `maskable-512.png`).
+- **Service worker:** `public/sw.js`, registered by `components/ServiceWorkerRegister.tsx` in **production only**, so cached chunks never fight dev HMR.
+  - *Install:* precaches the HTML of every tab (`/expenses`, `/shopping`, `/inventory`, `/scan`, `/settings`) plus the JS/CSS chunks, favicon and icons each page references, so a tab never opened online still works offline. One failing route doesn't abort the install.
+  - *Page navigations (and other same-origin GETs):* network-first, falling back to the cache offline (and to `/expenses` for an unknown page), so deploys show up immediately.
+  - *Static assets* (`/_next/static/`, icons): cache-first. Their URLs are hashed.
+  - *Never cached:* other origins (Supabase), `/api/*` and `/auth/*`.
+  - **Resetting caches:** bump `VERSION` in `sw.js`. On activate it deletes every cache not named for the current version. Do this if the list of tabs or precached assets changes.
+
+**Testing it.** The service worker only runs in a production build, and needs HTTPS or `localhost`.
+
+1. Build and run in a separate folder (or a different port), not over your dev server: `npm run build && npm start`. A service worker on `localhost:3000` would also take over `npm run dev` there.
+2. Open the app, sign in, visit the tabs once, then check Chrome DevTools → Application → Service Workers.
+3. Tick **Offline** (Application → Service Workers, or Network → Throttling) and reload. Tabs should open from the cache and show your data.
+4. On a phone: serve it over HTTPS (a deployed preview), then Safari → Share → Add to Home Screen (iOS) or Chrome → Install app (Android).
+
+## Offline data
+
+Expenses and the shopping list are read from and written to a database on the device. A sync engine moves changes to and from Supabase, so the app works the same with or without a connection. Code: `src/lib/offline/`.
+
+**Local database.** One Dexie (IndexedDB) database per user, named `lifestyleos-<userId>` (`db.ts`). Tables: `expenses` (with `_ts`, the parsed date, indexed for month queries), `shoppingItems`, `inventoryItems`, `categories`, `paymentMethods`, `outbox` and `meta` (sync cursors). Components read it with live queries and write through `mutations.ts`, never straight to Supabase.
+
+**Client-generated ids.** New rows get `crypto.randomUUID()` on the device, so a row can be created, edited and queued offline, and re-sending it is an idempotent upsert.
+
+**Outbox.** Each write updates the local row and queues one `outbox` entry in a single transaction (`upsert`, `delete` or `upsertMany`).
+
+- *Collapse rule:* only entries never sent (`pending`, `attempts = 0`) are touched. A new upsert for the same row merges into the queued one (later fields win); a delete replaces that row's queued upserts. Entries already in flight are never rewritten, so a later edit queues separately.
+- *Receipts:* a scan is one `upsertMany` entry, which becomes one bulk upsert. The server stores all the lines or none.
+- Deleting a category or payment method rewrites queued expense entries that point at it (`rewriteRef.ts`).
+
+**Push** (`push.ts`). Oldest first, one entry at a time.
+- Marks the entry in flight (`attempts + 1`) before sending.
+- *Retryable* errors (network down, 401/408/429/5xx, expired JWT; `isRetryable` in `remote.ts`) stop the run and leave the entry queued. Anything else (RLS, constraint, bug) marks it `failed` with the message, and later entries for the same rows wait behind it.
+- `23503` (a category or payment method that no longer exists): clears `category_id` and `payment_method_id` on those rows and retries once.
+- *Edit wins over remote delete:* an upsert fetches the server row first. If it was soft-deleted elsewhere, the edit restores it and records `{deleted_at, restored_at}` in `metadata.restored_after_delete` (a list that is merged, not overwritten), and the user sees a notice.
+- After a push the server's row replaces the local one, unless a newer queued entry holds a newer local edit.
+
+**Pull** (`pull.ts`, `supabaseRemote.ts`).
+- Per table (`expenses`, `shopping_lists`, `inventory_items`) a cursor on `updated_at` is stored in `meta` as `cursor:<table>`. Pages of 1000, keyset-paginated on `(updated_at, id)` (`paging.ts`), so rows changed mid-pull aren't skipped.
+- Soft-deleted rows remove the local copy.
+- Rows with a queued local change are skipped: local changes win until they are sent.
+- Rows from another account (a stale response after a user switch) are ignored.
+- Categories and payment methods are small and are replaced wholesale. An empty answer doesn't wipe a non-empty local table.
+
+**When it syncs** (`engine.ts`, one run at a time; a request during a run schedules one more): on app start, when the browser goes online, when the tab becomes visible, and after local writes (via `syncNow`). A run pushes, then pulls. Before each entry it checks the signed-in user is still the engine's user and halts otherwise.
+
+**Sync badge** (`components/SyncBadge.tsx`; hidden when there is nothing to say):
+
+| State | Shows |
+|---|---|
+| Offline | "Offline · N changes waiting" |
+| Online, queued | "N changes waiting", or "Syncing…" |
+| A change failed | Red "N changes couldn't sync". Tap it for the list, each with **Retry** (back to pending) and **Discard** |
+| Notices | One-off messages, such as "1 item restored", each dismissible |
+
+**Discard** drops the queued change and refetches the server's row so the local copy matches it. It needs a connection and says so if it can't reach the server.
+
+### What works offline
+
+| Works offline | Needs a connection |
+|---|---|
+| Browse expenses (any month already pulled), shopping lists and inventory | Anything not pulled yet, e.g. the first launch after signing in |
+| Add, edit and delete expenses | Add, edit and delete inventory items |
+| Add, edit, tick and delete shopping items | Scan a receipt (Gemini). Saving the scanned lines is offline-safe |
+| Use existing categories and payment methods | Create, rename or delete categories and payment methods |
+| Open all tabs of the installed app | Set Password, Name, sign-in by email link |
+
+### Sign-in and accounts while offline
+
+- The signed-in user is remembered in `localStorage` (`lifestyleos:lastUser`). If the login has expired and can't be refreshed offline, the app keeps working as that user (`isOfflineSession`).
+- On reconnect it refreshes the login. A **network failure** keeps the offline session and retries once after about a minute. A **rejected** refresh (not retryable) signs out locally and forgets the remembered user, so later offline launches don't open the data without a valid login. Their local database and queued changes are kept and are sent the next time they sign in.
+- **Sign Out** (Settings) asks first if changes are unsynced ("They'll be sent next time you sign in"). It always clears the device session, locally too if the server call fails or the session was offline-only; otherwise the stored refresh token would sign the user back in later.
+- When a different account signs in, other accounts' local databases are deleted only if their outbox is empty (`cleanupOtherUserDbs` in `session.ts`).
+
+## Testing
+
+```bash
+npm test                      # Vitest + fake-indexeddb (IndexedDB in Node); TZ pinned to Europe/Helsinki
+bash scripts/test-migrations.sh   # applies the migrations to a throwaway local Postgres and checks ids-only
+```
+
+`npm test` covers the outbox, push, pull, engine, paging, error mapping and session helpers (`src/lib/offline/*.test.ts`). The migration script needs a local Postgres (`PGBIN` defaults to `/opt/homebrew/bin`); it starts and removes its own temporary cluster.
 
 ## Screens
 
