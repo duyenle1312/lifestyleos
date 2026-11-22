@@ -12,6 +12,9 @@ export const MAX_PAYMENT_METHOD_NAME = 50;
 interface PaymentMethodsState {
   methods: PaymentMethod[];
   names: string[];
+  byId: Map<string, PaymentMethod>;
+  /** Case-insensitive, trimmed lookup; null when unknown. */
+  idByName: (name: string | null) => string | null;
   isLoading: boolean;
   loadError: string | null;
   /** Returns an error message, or null when the name is usable. */
@@ -59,6 +62,14 @@ export function PaymentMethodsProvider({ children }: { children: React.ReactNode
     [methods],
   );
 
+  const idByName = useCallback(
+    (name: string | null) => {
+      const key = name?.trim().toLowerCase();
+      return (key && methods.find((x) => x.name.toLowerCase() === key)?.id) || null;
+    },
+    [methods],
+  );
+
   const addMethod = useCallback(
     async (name: string) => {
       const nextOrder = methods.reduce((max, m) => Math.max(max, m.sort_order), 0) + 1;
@@ -97,6 +108,8 @@ export function PaymentMethodsProvider({ children }: { children: React.ReactNode
     () => ({
       methods,
       names: methods.map((m) => m.name),
+      byId: new Map(methods.map((m) => [m.id, m])),
+      idByName,
       isLoading,
       loadError,
       validateName,
@@ -104,7 +117,7 @@ export function PaymentMethodsProvider({ children }: { children: React.ReactNode
       renameMethod,
       deleteMethod,
     }),
-    [methods, isLoading, loadError, validateName, addMethod, renameMethod, deleteMethod],
+    [methods, idByName, isLoading, loadError, validateName, addMethod, renameMethod, deleteMethod],
   );
 
   return <PaymentMethodsContext.Provider value={value}>{children}</PaymentMethodsContext.Provider>;

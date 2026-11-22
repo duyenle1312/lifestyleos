@@ -167,9 +167,14 @@ export async function createCategory(accountId: string, name: string, sortOrder:
   return data as Category;
 }
 
-/** Renames the category; a DB trigger updates the name stored on its expenses. */
+/** Renames the category. Expenses reference it by id, so nothing else changes. */
 export async function renameCategory(id: string, name: string) {
-  const { data, error } = await supabase.rpc("rename_category", { p_id: id, p_name: name });
+  const { data, error } = await supabase
+    .from("categories")
+    .update({ name, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .single();
   if (error) throw error;
   return data as Category;
 }
@@ -185,11 +190,24 @@ export async function updateCategoryStyle(id: string, style: CategoryStyle) {
   return data as Category;
 }
 
-/** Deletes a category; its expenses move to `moveTo`, or become uncategorized. Returns how many moved. */
+/**
+ * Deletes a category. With `moveTo`, its expenses are moved there first and the count is returned;
+ * otherwise the foreign key (on delete set null) leaves them uncategorized and 0 is returned.
+ */
 export async function deleteCategory(id: string, moveTo: string | null) {
-  const { data, error } = await supabase.rpc("delete_category", { p_id: id, p_move_to: moveTo });
+  let moved = 0;
+  if (moveTo) {
+    const { data, error } = await supabase
+      .from("expenses")
+      .update({ category_id: moveTo })
+      .eq("category_id", id)
+      .select("id");
+    if (error) throw error;
+    moved = data.length;
+  }
+  const { error } = await supabase.from("categories").delete().eq("id", id);
   if (error) throw error;
-  return data as number;
+  return moved;
 }
 
 export async function countCategoryExpenses(id: string) {
@@ -225,26 +243,43 @@ export async function createPaymentMethod(accountId: string, name: string, sortO
   return data as PaymentMethod;
 }
 
-/** Renames the method and the name stored on the expenses that use it. */
+/** Renames the method. Expenses reference it by id, so nothing else changes. */
 export async function renamePaymentMethod(id: string, name: string) {
-  const { data, error } = await supabase.rpc("rename_payment_method", { p_id: id, p_name: name });
+  const { data, error } = await supabase
+    .from("payment_methods")
+    .update({ name, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .single();
   if (error) throw error;
   return data as PaymentMethod;
 }
 
-/** Deletes a method; its expenses move to `moveTo`, or get none. Returns how many changed. */
+/**
+ * Deletes a method. With `moveTo`, its expenses are moved there first and the count is returned;
+ * otherwise the foreign key (on delete set null) leaves them without a method and 0 is returned.
+ */
 export async function deletePaymentMethod(id: string, moveTo: string | null) {
-  const { data, error } = await supabase.rpc("delete_payment_method", { p_id: id, p_move_to: moveTo });
+  let moved = 0;
+  if (moveTo) {
+    const { data, error } = await supabase
+      .from("expenses")
+      .update({ payment_method_id: moveTo })
+      .eq("payment_method_id", id)
+      .select("id");
+    if (error) throw error;
+    moved = data.length;
+  }
+  const { error } = await supabase.from("payment_methods").delete().eq("id", id);
   if (error) throw error;
-  return data as number;
+  return moved;
 }
 
-export async function countPaymentMethodExpenses(accountId: string, name: string) {
+export async function countPaymentMethodExpenses(id: string) {
   const { count, error } = await supabase
     .from("expenses")
     .select("id", { count: "exact", head: true })
-    .eq("account_id", accountId)
-    .ilike("payment_method", name.replace(/[\\%_]/g, "\\$&"))
+    .eq("payment_method_id", id)
     .is("deleted_at", null);
   if (error) throw error;
   return count ?? 0;

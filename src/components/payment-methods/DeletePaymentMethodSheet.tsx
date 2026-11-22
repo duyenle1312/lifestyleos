@@ -7,7 +7,6 @@ import { iosColor } from "@/lib/constants";
 import { errorMessage } from "@/lib/helpers";
 import { countPaymentMethodExpenses } from "@/lib/services";
 import type { PaymentMethod } from "@/lib/types";
-import { useUser } from "../AuthProvider";
 import { IconBubble } from "../glyphs";
 import { usePaymentMethods } from "../PaymentMethodsProvider";
 import { ButtonRow, Row, Section, SelectRow, Sheet, Spinner } from "../ui";
@@ -21,7 +20,6 @@ export function DeletePaymentMethodSheet({
   onDeleted?: () => void;
   onClose: () => void;
 }) {
-  const user = useUser();
   const { methods, deleteMethod } = usePaymentMethods();
   const [count, setCount] = useState<number | null>(null);
   const [moveTo, setMoveTo] = useState("");
@@ -29,10 +27,10 @@ export function DeletePaymentMethodSheet({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    countPaymentMethodExpenses(user.id, method.name)
+    countPaymentMethodExpenses(method.id)
       .then(setCount)
       .catch((e) => setError(errorMessage(e)));
-  }, [user.id, method.name]);
+  }, [method.id]);
 
   const remove = async () => {
     setDeleting(true);

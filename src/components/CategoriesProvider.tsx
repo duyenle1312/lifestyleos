@@ -19,6 +19,8 @@ interface CategoriesState {
   categories: Category[];
   names: string[];
   byId: Map<string, Category>;
+  /** Case-insensitive, trimmed lookup; null when unknown. */
+  idByName: (name: string | null) => string | null;
   isLoading: boolean;
   loadError: string | null;
   /** Returns an error message, or null when the name is usable. */
@@ -62,6 +64,14 @@ export function CategoriesProvider({ children }: { children: React.ReactNode }) 
       if (name.length > MAX_CATEGORY_NAME) return `Use at most ${MAX_CATEGORY_NAME} characters.`;
       const taken = categories.some((c) => c.id !== exceptId && c.name.toLowerCase() === name.toLowerCase());
       return taken ? "A category with this name already exists." : null;
+    },
+    [categories],
+  );
+
+  const idByName = useCallback(
+    (name: string | null) => {
+      const key = name?.trim().toLowerCase();
+      return (key && categories.find((x) => x.name.toLowerCase() === key)?.id) || null;
     },
     [categories],
   );
@@ -113,6 +123,7 @@ export function CategoriesProvider({ children }: { children: React.ReactNode }) 
       categories,
       names: categories.map((c) => c.name),
       byId: new Map(categories.map((c) => [c.id, c])),
+      idByName,
       isLoading,
       loadError,
       validateName,
@@ -120,7 +131,7 @@ export function CategoriesProvider({ children }: { children: React.ReactNode }) 
       updateCategory,
       deleteCategory,
     }),
-    [categories, isLoading, loadError, validateName, addCategory, updateCategory, deleteCategory],
+    [categories, idByName, isLoading, loadError, validateName, addCategory, updateCategory, deleteCategory],
   );
 
   return <CategoriesContext.Provider value={value}>{children}</CategoriesContext.Provider>;
