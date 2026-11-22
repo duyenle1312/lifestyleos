@@ -83,6 +83,9 @@ export default function OpengraphImage() {
               </div>
             ))}
           </div>
+          <div style={{ fontSize: 24, fontWeight: 500, color: "rgba(60, 60, 67, 0.6)", marginTop: 40 }}>
+            www.lifestyleos.homes
+          </div>
         </div>
 
         {/* App screenshot, bleeding off the right and bottom edges */}
