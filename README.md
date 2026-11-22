@@ -56,11 +56,61 @@ Narrower windows keep the phone layout, and tapping a row opens the detail sheet
 
 Selection shortcuts need the split view (1024px or wider). `/`, `⌘K` and `N` work at any width. Shortcuts are ignored while typing in a field or while a dialog is open. Adding uses `N` rather than `⌘N` because browsers reserve `⌘N` for a new window.
 
+## Sign-in
+
+Email sign-in through Supabase Auth, sent via Resend on our own domain (custom SMTP in Supabase).
+
+| Method | How it works | Code |
+|---|---|---|
+| **Magic link** (default) | Enter an email and get a link. An unknown email gets an account on its first link, with no password. | `sendMagicLink` in `components/AuthProvider.tsx` |
+| **Password** (backup) | "Sign in with password instead" shows email + password and a **Sign Up** form. | `signInWithPassword`, `signUp` |
+| **Set Password** | Settings → Account. Magic-link users can add a password; anyone can change theirs. | `components/SetPasswordSheet.tsx` |
+
+**When emails can't be sent.** If Supabase returns the email rate-limit error, the login screen switches to the password form and says why. Password sign-up only avoids email when **Confirm email** is off in Supabase (Authentication → Sign In / Providers → Email). With it on, sign-up also sends an email and fails the same way.
+
+**Email links go through `/auth/confirm`.** Templates link to `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email` instead of `{{ .ConfirmationURL }}`. The page calls `verifyOtp` only when the user presses **Continue**. Email security scanners (Outlook Safe Links, Microsoft Defender) open links before the user does, and a direct verify link would be spent by that visit. `AppShell` renders this page without the login gate. See `supabase/templates/README.md`.
+
+**After the first sign-in.** The `SIGNED_IN` listener runs `ensureDefaultAccount`, which creates the user's "Personal" account (id = user id) if it is missing. Its `signed_up_at` column (default `now()`) records when the user joined.
+
+```sql
+select date_trunc('month', signed_up_at) as month, count(*) from public.accounts group by 1 order by 1;
+```
+
+**Supabase settings this relies on:**
+- Authentication → Sign In / Providers: **Allow new users to sign up** on (needed for sign-up by magic link).
+- Authentication → URL Configuration → Redirect URLs: `https://www.lifestyleos.homes/**` and `http://localhost:3000/**`. Otherwise Supabase swaps in the Site URL and links miss `/auth/confirm`.
+- Authentication → Emails → Templates: **Magic Link** and **Confirm signup** pasted from `supabase/templates/`.
+- **Secure password change** off. Otherwise Set Password needs an emailed confirmation too.
+
+### Email delivery (Resend)
+
+Supabase's built-in mailer is for testing only and allows very few emails per hour, so auth emails go through Resend.
+
+**1. Set up Resend** ([resend.com](https://resend.com))
+1. Create an account.
+2. **Domains → Add Domain** and enter the domain (e.g. `lifestyleos.homes`).
+3. Add the DNS records Resend shows to the DNS provider (Cloudflare, Namecheap, etc.).
+4. Wait for the domain to verify. Resend won't send from your own address until it does.
+5. **API Keys → Create API Key** with sending permission, and copy the key (`re_...`).
+
+**2. Point Supabase at Resend.** Authentication → Emails → **SMTP Settings** (older dashboards: Auth settings → SMTP). Turn on **Enable Custom SMTP** and fill in:
+
+| Field | Value |
+|---|---|
+| Host | `smtp.resend.com` |
+| Port | `465` |
+| Username | `resend` |
+| Password | the Resend API key (`re_...`) |
+| Sender email | `no-reply@<your domain>` |
+| Sender name | `Lifestyle OS` |
+
+**3. Raise the email rate limit.** Authentication → **Rate Limits** → **Rate limit for sending emails**: set to **50** emails per hour and save. This field only becomes editable once custom SMTP is on. It caps every auth email (magic links, sign-up confirmations, password resets) across the whole project, not per user. When it is hit, the login screen falls back to the password form (see above).
+
 ## Screens (iOS → web)
 
 | iOS | Web |
 |---|---|
-| `LoginView` / `SignUpView` (merged: magic link by default, which also signs up new emails; password sign-in kept for existing users) | `components/LoginView.tsx` |
+| `LoginView` / `SignUpView` (merged, see [Sign-in](#sign-in)) | `components/LoginView.tsx` |
 | `ExpenseListView`, `AddExpenseView`, `EditExpenseView`, `ExpenseDetailView`, `MonthPickerView` | `app/expenses`, `components/expenses/*` |
 | `ShoppingListsView`, `AddShoppingListView`, `EditShoppingListView` | `app/shopping`, `components/shopping/*` |
 | `InventoryListView`, `AddInventoryItemView`, `InventoryDetailView` | `app/inventory`, `app/inventory/[id]` |
