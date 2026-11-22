@@ -46,10 +46,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-dvh md:flex">
       {/* Sidebar – tablets / desktop */}
       <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-separator bg-bar px-3 py-5 backdrop-blur-xl md:flex">
-        <div className="mb-6 flex items-center gap-2 px-2">
+        <Link href="/" aria-label="Lifestyle OS home" className="mb-6 flex items-center gap-2 self-start rounded-lg px-2">
           <AppLogo className="size-8" />
           <span className="text-[17px] font-semibold">Lifestyle OS</span>
-        </div>
+        </Link>
         <nav className="flex flex-col gap-0.5">
           {TABS.map(({ href, label, icon: Icon }) => (
             <Link

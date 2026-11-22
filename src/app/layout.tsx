@@ -3,6 +3,7 @@ import "./globals.css";
 import { AuthProvider } from "@/components/AuthProvider";
 import { AppShell } from "@/components/AppShell";
 import { THEME_SCRIPT } from "@/lib/theme";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 
 const description = "Expense tracking, shopping list, kitchen inventory and receipt scanning.";
 
@@ -44,7 +45,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f2f2f7" },
+    { media: "(prefers-color-scheme: light)", color: "#f6f5f2" },
     { media: "(prefers-color-scheme: dark)", color: "#000000" },
   ],
 };
@@ -59,6 +60,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <AuthProvider>
           <AppShell>{children}</AppShell>
         </AuthProvider>
+        <ServiceWorkerRegister />
       </body>
     </html>
   );
