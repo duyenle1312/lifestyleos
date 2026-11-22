@@ -135,7 +135,7 @@ export default function ScanPage() {
   return (
     <>
       <Toolbar />
-      <LargeTitle>Scan Receipt</LargeTitle>
+      {/* <LargeTitle>Scan Receipt</LargeTitle> */}
 
       <input ref={cameraInput} type="file" accept="image/*" capture="environment" hidden onChange={onFile} />
       <input ref={libraryInput} type="file" accept="image/*" hidden onChange={onFile} />

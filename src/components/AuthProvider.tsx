@@ -163,6 +163,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 /**
  * Creates a "Personal" account owned by the new user.
+ * The database already does this on sign-up (trigger on_auth_user_created_account, see
+ * supabase/migrations/20261122170000_create_account_on_signup.sql); this is a fallback repair.
  * With magic links there is no session until the link is opened,
  * so here it runs on every sign-in and is a no-op once the account exists. The account's
  * `signed_up_at` column defaults to now(), so it records the user's first sign-in.
