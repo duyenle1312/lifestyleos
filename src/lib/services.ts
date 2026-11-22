@@ -13,14 +13,13 @@ export interface ExpenseInput {
   amount: number;
   currency: string;
   expense_date: string;
-  category: string | null;
-  category_id?: string | null;
+  category_id: string | null;
   description: string | null;
   location: string | null;
   unit: number | null;
   unit_price: number | null;
   expire_date: string | null;
-  payment_method: string | null;
+  payment_method_id: string | null;
   item: string | null;
 }
 
@@ -64,7 +63,15 @@ export async function deleteExpense(id: string) {
  * Differences from iOS: uses the receipt's date (iOS used "now"), and stores
  * unit_price = line price ÷ quantity so that unit × unit_price = amount, like the expense form.
  */
-export async function createExpensesFromReceipt(accountId: string, receipt: ScannedReceipt, items: ReceiptItem[]) {
+export async function createExpensesFromReceipt(
+  accountId: string,
+  receipt: ScannedReceipt,
+  items: ReceiptItem[],
+  resolve: {
+    categoryId: (name: string | null) => string | null;
+    paymentMethodId: (name: string | null) => string | null;
+  },
+) {
   const expenseDate = receipt.date && /^\d{4}-\d{2}-\d{2}$/.test(receipt.date) ? noonISO(receipt.date) : new Date().toISOString();
   const created: Expense[] = [];
   for (const item of items) {
@@ -75,13 +82,13 @@ export async function createExpensesFromReceipt(accountId: string, receipt: Scan
           amount: item.amount,
           currency: "EUR",
           expense_date: expenseDate,
-          category: item.category, // linked to category_id by the DB trigger
+          category_id: resolve.categoryId(item.category),
           description: null,
           location: receipt.storeName,
           unit: quantity,
           unit_price: Math.round((item.amount / quantity) * 10_000) / 10_000,
           expire_date: null,
-          payment_method: receipt.paymentMethod ?? null,
+          payment_method_id: resolve.paymentMethodId(receipt.paymentMethod ?? null),
           item: receiptItemDisplayName(item),
         }),
       );

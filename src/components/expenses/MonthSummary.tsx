@@ -68,12 +68,12 @@ export function MonthSummary({
   // Spending less is good news: down = green, up = orange.
   const DeltaIcon = delta && delta.change > 0 ? TrendingUp : TrendingDown;
 
-  // Group by category id; legacy rows without an id are grouped by their free-text name.
+  // Group by category id; expenses without a (known) category share one "Uncategorized" group.
   const groups = new Map<string, { id?: string; name: string; category?: Category; amount: number; count: number }>();
   for (const e of expenses) {
     const category = e.category_id ? byId.get(e.category_id) : undefined;
-    const key = category?.id ?? `legacy:${e.category ?? ""}`;
-    const g = groups.get(key) ?? { id: category?.id, name: category?.name ?? e.category ?? "Uncategorized", category, amount: 0, count: 0 };
+    const key = e.category_id ?? "none";
+    const g = groups.get(key) ?? { id: category?.id, name: category?.name ?? "Uncategorized", category, amount: 0, count: 0 };
     g.amount += e.amount;
     g.count += 1;
     groups.set(key, g);

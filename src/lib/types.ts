@@ -10,15 +10,13 @@ export interface Expense {
   amount: number;
   currency: string;
   expense_date: string;
-  /** Plain name, kept in sync with category_id by a DB trigger (the iOS app still uses it). */
-  category: string | null;
   category_id: string | null;
   description: string | null;
   location: string | null;
   unit: number | null;
   unit_price: number | null;
   expire_date: string | null;
-  payment_method: string | null;
+  payment_method_id: string | null;
   item: string | null;
   metadata: Json;
   deleted_at: string | null;

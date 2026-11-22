@@ -54,8 +54,8 @@ function matchCategory(raw: string | null, names: string[]): string | null {
 export default function ScanPage() {
   const user = useUser();
   const { session } = useAuth();
-  const { names: categoryNames } = useCategories();
-  const { names: paymentNames } = usePaymentMethods();
+  const { names: categoryNames, idByName: categoryIdByName } = useCategories();
+  const { names: paymentNames, idByName: paymentIdByName } = usePaymentMethods();
   const [receipt, setReceipt] = useState<ScannedReceipt | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -106,7 +106,10 @@ export default function ScanPage() {
     setIsSaving(true);
     setError(null);
     try {
-      const created = await createExpensesFromReceipt(user.id, receipt, receipt.items);
+      const created = await createExpensesFromReceipt(user.id, receipt, receipt.items, {
+        categoryId: categoryIdByName,
+        paymentMethodId: paymentIdByName,
+      });
       if (created.length < receipt.items.length) {
         throw new Error(`Only ${created.length} of ${receipt.items.length} items were added.`);
       }

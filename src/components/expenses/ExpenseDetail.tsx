@@ -7,9 +7,15 @@ import { IconBubble } from "@/components/glyphs";
 import { categoryVisual } from "@/lib/categoryStyle";
 import { formatMedium } from "@/lib/helpers";
 import type { Category, Expense } from "@/lib/types";
+import { useCategories } from "../CategoriesProvider";
+import { usePaymentMethods } from "../PaymentMethodsProvider";
 import { Row, Section, Sheet, ValueRow } from "../ui";
 
 function ExpenseDetailSections({ expense }: { expense: Expense }) {
+  const { byId } = useCategories();
+  const { byId: paymentById } = usePaymentMethods();
+  const categoryName = expense.category_id ? byId.get(expense.category_id)?.name : undefined;
+  const paymentName = expense.payment_method_id ? paymentById.get(expense.payment_method_id)?.name : undefined;
   return (
     <>
       <Section header="Amount">
@@ -26,10 +32,10 @@ function ExpenseDetailSections({ expense }: { expense: Expense }) {
 
       <Section header="Details">
         {expense.item && <ValueRow label="Item" value={expense.item} />}
-        {expense.category && <ValueRow label="Category" value={expense.category} />}
+        {categoryName && <ValueRow label="Category" value={categoryName} />}
         <ValueRow label="Date" value={formatMedium(new Date(expense.expense_date))} />
         {expense.location && <ValueRow label="Location" value={expense.location} />}
-        {expense.payment_method && <ValueRow label="Payment" value={expense.payment_method} />}
+        {paymentName && <ValueRow label="Payment" value={paymentName} />}
         {expense.expire_date && <ValueRow label="Expires" value={formatMedium(new Date(expense.expire_date))} />}
       </Section>
 
@@ -81,7 +87,7 @@ export function ExpenseInspector({
     <div className="animate-fade-in pb-8">
       <div className="flex flex-col items-center gap-2 px-6 pt-8 pb-2 text-center">
         <IconBubble icon={Icon} color={color} />
-        <p className="text-[15px] text-label-2">{expense.item ?? category?.name ?? expense.category ?? "Expense"}</p>
+        <p className="text-[15px] text-label-2">{expense.item ?? category?.name ?? "Expense"}</p>
         <p className="text-[34px] font-bold leading-tight tabular-nums">
           {expense.amount.toFixed(2)} <span className="text-[20px] font-semibold text-label-2">{expense.currency}</span>
         </p>

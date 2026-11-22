@@ -42,6 +42,7 @@ import {
   Toolbar,
 } from "@/components/ui";
 import { useCategories } from "@/components/CategoriesProvider";
+import { usePaymentMethods } from "@/components/PaymentMethodsProvider";
 import { categoryVisual } from "@/lib/categoryStyle";
 import {
   addMonths,
@@ -71,6 +72,7 @@ export default function ExpensesPage() {
   const user = useUser();
   const router = useRouter();
   const { categories, byId } = useCategories();
+  const { byId: paymentById } = usePaymentMethods();
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const [expenses, setExpenses] = useState<Expense[]>([]);
   /** Month (timestamp) the current `expenses` were loaded for; loading = it differs from the selected month. */
@@ -155,7 +157,7 @@ export default function ExpensesPage() {
   const groups = useMemo(() => {
     const map = new Map<string | number, Expense[]>();
     for (const e of [...filtered].sort(byDateDesc)) {
-      const key = sort === "date" ? startOfDay(new Date(e.expense_date)).getTime() : (e.payment_method ?? "");
+      const key = sort === "date" ? startOfDay(new Date(e.expense_date)).getTime() : (e.payment_method_id ?? "");
       map.set(key, [...(map.get(key) ?? []), e]);
     }
     const entries = [...map.entries()];
@@ -164,19 +166,23 @@ export default function ExpensesPage() {
         .sort((a, b) => (b[0] as number) - (a[0] as number))
         .map(([day, items]) => ({ key: String(day), header: formatSectionDate(new Date(day)), items }));
     }
+    const nameOf = (id: string | number) => paymentById.get(String(id))?.name ?? "";
     return entries
-      .sort(([a], [b]) => (a === "" ? 1 : b === "" ? -1 : String(a).localeCompare(String(b))))
+      .sort(([a], [b]) => {
+        const [na, nb] = [nameOf(a), nameOf(b)];
+        return na === "" ? 1 : nb === "" ? -1 : na.localeCompare(nb);
+      })
       .map(([method, items]) => ({
         key: `pm:${method}`,
         header: (
           <span className="flex justify-between">
-            <span>{method || NO_PAYMENT_METHOD}</span>
+            <span>{nameOf(method) || NO_PAYMENT_METHOD}</span>
             <span>{items.reduce((sum, e) => sum + e.amount, 0).toFixed(2)}</span>
           </span>
         ),
         items,
       }));
-  }, [filtered, sort]);
+  }, [filtered, sort, paymentById]);
 
   const total = filtered.reduce((sum, e) => sum + e.amount, 0).toFixed(2);
   const isCurrentMonth = isSameMonth(month, new Date());
@@ -468,7 +474,7 @@ export default function ExpensesPage() {
       {confirmDelete && (
         <Alert
           title="Delete Expense?"
-          message={`“${confirmDelete.item ?? confirmDelete.category ?? "Expense"}” – ${confirmDelete.amount.toFixed(2)} ${confirmDelete.currency}`}
+          message={`“${confirmDelete.item ?? (confirmDelete.category_id ? byId.get(confirmDelete.category_id)?.name : undefined) ?? "Expense"}” – ${confirmDelete.amount.toFixed(2)} ${confirmDelete.currency}`}
           buttons={[
             { label: "Cancel", role: "cancel" },
             { label: "Delete", role: "destructive", onPress: () => remove(confirmDelete.id) },
@@ -591,13 +597,15 @@ export default function ExpensesPage() {
 }
 
 function ExpenseRow({ expense, category }: { expense: Expense; category?: Category }) {
-  const meta = [expense.location, expense.payment_method].filter(Boolean).join(" • ");
+  const { byId: paymentById } = usePaymentMethods();
+  const paymentName = expense.payment_method_id ? paymentById.get(expense.payment_method_id)?.name : undefined;
+  const meta = [expense.location, paymentName].filter(Boolean).join(" • ");
   const { Icon, color } = categoryVisual(category);
   return (
     <div className="flex items-center gap-3 px-[18px] py-3">
       <IconBubble icon={Icon} color={color} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[16px] font-semibold">{expense.item ?? category?.name ?? expense.category ?? "Expense"}</p>
+        <p className="truncate text-[16px] font-semibold">{expense.item ?? category?.name ?? "Expense"}</p>
         {meta && <p className="mt-1 truncate text-[13px] text-label-2">{meta}</p>}
       </div>
       <div className="text-right">

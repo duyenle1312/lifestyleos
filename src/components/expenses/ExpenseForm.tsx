@@ -31,8 +31,6 @@ const opts = (values: string[], placeholder?: string) => [
 
 /** Sentinel option in the category picker that opens the "New Category" sheet. */
 const NEW_CATEGORY = "__new_category__";
-/** An old expense whose text category matches none of the user's categories (e.g. written by iOS). */
-const LEGACY_CATEGORY = "__legacy_category__";
 /** Sentinel option in the payment picker that opens the "New Payment Method" sheet. */
 const NEW_PAYMENT_METHOD = "__new_payment_method__";
 
@@ -52,8 +50,8 @@ export function ExpenseForm({
   onClose: () => void;
 }) {
   const isEdit = !!expense;
-  const { categories, byId } = useCategories();
-  const { names: paymentNames } = usePaymentMethods();
+  const { categories, byId, idByName } = useCategories();
+  const { methods } = usePaymentMethods();
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [showNewPaymentMethod, setShowNewPaymentMethod] = useState(false);
   const [item, setItem] = useState(expense?.item ?? "");
@@ -67,19 +65,13 @@ export function ExpenseForm({
   const [expenseDate, setExpenseDate] = useState(
     expense ? toDateInput(new Date(expense.expense_date)) : todayInput(),
   );
-  /** Selected category id, "" for none, or LEGACY_CATEGORY. */
+  /** Selected category id, "" for none. */
   const [categoryId, setCategoryId] = useState(() => {
-    const byName = (name: string | null | undefined) =>
-      categories.find((c) => c.name.toLowerCase() === name?.toLowerCase())?.id;
-    if (expense) {
-      if (expense.category_id && byId.has(expense.category_id)) return expense.category_id;
-      if (!expense.category) return "";
-      return byName(expense.category) ?? LEGACY_CATEGORY;
-    }
-    return byName("Food & Drink") ?? categories[0]?.id ?? "";
+    if (expense) return expense.category_id && byId.has(expense.category_id) ? expense.category_id : "";
+    return idByName("Food & Drink") ?? categories[0]?.id ?? "";
   });
   const [location, setLocation] = useState(expense?.location ?? "");
-  const [paymentMethod, setPaymentMethod] = useState(expense?.payment_method ?? "");
+  const [paymentMethodId, setPaymentMethodId] = useState(expense?.payment_method_id ?? "");
   const [description, setDescription] = useState(expense?.description ?? "");
   const [saving, setSaving] = useState(false);
   const [showDuplicateAlert, setShowDuplicateAlert] = useState(false);
@@ -87,16 +79,8 @@ export function ExpenseForm({
   const categoryOptions = [
     { value: "", label: "Select Category" },
     ...categories.map((c) => ({ value: c.id, label: c.name })),
-    // Keep an old expense's unmatched category selectable so saving doesn't drop it.
-    ...(categoryId === LEGACY_CATEGORY ? [{ value: LEGACY_CATEGORY, label: expense?.category ?? "" }] : []),
     { value: NEW_CATEGORY, label: "New Category…" },
   ];
-
-  const categoryFields = (): Pick<ExpenseInput, "category" | "category_id"> => {
-    if (categoryId === LEGACY_CATEGORY) return { category: expense?.category ?? null, category_id: null };
-    const selected = byId.get(categoryId);
-    return { category: selected?.name ?? null, category_id: selected?.id ?? null };
-  };
 
   const unitNum = parseDecimal(unit);
   const priceNum = parseDecimal(unitPrice);
@@ -111,13 +95,13 @@ export function ExpenseForm({
       amount: clean(unitNum * priceNum),
       currency,
       expense_date: noonISO(shift(expenseDate)),
-      ...categoryFields(),
+      category_id: categoryId || null,
       description: description || null,
       location: location || null,
       unit: unitNum,
       unit_price: priceNum,
       expire_date: hasExpireDate ? noonISO(shift(expireDate)) : null,
-      payment_method: paymentMethod || null,
+      payment_method_id: paymentMethodId || null,
       item: item || null,
     };
   };
@@ -180,14 +164,11 @@ export function ExpenseForm({
         <TextFieldRow placeholder="Location" value={location} onChange={setLocation} />
         <SelectRow
           label="Payment Method"
-          value={paymentMethod}
-          onChange={(v) => (v === NEW_PAYMENT_METHOD ? setShowNewPaymentMethod(true) : setPaymentMethod(v))}
+          value={paymentMethodId}
+          onChange={(v) => (v === NEW_PAYMENT_METHOD ? setShowNewPaymentMethod(true) : setPaymentMethodId(v))}
           options={[
-            ...opts(
-              // Keep an old expense's method selectable even if it's no longer in the list.
-              paymentMethod && !paymentNames.includes(paymentMethod) ? [...paymentNames, paymentMethod] : paymentNames,
-              "Select Method",
-            ),
+            { value: "", label: "Select Method" },
+            ...methods.map((m) => ({ value: m.id, label: m.name })),
             { value: NEW_PAYMENT_METHOD, label: "New Payment Method…" },
           ]}
         />
@@ -211,7 +192,7 @@ export function ExpenseForm({
 
       {showNewPaymentMethod && (
         <PaymentMethodEditorSheet
-          onSaved={(created) => setPaymentMethod(created.name)}
+          onSaved={(created) => setPaymentMethodId(created.id)}
           onClose={() => setShowNewPaymentMethod(false)}
         />
       )}
