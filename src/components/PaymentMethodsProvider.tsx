@@ -7,6 +7,7 @@ import { errorMessage } from "@/lib/helpers";
 import * as api from "@/lib/services";
 import type { PaymentMethod } from "@/lib/types";
 import { useUser } from "./AuthProvider";
+import { rewriteRefInOutbox } from "@/lib/offline/rewriteRef";
 import { useLocalDb, useSync, useSyncStatus } from "./OfflineProvider";
 
 export const MAX_PAYMENT_METHOD_NAME = 50;
@@ -18,7 +19,6 @@ interface PaymentMethodsState {
   /** Case-insensitive, trimmed lookup; null when unknown. */
   idByName: (name: string | null) => string | null;
   isLoading: boolean;
-  loadError: string | null;
   /** Returns an error message, or null when the name is usable. */
   validateName: (name: string, exceptId?: string) => string | null;
   addMethod: (name: string) => Promise<PaymentMethod>;
@@ -47,7 +47,6 @@ export function PaymentMethodsProvider({ children }: { children: React.ReactNode
   );
   // Empty while a sync is running means "not pulled yet", not "no payment methods".
   const isLoading = rows === undefined || (rows.length === 0 && syncing);
-  const loadError: string | null = null;
 
   const validateName = useCallback(
     (raw: string, exceptId?: string) => {
@@ -97,9 +96,10 @@ export function PaymentMethodsProvider({ children }: { children: React.ReactNode
   const deleteMethod = useCallback(async (id: string, moveTo: string | null) => {
     try {
       const moved = await api.deletePaymentMethod(id, moveTo);
-      await db.transaction("rw", [db.paymentMethods, db.expenses], async () => {
+      await db.transaction("rw", [db.paymentMethods, db.expenses, db.outbox], async () => {
         await db.paymentMethods.delete(id);
         await db.expenses.filter((x) => x.payment_method_id === id).modify({ payment_method_id: moveTo });
+        await rewriteRefInOutbox(db, "payment_method_id", id, moveTo);
       });
       void syncNow();
       return moved;
@@ -115,13 +115,12 @@ export function PaymentMethodsProvider({ children }: { children: React.ReactNode
       byId: new Map(methods.map((m) => [m.id, m])),
       idByName,
       isLoading,
-      loadError,
       validateName,
       addMethod,
       renameMethod,
       deleteMethod,
     }),
-    [methods, idByName, isLoading, loadError, validateName, addMethod, renameMethod, deleteMethod],
+    [methods, idByName, isLoading, validateName, addMethod, renameMethod, deleteMethod],
   );
 
   return <PaymentMethodsContext.Provider value={value}>{children}</PaymentMethodsContext.Provider>;

@@ -100,7 +100,13 @@ export default function InventoryDetailPage() {
         }
         right={
           item && (
-            <button
+            <div className="flex items-center gap-4">
+              {isEditing && (
+                <button type="button" className="text-[17px] text-ios-blue" onClick={() => setIsEditing(false)}>
+                  Cancel
+                </button>
+              )}
+              <button
               type="button"
               disabled={saving || !online}
               className={`text-[17px] text-ios-blue disabled:opacity-40 ${isEditing ? "font-semibold" : ""}`}
@@ -108,6 +114,7 @@ export default function InventoryDetailPage() {
             >
               {isEditing ? "Save" : "Edit"}
             </button>
+            </div>
           )
         }
       />

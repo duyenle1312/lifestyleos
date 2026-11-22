@@ -23,7 +23,7 @@ export default function CategoriesPage() {
 }
 
 function CategoriesScreen() {
-  const { categories, isLoading, loadError } = useCategories();
+  const { categories, isLoading } = useCategories();
   const online = useOnline();
   // ?from=expenses → back button returns to Expenses (opened from the filter menu).
   const fromExpenses = useSearchParams().get("from") === "expenses";
@@ -51,8 +51,6 @@ function CategoriesScreen() {
         <div className="flex min-h-[60dvh] items-center justify-center">
           <Spinner />
         </div>
-      ) : loadError ? (
-        <EmptyState icon={Tag} title="Couldn't load categories" subtitle={loadError} />
       ) : categories.length === 0 ? (
         <EmptyState icon={Tag} title="No categories yet" subtitle={online ? "Create categories to organize your expenses" : "Needs a connection"}>
           <button

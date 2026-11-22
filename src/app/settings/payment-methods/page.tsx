@@ -14,7 +14,7 @@ import { iosColor } from "@/lib/constants";
 import type { PaymentMethod } from "@/lib/types";
 
 export default function PaymentMethodsPage() {
-  const { methods, isLoading, loadError } = usePaymentMethods();
+  const { methods, isLoading } = usePaymentMethods();
   const online = useOnline();
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<PaymentMethod | null>(null);
@@ -37,8 +37,6 @@ export default function PaymentMethodsPage() {
         <div className="flex min-h-[60dvh] items-center justify-center">
           <Spinner />
         </div>
-      ) : loadError ? (
-        <EmptyState icon={CreditCard} title="Couldn't load payment methods" subtitle={loadError} />
       ) : methods.length === 0 ? (
         <EmptyState icon={CreditCard} title="No payment methods yet" subtitle={online ? "Add the cards and accounts you pay with" : "Needs a connection"}>
           <button

@@ -7,6 +7,7 @@ import { errorMessage } from "@/lib/helpers";
 import * as api from "@/lib/services";
 import type { Category } from "@/lib/types";
 import { useUser } from "./AuthProvider";
+import { rewriteRefInOutbox } from "@/lib/offline/rewriteRef";
 import { useLocalDb, useSync, useSyncStatus } from "./OfflineProvider";
 
 export const MAX_CATEGORY_NAME = 50;
@@ -24,7 +25,6 @@ interface CategoriesState {
   /** Case-insensitive, trimmed lookup; null when unknown. */
   idByName: (name: string | null) => string | null;
   isLoading: boolean;
-  loadError: string | null;
   /** Returns an error message, or null when the name is usable. */
   validateName: (name: string, exceptId?: string) => string | null;
   addCategory: (draft: CategoryDraft) => Promise<Category>;
@@ -53,7 +53,6 @@ export function CategoriesProvider({ children }: { children: React.ReactNode }) 
   );
   // Empty while a sync is running means "not pulled yet", not "no categories".
   const isLoading = rows === undefined || (rows.length === 0 && syncing);
-  const loadError: string | null = null;
 
   const validateName = useCallback(
     (raw: string, exceptId?: string) => {
@@ -92,10 +91,11 @@ export function CategoriesProvider({ children }: { children: React.ReactNode }) 
   const updateCategory = useCallback(
     async (id: string, { name, icon, color }: CategoryDraft) => {
       const current = categories.find((c) => c.id === id);
+      if (!current) throw new Error("This category no longer exists.");
       try {
-        let updated = current!;
-        if (current && current.name !== name.trim()) updated = await api.renameCategory(id, name.trim());
-        if (current && (current.icon !== icon || current.color !== color)) {
+        let updated = current;
+        if (current.name !== name.trim()) updated = await api.renameCategory(id, name.trim());
+        if ((current.icon !== icon || current.color !== color)) {
           updated = await api.updateCategoryStyle(id, { icon, color });
         }
         await db.categories.put(updated);
@@ -111,9 +111,10 @@ export function CategoriesProvider({ children }: { children: React.ReactNode }) 
   const deleteCategory = useCallback(async (id: string, moveTo: string | null) => {
     try {
       const moved = await api.deleteCategory(id, moveTo);
-      await db.transaction("rw", [db.categories, db.expenses], async () => {
+      await db.transaction("rw", [db.categories, db.expenses, db.outbox], async () => {
         await db.categories.delete(id);
         await db.expenses.filter((x) => x.category_id === id).modify({ category_id: moveTo });
+        await rewriteRefInOutbox(db, "category_id", id, moveTo);
       });
       void syncNow();
       return moved;
@@ -129,13 +130,12 @@ export function CategoriesProvider({ children }: { children: React.ReactNode }) 
       byId: new Map(categories.map((c) => [c.id, c])),
       idByName,
       isLoading,
-      loadError,
       validateName,
       addCategory,
       updateCategory,
       deleteCategory,
     }),
-    [categories, idByName, isLoading, loadError, validateName, addCategory, updateCategory, deleteCategory],
+    [categories, idByName, isLoading, validateName, addCategory, updateCategory, deleteCategory],
   );
 
   return <CategoriesContext.Provider value={value}>{children}</CategoriesContext.Provider>;

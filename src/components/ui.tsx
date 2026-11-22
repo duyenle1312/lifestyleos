@@ -679,7 +679,7 @@ export function SwipeRow({
         className={`relative ${selected ? "bg-gray5" : "bg-cell [@media(hover:hover)]:hover:bg-[color-mix(in_srgb,var(--bg-cell),var(--label)_4%)]"} ${dragging ? "" : "transition-transform duration-250 ease-out"} ${
           onPress ? "cursor-pointer active:bg-gray5" : ""
         }`}
-        style={{ transform: `translateX(${offset}px)`, touchAction: "pan-y" }}
+        style={{ transform: `translateX(${disabled ? 0 : offset}px)`, touchAction: "pan-y" }}
         onPointerDown={(e) => {
           if (disabled || (e.pointerType === "mouse" && e.button !== 0)) return;
           gesture.current = { x: e.clientX, y: e.clientY, base: offsetRef.current, axis: "none", moved: false };
@@ -722,7 +722,7 @@ export function SwipeRow({
             suppressClick.current = false;
             e.stopPropagation();
             e.preventDefault();
-          } else if (offsetRef.current !== 0) {
+          } else if (!disabled && offsetRef.current !== 0) {
             set(0);
             e.stopPropagation();
             e.preventDefault();
