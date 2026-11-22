@@ -5,12 +5,19 @@ import { type LocalDb, type LocalExpense, type OutboxEntry, toLocalExpense } fro
 
 type NewEntry = Pick<OutboxEntry, "table" | "op" | "rowId" | "payload">;
 
+/** Drops keys whose value is `undefined` so merging a Partial never erases existing fields. */
+const defined = <T extends object>(o: T): Partial<T> =>
+  Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as Partial<T>;
+
 /**
- * Queues a change. Collapse rules (only touching `pending` entries never tried yet):
+ * Queues a change. Does a read-modify-write, so callers must already be inside a `rw` transaction
+ * covering `outbox` (and the row's table); not exported for use outside this module's mutations.
+ *
+ *  Collapse rules (only touching `pending` entries never tried yet):
  * an upsert merges into an existing upsert for the same row (later fields win);
  * a delete replaces that row's pending upserts with a single delete.
  */
-export async function enqueue(db: LocalDb, entry: NewEntry): Promise<void> {
+async function enqueue(db: LocalDb, entry: NewEntry): Promise<void> {
   if (entry.rowId !== null && entry.op !== "upsertMany") {
     const fresh = (await db.outbox.where("rowId").equals(entry.rowId).toArray()).filter(
       (e) => e.table === entry.table && e.status === "pending" && e.attempts === 0 && e.op === "upsert",
@@ -50,7 +57,7 @@ export function saveExpense(db: LocalDb, userId: string, input: ExpenseInput, id
     const now = new Date().toISOString();
     const existing = id ? await db.expenses.get(id) : undefined;
     const row = toLocalExpense(
-      existing ? { ...existing, ...input, updated_at: now } : buildExpense(userId, input, now, id),
+      existing ? { ...existing, ...defined(input), updated_at: now } : buildExpense(userId, input, now, id),
     );
     await db.expenses.put(row);
     await enqueue(db, { table: "expenses", op: "upsert", rowId: row.id, payload: withoutTs(row) });
@@ -71,7 +78,7 @@ export function saveShoppingItem(db: LocalDb, userId: string, input: Partial<Sho
     const existing = id ? await db.shoppingItems.get(id) : undefined;
     let row: ShoppingItem;
     if (existing) {
-      row = { ...existing, ...input, updated_at: now };
+      row = { ...existing, ...defined(input), updated_at: now };
     } else {
       if (input.item === undefined) throw new Error("A new shopping item needs an item name");
       row = {
@@ -91,7 +98,7 @@ export function saveShoppingItem(db: LocalDb, userId: string, input: Partial<Sho
         purchased: false,
         scheduled_date: null,
         priority: null,
-        ...input,
+        ...defined(input),
         item: input.item,
       };
     }

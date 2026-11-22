@@ -5,7 +5,7 @@ export default defineConfig({
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   test: {
     environment: "node",
-    setupFiles: ["fake-indexeddb/auto"],
+    setupFiles: ["./vitest.setup.ts", "fake-indexeddb/auto"],
     include: ["src/**/*.test.ts"],
   },
 });

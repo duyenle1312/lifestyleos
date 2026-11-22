@@ -89,6 +89,15 @@ describe("shopping items", () => {
     expect((await db.outbox.toArray()).map((e) => e.op)).toEqual(["delete"]);
   });
 
+  it("ignores explicit undefined when editing", async () => {
+    const row = await saveShoppingItem(db, "u", { item: "Eggs", quantity: 6 });
+    const edited = await saveShoppingItem(db, "u", { item: undefined, quantity: undefined, purchased: true }, row.id);
+    expect(edited).toMatchObject({ item: "Eggs", quantity: 6, purchased: true });
+    const e = await saveExpense(db, "u", input());
+    const e2 = await saveExpense(db, "u", { ...input(), item: undefined } as unknown as ExpenseInput, e.id);
+    expect(e2.item).toBe("Milk");
+  });
+
   it("requires item when creating", async () => {
     await expect(saveShoppingItem(db, "u", { quantity: 1 })).rejects.toThrow();
     expect(await db.outbox.count()).toBe(0);
@@ -96,12 +105,28 @@ describe("shopping items", () => {
 });
 
 describe("toLocalExpense", () => {
-  it("_ts of a late-November offset date falls within November local bounds", () => {
-    const row = toLocalExpense({ ...input(), expense_date: "2026-11-30T23:30:00+02:00" } as unknown as Expense);
-    expect(row._ts).toBe(Date.parse("2026-11-30T21:30:00Z"));
-    // the same bounds fetch/queries use: [start of month, start of next month) in local time
-    expect(row._ts).toBeGreaterThanOrEqual(new Date(2026, 10, 1).getTime() - 14 * 3600_000);
-    expect(row._ts).toBeLessThan(new Date(2026, 11, 1).getTime() + 14 * 3600_000);
+  const withZone = (tz: string, fn: () => void) => {
+    const prev = process.env.TZ;
+    process.env.TZ = tz;
+    try { fn(); } finally { process.env.TZ = prev; }
+  };
+  const ts = (d: string) => toLocalExpense({ ...input(), expense_date: d } as unknown as Expense)._ts;
+
+  it("late-November +02:00 date is in the November local month (Europe/Helsinki)", () => {
+    withZone("Europe/Helsinki", () => {
+      const t = ts("2026-11-30T23:30:00+02:00");
+      expect(t).toBeGreaterThanOrEqual(new Date(2026, 10, 1).getTime());
+      expect(t).toBeLessThan(new Date(2026, 11, 1).getTime());
+    });
+  });
+
+  it("early-November -05:00 date is in the November local month (America/New_York)", () => {
+    withZone("America/New_York", () => {
+      const t = ts("2026-11-01T00:30:00-05:00");
+      expect(new Date(2026, 10, 1).getTimezoneOffset()).toBe(240) // EDT on Nov 1 (DST ends later that day); proves the zone switch took effect;
+      expect(t).toBeGreaterThanOrEqual(new Date(2026, 10, 1).getTime());
+      expect(t).toBeLessThan(new Date(2026, 11, 1).getTime());
+    });
   });
 });
 
