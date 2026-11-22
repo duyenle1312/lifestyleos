@@ -1,6 +1,8 @@
 // The server side of sync, as an interface so push/pull can be tested against a fake.
 
 export type RemoteTable = "expenses" | "shopping_lists";
+export type PullTable = RemoteTable | "inventory_items";
+export type ReferenceTable = "categories" | "payment_methods";
 
 export interface Remote {
   /** Upserts rows (by id) and returns the stored rows. */
@@ -8,8 +10,9 @@ export interface Remote {
   softDelete(table: RemoteTable, id: string): Promise<void>;
   /** Returns the row including soft-deleted ones, or null if it does not exist. */
   fetchRow(table: RemoteTable, id: string): Promise<object | null>;
-  fetchChangedSince(table: RemoteTable, cursor: string | null): Promise<object[]>;
-  fetchAll(table: "categories" | "payment_methods", accountId: string): Promise<object[]>;
+  /** Rows with updated_at >= cursor, including soft-deleted ones. */
+  fetchChangedSince(table: PullTable, cursor: string | null): Promise<object[]>;
+  fetchAll(table: ReferenceTable, accountId: string): Promise<object[]>;
 }
 
 export class RemoteError extends Error {
