@@ -4,6 +4,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useSyncExternalStore } from "react";
 import { type LocalDb, openUserDb } from "@/lib/offline/db";
 import { SyncEngine, type SyncStatus } from "@/lib/offline/engine";
+import { supabase } from "@/lib/supabase";
 import { supabaseRemote } from "@/lib/offline/supabaseRemote";
 import { useUser } from "./AuthProvider";
 
@@ -18,14 +19,18 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
   // One db + engine per user id; a user change builds new ones and the effect below stops the old engine.
   const ctx = useMemo<Ctx>(() => {
     const db = openUserDb(userId);
-    return { db, engine: new SyncEngine(db, supabaseRemote, userId, () => navigator.onLine) };
+    const sessionUserId = async () => (await supabase.auth.getSession()).data.session?.user.id ?? null;
+    return { db, engine: new SyncEngine(db, supabaseRemote, userId, () => navigator.onLine, sessionUserId) };
   }, [userId]);
 
   useEffect(() => {
     ctx.engine.start();
     return () => {
-      ctx.engine.stop();
-      ctx.db.close({ disableAutoOpen: false }); // StrictMode may re-run the effect, so allow reopening
+      // Wait for any in-flight sync to finish before closing the db it is using.
+      void (async () => {
+        await ctx.engine.stop();
+        ctx.db.close({ disableAutoOpen: false });
+      })();
     };
   }, [ctx]);
 

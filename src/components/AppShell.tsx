@@ -84,10 +84,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <PaymentMethodsProvider>{children}</PaymentMethodsProvider>
           </CategoriesProvider>
         </div>
+        {/* Mobile sync badge: in flow after the content (so it never covers it), floating above the tab bar */}
+        <SyncBadge className="sticky bottom-[calc(var(--tabbar-h)+8px)] z-20 mx-3 mt-2 md:hidden" />
       </main>
-
-      {/* Mobile sync badge, above the tab bar */}
-      <SyncBadge className="fixed inset-x-3 bottom-[calc(var(--tabbar-h)+8px)] z-20 md:hidden" />
 
       {/* Bottom tab bar – phones */}
       <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-separator bg-bar pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden">

@@ -150,3 +150,45 @@ describe("SyncEngine", () => {
     expect(seen.at(-1)).toBe(false);
   });
 });
+
+describe("SyncEngine shutdown and identity", () => {
+  it("stop() awaits the running sync and nothing is written after it", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    remote.seed("expenses", { id: "e1", updated_at: "2026-11-10T00:00:00.000Z", deleted_at: null, amount: 1, currency: "EUR", expense_date: "2026-11-10T12:00:00.000Z", item: "x" });
+    remote.onFetch = () => gate;
+    const run = engine.syncNow();
+    await new Promise((r) => setTimeout(r, 10));
+    let stopped = false;
+    const stopping = engine.stop().then(() => (stopped = true));
+    await new Promise((r) => setTimeout(r, 10));
+    expect(stopped).toBe(false);
+    release();
+    await stopping;
+    await run;
+    expect(stopped).toBe(true);
+    expect(await db.expenses.count()).toBe(0);
+  });
+
+  it("skips push and pull when the session user is someone else", async () => {
+    await saveExpense(db, "u", input);
+    const guarded = new SyncEngine(db, remote, "u", () => true, async () => "other");
+    await guarded.syncNow();
+    expect(remote.calls).toEqual([]);
+    expect(await db.outbox.count()).toBe(1);
+  });
+
+  it("runs when the session user matches", async () => {
+    const ok = new SyncEngine(db, remote, "u", () => true, async () => "u");
+    await ok.syncNow();
+    expect(remote.calls.length).toBeGreaterThan(0);
+  });
+
+  it("treats DatabaseClosedError as a quiet stop", async () => {
+    remote.onFetch = async () => {
+      throw Object.assign(new Error("Database has been closed"), { name: "DatabaseClosedError" });
+    };
+    await engine.syncNow();
+    expect(engine.getStatus().notices).toEqual([]);
+  });
+});

@@ -34,10 +34,15 @@ export async function applyServerRow(db: LocalDb, table: PullTable, row: Row): P
   else await db.inventoryItems.put(row as unknown as InventoryItem);
 }
 
-async function pullTable(db: LocalDb, remote: Remote, table: PullTable): Promise<void> {
+/** Rows from another account (a stale response after a user switch) are never stored. */
+const ownRows = (rows: Row[], userId: string) => rows.filter((r) => r.account_id === undefined || r.account_id === userId);
+
+async function pullTable(db: LocalDb, remote: Remote, table: PullTable, userId: string, stopped: () => boolean): Promise<void> {
   const key = cursorKey(table);
   const cursor = ((await db.meta.get(key))?.value as string | undefined) ?? null;
-  const rows = (await remote.fetchChangedSince(table, cursor)) as Row[];
+  const fetched = (await remote.fetchChangedSince(table, cursor)) as Row[];
+  if (stopped()) return;
+  const rows = ownRows(fetched, userId);
   if (!rows.length) return;
   const stores = [db.outbox, db.meta, db.expenses, db.shoppingItems, db.inventoryItems];
   await db.transaction("rw", stores, async () => {
@@ -52,11 +57,16 @@ async function pullTable(db: LocalDb, remote: Remote, table: PullTable): Promise
   });
 }
 
-export async function pullAll(db: LocalDb, remote: Remote, userId: string): Promise<void> {
-  for (const table of PULLED) await pullTable(db, remote, table);
+export async function pullAll(db: LocalDb, remote: Remote, userId: string, stopped: () => boolean = () => false): Promise<void> {
+  for (const table of PULLED) {
+    if (stopped()) return;
+    await pullTable(db, remote, table, userId, stopped);
+  }
   // Reference tables are small: replace them wholesale. The account id equals the user id for the owner link.
-  const categories = (await remote.fetchAll("categories", userId)) as unknown as Category[];
-  const methods = (await remote.fetchAll("payment_methods", userId)) as unknown as PaymentMethod[];
+  if (stopped()) return;
+  const categories = ownRows((await remote.fetchAll("categories", userId)) as Row[], userId) as unknown as Category[];
+  const methods = ownRows((await remote.fetchAll("payment_methods", userId)) as Row[], userId) as unknown as PaymentMethod[];
+  if (stopped()) return;
   await db.transaction("rw", [db.categories, db.paymentMethods], async () => {
     // An empty answer while local rows exist is more likely a bad response than a real wipe: keep what we have.
     if (categories.length || !(await db.categories.count())) {

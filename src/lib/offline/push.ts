@@ -98,12 +98,13 @@ async function send(entry: OutboxEntry, remote: Remote, notices: string[]): Prom
   return returned;
 }
 
-export async function pushOutbox(db: LocalDb, remote: Remote): Promise<PushResult> {
+export async function pushOutbox(db: LocalDb, remote: Remote, stopped: () => boolean = () => false): Promise<PushResult> {
   const result: PushResult = { sent: 0, failed: 0, notices: [] };
   const entries = await db.outbox.orderBy("seq").toArray();
   const blocked = new Set<string>();
 
   for (const snapshot of entries) {
+    if (stopped()) break;
     if (snapshot.status === "failed") {
       rowIdsOf(snapshot).forEach((id) => blocked.add(id));
       continue;
@@ -114,6 +115,7 @@ export async function pushOutbox(db: LocalDb, remote: Remote): Promise<PushResul
     if (!entry) continue;
     try {
       const returned = await send(entry, remote, result.notices);
+      if (stopped()) break; // leave the entry queued; the next run re-sends it (upserts are idempotent)
       // If this throws after the remote succeeded, the entry stays queued and is re-sent next push; upserts are idempotent.
       await applySuccess(db, entry, returned);
       result.sent++;

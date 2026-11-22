@@ -13,6 +13,8 @@ export class SyncEngine {
   private status: SyncStatus;
   private running: Promise<void> | null = null;
   private again = false;
+  private stopped = false;
+  private isStopped = () => this.stopped;
   private onOnline = () => void this.syncNow();
   private onOffline = () => this.update({ online: false });
   private onVisible = () => {
@@ -24,6 +26,8 @@ export class SyncEngine {
     private remote: Remote,
     private userId: string,
     private isOnline: () => boolean,
+    /** Identity guard: the signed-in user id right now. A run is skipped when it is not this engine's user. */
+    private currentUserId?: () => Promise<string | null>,
   ) {
     this.status = { online: isOnline(), syncing: false, pending: 0, failed: [], notices: [] };
   }
@@ -37,12 +41,15 @@ export class SyncEngine {
     void this.syncNow();
   }
 
-  stop(): void {
+  /** Stops listening and resolves once any running sync has finished. After this the engine does no more work. */
+  async stop(): Promise<void> {
+    this.stopped = true;
     if (typeof window !== "undefined") {
       window.removeEventListener("online", this.onOnline);
       window.removeEventListener("offline", this.onOffline);
     }
     if (typeof document !== "undefined") document.removeEventListener("visibilitychange", this.onVisible);
+    await this.running?.catch(() => undefined);
   }
 
   getStatus(): SyncStatus {
@@ -63,6 +70,7 @@ export class SyncEngine {
   }
 
   private update(patch: Partial<SyncStatus>): void {
+    if (this.stopped) return;
     this.status = { ...this.status, ...patch };
     this.listeners.forEach((fn) => fn(this.status));
   }
@@ -77,6 +85,7 @@ export class SyncEngine {
   }
 
   syncNow(): Promise<void> {
+    if (this.stopped) return Promise.resolve();
     if (this.running) {
       this.again = true;
       return this.running;
@@ -86,13 +95,23 @@ export class SyncEngine {
         do {
           this.again = false;
           await this.runOnce();
-        } while (this.again);
+        } while (this.again && !this.stopped);
       } finally {
         this.running = null;
         this.update({ syncing: false });
       }
     })();
     return this.running;
+  }
+
+  private async isCurrentUser(): Promise<boolean> {
+    if (!this.currentUserId) return true;
+    return (await this.currentUserId()) === this.userId;
+  }
+
+  /** Errors that just mean "this engine was shut down" are not worth a notice. */
+  private quiet(e: unknown): boolean {
+    return this.stopped || (e as { name?: string } | null)?.name === "DatabaseClosedError";
   }
 
   private async runOnce(): Promise<void> {
@@ -103,15 +122,18 @@ export class SyncEngine {
       }
       this.update({ syncing: true });
       try {
-        const res = await pushOutbox(this.db, this.remote);
+        if (!(await this.isCurrentUser()) || this.stopped) return;
+        const res = await pushOutbox(this.db, this.remote, this.isStopped);
         res.notices.forEach((n) => this.addNotice(n));
-        await pullAll(this.db, this.remote, this.userId);
+        if (!(await this.isCurrentUser()) || this.stopped) return;
+        await pullAll(this.db, this.remote, this.userId, this.isStopped);
       } catch (e) {
-        if (!isRetryable(e)) this.addNotice(`Sync problem: ${messageOf(e)}`);
+        if (!this.quiet(e) && !isRetryable(e)) this.addNotice(`Sync problem: ${messageOf(e)}`);
       }
+      if (this.stopped) return;
       await this.refreshOutbox();
     } catch (e) {
-      if (!isRetryable(e)) this.addNotice(`Sync problem: ${messageOf(e)}`);
+      if (!this.quiet(e) && !isRetryable(e)) this.addNotice(`Sync problem: ${messageOf(e)}`);
     }
   }
 

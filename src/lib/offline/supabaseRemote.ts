@@ -1,6 +1,7 @@
 // The real Remote, backed by supabase-js. RLS scopes every query to the signed-in user.
 import { supabase } from "@/lib/supabase";
 import { type PullTable, type ReferenceTable, type Remote, type RemoteTable } from "./remote";
+import { afterFilter, pageAll } from "./paging";
 import { normalizeThrown, unwrap } from "./remoteErrors";
 
 const PAGE = 1000;
@@ -48,10 +49,14 @@ export const supabaseRemote: Remote = {
 
   fetchChangedSince: (table: PullTable, cursor: string | null) =>
     guard(() =>
-      fetchPages(table, (q) => {
-        const filtered = cursor ? q.gte("updated_at", cursor) : q;
-        return filtered.order("updated_at", { ascending: true }).order("id", { ascending: true });
-      }),
+      pageAll(async (after) => {
+        let q = baseQuery(table);
+        if (after) q = q.or(afterFilter(after));
+        else if (cursor) q = q.gte("updated_at", cursor);
+        const res = await q.order("updated_at", { ascending: true }).order("id", { ascending: true }).limit(PAGE);
+        unwrap(res);
+        return (res.data ?? []) as Record<string, unknown>[];
+      }, PAGE),
     ),
 
   fetchAll: (table: ReferenceTable, accountId: string) =>

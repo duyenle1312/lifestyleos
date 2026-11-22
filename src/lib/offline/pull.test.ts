@@ -71,3 +71,14 @@ describe("pullAll", () => {
     expect(await db.categories.count()).toBe(1);
   });
 });
+
+describe("pullAll account filter", () => {
+  it("drops rows from another account", async () => {
+    remote.seed("expenses", exp("mine", { account_id: "u" }));
+    remote.seed("expenses", exp("theirs", { account_id: "other" }));
+    remote.ref.categories = [{ id: "c1", account_id: "other" }, { id: "c2", account_id: "u" }];
+    await pullAll(db, remote, "u");
+    expect((await db.expenses.toArray()).map((e) => e.id)).toEqual(["mine"]);
+    expect((await db.categories.toArray()).map((c) => c.id)).toEqual(["c2"]);
+  });
+});
