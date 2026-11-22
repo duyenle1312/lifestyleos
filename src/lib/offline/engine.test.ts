@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { type LocalDb, openUserDb } from "./db";
-import { SyncEngine } from "./engine";
+import { RETRY_BASE_MS, RETRY_MAX_MS, SyncEngine } from "./engine";
 import { FakeRemote } from "./__tests__/fakeRemote";
 import { saveExpense } from "./mutations";
 import { RemoteError } from "./remote";
@@ -218,5 +218,117 @@ describe("SyncEngine shutdown and identity", () => {
     // the sent entry was not applied (halted first) and nothing was marked failed; both stay queued
     expect(await db.outbox.count()).toBe(2);
     expect((await db.outbox.toArray()).every((e) => e.status === "pending")).toBe(true);
+  });
+});
+
+describe("SyncEngine automatic retry", () => {
+  // Only timers are faked, so IndexedDB (fake-indexeddb) keeps running on real microtasks/immediates.
+  beforeEach(() => vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] }));
+  afterEach(() => vi.useRealTimers());
+
+  const upserts = () => remote.calls.filter((c) => c.startsWith("upsert")).length;
+  /** Fires the pending retry timer and waits for the run it starts. */
+  async function fireRetry(ms: number) {
+    await vi.advanceTimersByTimeAsync(ms);
+    await vi.waitFor(async () => expect(engine.getStatus().syncing).toBe(false));
+  }
+
+  it("retries a retryable push error on its own and stops once nothing is pending", async () => {
+    let fail = true;
+    const upsert = remote.upsert.bind(remote);
+    remote.upsert = async (table, rows) => {
+      if (fail) {
+        remote.calls.push(`upsert:${table}`);
+        throw new TypeError("Failed to fetch");
+      }
+      return upsert(table, rows);
+    };
+    await saveExpense(db, "u", input);
+    await engine.syncNow();
+    expect(engine.getStatus().pending).toBe(1);
+    expect(vi.getTimerCount()).toBe(1);
+
+    await vi.advanceTimersByTimeAsync(RETRY_BASE_MS - 1);
+    expect(upserts()).toBe(1);
+    fail = false;
+    await fireRetry(1);
+    await vi.waitFor(async () => expect(await db.outbox.count()).toBe(0));
+    expect(upserts()).toBe(2);
+    expect(engine.getStatus().pending).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("backs off 15s, 30s, 60s, 60s", async () => {
+    remote.rejectUpsert = new TypeError("Failed to fetch");
+    await saveExpense(db, "u", input);
+    await engine.syncNow();
+    expect(upserts()).toBe(1);
+    for (const [i, delay] of [RETRY_BASE_MS, 2 * RETRY_BASE_MS, RETRY_MAX_MS, RETRY_MAX_MS].entries()) {
+      await vi.advanceTimersByTimeAsync(delay - 1);
+      expect(upserts()).toBe(i + 1);
+      await fireRetry(1);
+      expect(upserts()).toBe(i + 2);
+    }
+    expect(vi.getTimerCount()).toBe(1);
+  });
+
+  it("a new run clears the pending timer (only one timer at a time)", async () => {
+    remote.rejectUpsert = new TypeError("Failed to fetch");
+    await saveExpense(db, "u", input);
+    await engine.syncNow();
+    await engine.syncNow();
+    expect(vi.getTimerCount()).toBe(1);
+  });
+
+  it("does not schedule a retry offline or when only failed entries remain", async () => {
+    online = false;
+    await saveExpense(db, "u", input);
+    await engine.syncNow();
+    expect(vi.getTimerCount()).toBe(0);
+    online = true;
+    remote.rejectUpsert = new RemoteError("bad", { status: 400 });
+    await engine.syncNow();
+    expect(engine.getStatus()).toMatchObject({ pending: 0 });
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("stop() clears the retry timer", async () => {
+    remote.rejectUpsert = new TypeError("Failed to fetch");
+    await saveExpense(db, "u", input);
+    await engine.syncNow();
+    expect(vi.getTimerCount()).toBe(1);
+    await engine.stop();
+    expect(vi.getTimerCount()).toBe(0);
+    await vi.advanceTimersByTimeAsync(RETRY_MAX_MS);
+    expect(upserts()).toBe(1);
+  });
+});
+
+describe("SyncEngine cross-tab lock", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("runs each sync inside navigator.locks under a per-user name", async () => {
+    const names: string[] = [];
+    let held = false;
+    let overlapped = false;
+    const locks = {
+      request: async (name: string, cb: () => Promise<void>) => {
+        names.push(name);
+        if (held) overlapped = true;
+        held = true;
+        try {
+          return await cb();
+        } finally {
+          held = false;
+        }
+      },
+    };
+    vi.stubGlobal("navigator", { onLine: true, locks });
+    await saveExpense(db, "u", input);
+    await Promise.all([engine.syncNow(), engine.syncNow()]);
+    expect(names.length).toBeGreaterThan(0);
+    expect(new Set(names)).toEqual(new Set(["lifestyleos-sync-u"]));
+    expect(overlapped).toBe(false);
+    expect(await db.outbox.count()).toBe(0);
   });
 });

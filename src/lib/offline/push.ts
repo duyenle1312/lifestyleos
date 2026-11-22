@@ -7,7 +7,9 @@ export type PushResult = { sent: number; failed: number; notices: string[] };
 
 type Row = Record<string, unknown>;
 
-const RESTORED_NOTICE = "1 item restored — it had been deleted on another device";
+/** One notice per push, counting every row that was restored over a remote delete. */
+export const restoredNotice = (n: number) =>
+  n === 1 ? "1 item restored — it had been deleted on another device" : `${n} items restored — they had been deleted on another device`;
 
 const messageOf = (e: unknown) => (e instanceof Error ? e.message : typeof e === "object" && e !== null && "message" in e ? String((e as { message: unknown }).message) : String(e));
 
@@ -67,10 +69,11 @@ function applySuccess(db: LocalDb, entry: OutboxEntry, returned: Row[]): Promise
   });
 }
 
-async function send(entry: OutboxEntry, remote: Remote, notices: string[], stopped: Halt): Promise<Row[]> {
+/** Sends one entry; returns the stored rows and how many of them were restored over a remote delete. */
+async function send(entry: OutboxEntry, remote: Remote, stopped: Halt): Promise<{ returned: Row[]; restored: number }> {
   if (entry.op === "delete") {
     await remote.softDelete(entry.table, entry.rowId!);
-    return [];
+    return { returned: [], restored: 0 };
   }
   const now = new Date().toISOString();
   let rows: Row[];
@@ -95,8 +98,7 @@ async function send(entry: OutboxEntry, remote: Remote, notices: string[], stopp
     if (await stopped()) throw new HaltError("halted");
     returned = (await remote.upsert(entry.table, nullRefs(rows))) as Row[];
   }
-  if (restored) notices.push(RESTORED_NOTICE);
-  return returned;
+  return { returned, restored };
 }
 
 /** `stopped` may be async (identity guard); returning true halts the push, leaving remaining entries queued. */
@@ -108,6 +110,7 @@ export async function pushOutbox(db: LocalDb, remote: Remote, stopped: Halt = ()
   const result: PushResult = { sent: 0, failed: 0, notices: [] };
   const entries = await db.outbox.orderBy("seq").toArray();
   const blocked = new Set<string>();
+  let restored = 0;
 
   for (const snapshot of entries) {
     if (await stopped()) break;
@@ -120,10 +123,11 @@ export async function pushOutbox(db: LocalDb, remote: Remote, stopped: Halt = ()
     const entry = await markInFlight(db, snapshot.seq!);
     if (!entry) continue;
     try {
-      const returned = await send(entry, remote, result.notices, stopped);
+      const sent = await send(entry, remote, stopped);
+      restored += sent.restored; // counted once sent: a re-send finds the row live again
       if (await stopped()) break; // leave the entry queued; the next run re-sends it (upserts are idempotent)
       // If this throws after the remote succeeded, the entry stays queued and is re-sent next push; upserts are idempotent.
-      await applySuccess(db, entry, returned);
+      await applySuccess(db, entry, sent.returned);
       result.sent++;
     } catch (e) {
       if (e instanceof HaltError || isRetryable(e)) break;
@@ -132,5 +136,6 @@ export async function pushOutbox(db: LocalDb, remote: Remote, stopped: Halt = ()
       result.failed++;
     }
   }
+  if (restored) result.notices.push(restoredNotice(restored));
   return result;
 }

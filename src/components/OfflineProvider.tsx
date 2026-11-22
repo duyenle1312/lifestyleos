@@ -42,9 +42,20 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
     };
     const engine = new SyncEngine(db, supabaseRemote, userId, () => navigator.onLine, sessionUserId);
     engine.start();
+    // A refreshed or restored login for this user: queued changes held back by an expired token can go now.
+    // Deferred: Supabase calls inside this callback (the engine's getSession guard) can deadlock the auth client.
+    let authTimer: ReturnType<typeof setTimeout> | undefined;
+    const { data: auth } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === "TOKEN_REFRESHED" || event === "SIGNED_IN") && session?.user.id === userId) {
+        clearTimeout(authTimer);
+        authTimer = setTimeout(() => void engine.syncNow(), 0);
+      }
+    });
     // Publishing the freshly created pair is the point of this effect (it owns external resources).
     setCtx({ db, engine, userId, generation: ++generation.current });
     return () => {
+      auth.subscription.unsubscribe();
+      clearTimeout(authTimer);
       setCtx((c) => (c?.engine === engine ? null : c));
       // Wait for any in-flight sync to finish before closing the db it is using.
       void (async () => {

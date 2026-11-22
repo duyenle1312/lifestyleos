@@ -120,7 +120,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       if (cancelled || !failure) return;
       if (isRetryable(failure)) {
-        if (!isRetry) retryTimer = setTimeout(() => void tryRefresh(true), 65_000);
+        if (!isRetry) {
+          clearTimeout(retryTimer); // repeated "online" events must not stack retries
+          retryTimer = setTimeout(() => void tryRefresh(true), 65_000);
+        }
         return;
       }
       forgetRememberedUser();
@@ -230,7 +233,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // the user back in once online. Always sign this device out locally; the server-side revoke is simply skipped.
     if (needsLocalSignOut(error, isOfflineSession)) {
       const { error: localError } = await supabase.auth.signOut({ scope: "local" });
-      if (localError) setError(localError.message);
+      // A network-type error here (offline) is not a real failure: the local sign-out still removed the session.
+      if (localError && !isRetryable(localError)) setError(localError.message);
     }
   }, [isOfflineSession]);
 

@@ -34,13 +34,13 @@ import {
 import { useAwaitingFirstPull } from "@/lib/offline/useAwaitingFirstPull";
 import * as api from "@/lib/services";
 import type { InventoryItem } from "@/lib/types";
-import { useOnline } from "@/lib/useOnline";
+import { useCanEditOnline } from "@/lib/useOnline";
 
 export default function InventoryDetailPage() {
   const { id } = useParams<{ id: string }>();
   const db = useLocalDb();
   const { syncNow } = useSync();
-  const online = useOnline();
+  const canEdit = useCanEditOnline();
   const awaitingFirstPull = useAwaitingFirstPull("inventory_items");
   // undefined while loading; null when the item is not in the local db.
   const found = useLiveQuery(async () => (await db.inventoryItems.get(id)) ?? null, [db, id]);
@@ -108,7 +108,7 @@ export default function InventoryDetailPage() {
               )}
               <button
               type="button"
-              disabled={saving || !online}
+              disabled={saving || !canEdit}
               className={`text-[17px] text-ios-blue disabled:opacity-40 ${isEditing ? "font-semibold" : ""}`}
               onClick={() => (isEditing ? save(item) : startEditing(item))}
             >
@@ -119,7 +119,7 @@ export default function InventoryDetailPage() {
         }
       />
 
-      {!online && <p className="px-8 pt-3 text-[13px] text-label-2">Needs a connection</p>}
+      {!canEdit && <p className="px-8 pt-3 text-[13px] text-label-2">Needs a connection</p>}
 
       {found === undefined || (!item && awaitingFirstPull) ? (
         <div className="flex min-h-[60dvh] items-center justify-center">

@@ -8,12 +8,18 @@ export type SyncStatus = { online: boolean; syncing: boolean; pending: number; f
 
 const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
+/** Automatic retry while changes are still waiting online: 15s, doubling up to 60s. */
+export const RETRY_BASE_MS = 15_000;
+export const RETRY_MAX_MS = 60_000;
+
 export class SyncEngine {
   private listeners = new Set<(s: SyncStatus) => void>();
   private status: SyncStatus;
   private running: Promise<void> | null = null;
   private again = false;
   private stopped = false;
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
+  private retryDelay = RETRY_BASE_MS;
   private isStopped = () => this.stopped;
   /** Checked before each outbox entry: stopped, or the session now belongs to someone else. */
   private shouldHalt = async () => this.stopped || !(await this.isCurrentUser());
@@ -46,6 +52,7 @@ export class SyncEngine {
   /** Stops listening and resolves once any running sync has finished. After this the engine does no more work. */
   async stop(): Promise<void> {
     this.stopped = true;
+    this.clearRetry();
     if (typeof window !== "undefined") {
       window.removeEventListener("online", this.onOnline);
       window.removeEventListener("offline", this.onOffline);
@@ -88,6 +95,7 @@ export class SyncEngine {
 
   syncNow(): Promise<void> {
     if (this.stopped) return Promise.resolve();
+    this.clearRetry();
     if (this.running) {
       this.again = true;
       return this.running;
@@ -96,14 +104,47 @@ export class SyncEngine {
       try {
         do {
           this.again = false;
-          await this.runOnce();
+          await this.runLocked();
         } while (this.again && !this.stopped);
       } finally {
         this.running = null;
         this.update({ syncing: false });
+        this.scheduleRetry();
       }
     })();
     return this.running;
+  }
+
+  private clearRetry(): void {
+    if (this.retryTimer !== null) clearTimeout(this.retryTimer);
+    this.retryTimer = null;
+  }
+
+  /**
+   * After a run that leaves changes waiting while online (e.g. a retryable push error), try again on its own:
+   * a server hiccup otherwise waits for the next online/visibility/auth event. One timer at a time.
+   */
+  private scheduleRetry(): void {
+    this.clearRetry();
+    if (this.stopped || !this.isOnline() || this.status.pending === 0) {
+      this.retryDelay = RETRY_BASE_MS;
+      return;
+    }
+    const delay = this.retryDelay;
+    this.retryDelay = Math.min(delay * 2, RETRY_MAX_MS);
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = null;
+      void this.syncNow();
+    }, delay);
+  }
+
+  /** Runs one sync under a per-user Web Lock (when available) so two tabs never push the same outbox at once. */
+  private async runLocked(): Promise<void> {
+    const locks = typeof navigator !== "undefined" ? navigator.locks : undefined;
+    if (!locks) return this.runOnce();
+    await locks.request(`lifestyleos-sync-${this.userId}`, async () => {
+      await this.runOnce();
+    });
   }
 
   private async isCurrentUser(): Promise<boolean> {
@@ -117,6 +158,7 @@ export class SyncEngine {
   }
 
   private async runOnce(): Promise<void> {
+    if (this.stopped) return; // e.g. stopped while waiting for the lock
     try {
       if (!this.isOnline()) {
         await this.refreshOutbox();
@@ -129,6 +171,7 @@ export class SyncEngine {
           return;
         }
         const res = await pushOutbox(this.db, this.remote, this.shouldHalt);
+        if (res.sent > 0) this.retryDelay = RETRY_BASE_MS;
         res.notices.forEach((n) => this.addNotice(n));
         if (!(await this.isCurrentUser()) || this.stopped) {
           await this.refreshOutbox();

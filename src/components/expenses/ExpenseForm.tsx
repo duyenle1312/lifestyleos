@@ -8,7 +8,7 @@ import { useCategories } from "../CategoriesProvider";
 import { CategoryEditorSheet } from "../categories/CategoryEditorSheet";
 import { PaymentMethodEditorSheet } from "../payment-methods/PaymentMethodEditorSheet";
 import { usePaymentMethods } from "../PaymentMethodsProvider";
-import { useOnline } from "@/lib/useOnline";
+import { useCanEditOnline } from "@/lib/useOnline";
 import { addMonths, noonISO, parseDecimal, toDateInput, todayInput } from "@/lib/helpers";
 import type { ExpenseInput } from "@/lib/services";
 import type { Expense } from "@/lib/types";
@@ -53,7 +53,7 @@ export function ExpenseForm({
   const isEdit = !!expense;
   const { categories, byId, idByName } = useCategories();
   const { methods } = usePaymentMethods();
-  const online = useOnline();
+  const canEdit = useCanEditOnline();
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [showNewPaymentMethod, setShowNewPaymentMethod] = useState(false);
   const [item, setItem] = useState(expense?.item ?? "");
@@ -82,7 +82,7 @@ export function ExpenseForm({
     { value: "", label: "Select Category" },
     ...(categoryId && !byId.has(categoryId) ? [{ value: categoryId, label: "Current category" }] : []),
     ...categories.map((c) => ({ value: c.id, label: c.name })),
-    { value: NEW_CATEGORY, label: "New Category…", disabled: !online },
+    { value: NEW_CATEGORY, label: "New Category…", disabled: !canEdit },
   ];
 
   const unitNum = parseDecimal(unit);
@@ -175,7 +175,7 @@ export function ExpenseForm({
               ? [{ value: paymentMethodId, label: "Current payment method" }]
               : []),
             ...methods.map((m) => ({ value: m.id, label: m.name })),
-            { value: NEW_PAYMENT_METHOD, label: "New Payment Method…", disabled: !online },
+            { value: NEW_PAYMENT_METHOD, label: "New Payment Method…", disabled: !canEdit },
           ]}
         />
       </Section>

@@ -3,42 +3,25 @@
 // Small status pill: offline / syncing / failed changes, plus one-off notices. Hidden when there is nothing to say.
 import { useState } from "react";
 import { CloudOff, RefreshCw, TriangleAlert, X } from "lucide-react";
-import { type OutboxEntry } from "@/lib/offline/db";
+import { badgeLabel, describeEntry } from "@/lib/offline/syncLabels";
+import { useAwaitingFirstPull } from "@/lib/offline/useAwaitingFirstPull";
 import { useSync, useSyncStatus } from "./OfflineProvider";
 import { Alert, ButtonRow, Row, Section, Sheet } from "./ui";
-
-const plural = (n: number) => `${n} change${n === 1 ? "" : "s"}`;
-
-const describe = (e: OutboxEntry) => {
-  const what = e.table === "expenses" ? "Expense" : "Shopping item";
-  const verb = e.op === "delete" ? "delete" : "save";
-  return `${what} ${verb}`;
-};
 
 export function SyncBadge({ className = "" }: { className?: string }) {
   const { online, syncing, pending, failed, notices } = useSyncStatus();
   const { retry, discard, dismissNotice } = useSync();
+  // The reference tables are pulled last, so their marker means the very first full pull has finished.
+  const awaitingFirstPull = useAwaitingFirstPull("refs");
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Close the sheet once nothing is left to resolve.
   if (open && failed.length === 0) setOpen(false);
 
-  let label: string | null = null;
-  let Icon = RefreshCw;
-  let tone = "text-label-2";
-  if (failed.length > 0) {
-    label = `${plural(failed.length)} couldn't sync`;
-    Icon = TriangleAlert;
-    tone = "text-ios-red";
-  } else if (!online) {
-    label = `Offline · ${plural(pending)} waiting`;
-    Icon = CloudOff;
-  } else if (pending > 0) {
-    label = syncing ? "Syncing…" : `${plural(pending)} waiting`;
-  } else if (syncing) {
-    label = "Syncing…";
-  }
+  const { state, label } = badgeLabel({ online, syncing, pending, failed: failed.length, awaitingFirstPull });
+  const Icon = state === "failed" ? TriangleAlert : state === "offline" ? CloudOff : RefreshCw;
+  const tone = state === "failed" ? "text-ios-red" : "text-label-2";
 
   if (!label && notices.length === 0) return null;
 
@@ -53,7 +36,7 @@ export function SyncBadge({ className = "" }: { className?: string }) {
   const pill = `flex items-center gap-2 rounded-lg bg-fill px-3 py-2 text-left text-[13px] font-medium ${tone}`;
   const content = (
     <>
-      <Icon size={14} className={syncing && failed.length === 0 && online ? "animate-spin" : ""} />
+      <Icon size={14} className={state === "syncing" ? "animate-spin" : ""} />
       {label}
     </>
   );
@@ -80,7 +63,7 @@ export function SyncBadge({ className = "" }: { className?: string }) {
         <Sheet title="Changes that couldn't sync" right={{ label: "Done", onPress: () => setOpen(false), bold: true }} onClose={() => setOpen(false)}>
           {failed.map((e) => (
             <Section key={e.seq} footer={e.error ?? undefined}>
-              <Row>{describe(e)}</Row>
+              <Row>{describeEntry(e)}</Row>
               <ButtonRow onPress={() => void attempt(() => retry(e.seq!))}>Retry</ButtonRow>
               <ButtonRow destructive onPress={() => void attempt(() => discard(e.seq!))}>
                 Discard

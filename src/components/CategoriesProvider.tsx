@@ -8,7 +8,8 @@ import * as api from "@/lib/services";
 import type { Category } from "@/lib/types";
 import { useUser } from "./AuthProvider";
 import { rewriteRefInOutbox } from "@/lib/offline/rewriteRef";
-import { useLocalDb, useSync, useSyncStatus } from "./OfflineProvider";
+import { useAwaitingFirstPull } from "@/lib/offline/useAwaitingFirstPull";
+import { useLocalDb, useSync } from "./OfflineProvider";
 
 export const MAX_CATEGORY_NAME = 50;
 
@@ -45,14 +46,14 @@ export function CategoriesProvider({ children }: { children: React.ReactNode }) 
   const user = useUser();
   const db = useLocalDb();
   const { syncNow } = useSync();
-  const { syncing } = useSyncStatus();
+  const awaitingFirstPull = useAwaitingFirstPull("refs");
   const rows = useLiveQuery(() => db.categories.toArray(), [db]);
   const categories = useMemo(
     () => [...(rows ?? [])].sort((a, b) => a.sort_order - b.sort_order || a.created_at.localeCompare(b.created_at)),
     [rows],
   );
-  // Empty while a sync is running means "not pulled yet", not "no categories".
-  const isLoading = rows === undefined || (rows.length === 0 && syncing);
+  // Empty before the first pull of reference data has finished means "not pulled yet", not "no categories".
+  const isLoading = rows === undefined || (rows.length === 0 && awaitingFirstPull);
 
   const validateName = useCallback(
     (raw: string, exceptId?: string) => {

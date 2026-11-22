@@ -8,14 +8,14 @@ import { IconBubble } from "@/components/glyphs";
 import { usePaymentMethods } from "@/components/PaymentMethodsProvider";
 import { DeletePaymentMethodSheet } from "@/components/payment-methods/DeletePaymentMethodSheet";
 import { PaymentMethodEditorSheet } from "@/components/payment-methods/PaymentMethodEditorSheet";
-import { useOnline } from "@/lib/useOnline";
+import { useCanEditOnline } from "@/lib/useOnline";
 import { ButtonRow, EmptyState, IconButton, Section, Spinner, SwipeRow, Toolbar } from "@/components/ui";
 import { iosColor } from "@/lib/constants";
 import type { PaymentMethod } from "@/lib/types";
 
 export default function PaymentMethodsPage() {
   const { methods, isLoading } = usePaymentMethods();
-  const online = useOnline();
+  const canEdit = useCanEditOnline();
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState<PaymentMethod | null>(null);
   const [deleting, setDeleting] = useState<PaymentMethod | null>(null);
@@ -30,7 +30,7 @@ export default function PaymentMethodsPage() {
             Settings
           </Link>
         }
-        right={<IconButton icon={Plus} label="New payment method" disabled={!online} onClick={() => setShowAdd(true)} />}
+        right={<IconButton icon={Plus} label="New payment method" disabled={!canEdit} onClick={() => setShowAdd(true)} />}
       />
 
       {isLoading ? (
@@ -38,11 +38,11 @@ export default function PaymentMethodsPage() {
           <Spinner />
         </div>
       ) : methods.length === 0 ? (
-        <EmptyState icon={CreditCard} title="No payment methods yet" subtitle={online ? "Add the cards and accounts you pay with" : "Needs a connection"}>
+        <EmptyState icon={CreditCard} title="No payment methods yet" subtitle={canEdit ? "Add the cards and accounts you pay with" : "Needs a connection"}>
           <button
             type="button"
             onClick={() => setShowAdd(true)}
-            disabled={!online}
+            disabled={!canEdit}
             className="flex items-center gap-2 rounded-full bg-ios-blue px-5 py-2.5 text-[17px] font-semibold text-white disabled:opacity-40"
           >
             <CirclePlus size={20} /> Add Payment Method
@@ -53,14 +53,14 @@ export default function PaymentMethodsPage() {
           <Section
             className="pt-2"
             inset={72}
-            footer={online ? "Tap a payment method to rename it. Swipe left to delete." : "Needs a connection"}
+            footer={canEdit ? "Tap a payment method to rename it. Swipe left to delete." : "Needs a connection"}
           >
             {methods.map((m) => (
               <SwipeRow
                 key={m.id}
-                disabled={!online}
+                disabled={!canEdit}
                 onDelete={() => setDeleting(m)}
-                onPress={online ? () => setEditing(m) : undefined}
+                onPress={canEdit ? () => setEditing(m) : undefined}
               >
                 <div className="flex items-center gap-3 px-4 py-[10px]">
                   <IconBubble icon={CreditCard} color={iosColor("green")} />
@@ -71,7 +71,7 @@ export default function PaymentMethodsPage() {
             ))}
           </Section>
           <Section>
-            <ButtonRow disabled={!online} onPress={() => setShowAdd(true)}>
+            <ButtonRow disabled={!canEdit} onPress={() => setShowAdd(true)}>
               <CirclePlus size={20} /> Add Payment Method
             </ButtonRow>
           </Section>

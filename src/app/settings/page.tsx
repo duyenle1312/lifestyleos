@@ -10,6 +10,7 @@ import { useSyncStatus } from "@/components/OfflineProvider";
 import { NameSheet } from "@/components/NameSheet";
 import { SetPasswordSheet } from "@/components/SetPasswordSheet";
 import { Alert, ButtonRow, LargeTitle, Row, Section, Toolbar } from "@/components/ui";
+import { useCanEditOnline } from "@/lib/useOnline";
 
 export default function SettingsPage() {
   const { user, signOut } = useAuth();
@@ -20,6 +21,8 @@ export default function SettingsPage() {
   const [showName, setShowName] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   const sync = useSyncStatus();
+  // Name and password are saved straight to Supabase Auth, so they need a connection and a live session.
+  const canEdit = useCanEditOnline();
   const unsynced = sync.pending + sync.failed.length;
   const fullName = typeof user?.user_metadata?.full_name === "string" ? user.user_metadata.full_name : "";
   return (
@@ -29,12 +32,19 @@ export default function SettingsPage() {
       <Section
         header="Account"
         className="pt-2"
-        footer={passwordSaved ? "Password saved." : "A password lets you sign in when a sign-in link can't be emailed."}
+        footer={
+          !canEdit
+            ? "Needs a connection"
+            : passwordSaved
+              ? "Password saved."
+              : "A password lets you sign in when a sign-in link can't be emailed."
+        }
       >
         <button
           type="button"
           onClick={() => setShowName(true)}
-          className="flex min-h-11 w-full items-center gap-3 px-4 py-[11px] text-left text-[17px] active:bg-gray5"
+          disabled={!canEdit}
+          className="flex min-h-11 w-full items-center gap-3 px-4 py-[11px] text-left text-[17px] active:bg-gray5 disabled:opacity-40 disabled:active:bg-transparent"
         >
           <span className="flex size-[29px] items-center justify-center rounded-[7px] bg-ios-blue text-white">
             <UserRound size={17} />
@@ -47,7 +57,8 @@ export default function SettingsPage() {
         <button
           type="button"
           onClick={() => setShowPassword(true)}
-          className="flex min-h-11 w-full items-center gap-3 px-4 py-[11px] text-left text-[17px] active:bg-gray5"
+          disabled={!canEdit}
+          className="flex min-h-11 w-full items-center gap-3 px-4 py-[11px] text-left text-[17px] active:bg-gray5 disabled:opacity-40 disabled:active:bg-transparent"
         >
           <span className="flex size-[29px] items-center justify-center rounded-[7px] bg-ios-gray text-white">
             <KeyRound size={17} />
@@ -90,8 +101,8 @@ export default function SettingsPage() {
           onDismiss={() => setConfirmSignOut(false)}
         />
       )}
-      {showName && <NameSheet initialName={fullName} onClose={() => setShowName(false)} />}
-      {showPassword && user?.email && (
+      {showName && canEdit && <NameSheet initialName={fullName} onClose={() => setShowName(false)} />}
+      {showPassword && canEdit && user?.email && (
         <SetPasswordSheet
           email={user.email}
           onDone={() => {

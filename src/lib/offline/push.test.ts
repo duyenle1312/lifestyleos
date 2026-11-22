@@ -163,6 +163,14 @@ describe("pushOutbox", () => {
     expect(typeof sent.metadata.restored_after_delete[1].restored_at).toBe("string");
   });
 
+  it("counts several restores in one push into a single notice", async () => {
+    const a = await saveExpense(db, "u", input());
+    const b = await saveExpense(db, "u", input({ item: "Eggs" }));
+    for (const r of [a, b]) remote.rows.expenses.set(r.id, { id: r.id, deleted_at: "2026-11-05T00:00:00.000Z" });
+    const res = await pushOutbox(db, remote);
+    expect(res.notices).toEqual(["2 items restored — they had been deleted on another device"]);
+  });
+
   it("upsertMany makes exactly one remote upsert call", async () => {
     await saveReceipt(db, "u", [input({ item: "A" }), input({ item: "B" }), input({ item: "C" })]);
     const res = await pushOutbox(db, remote);

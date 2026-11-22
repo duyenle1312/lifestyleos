@@ -43,7 +43,7 @@ import { expirationText, expiryStatus, isExpired, isExpiringSoon, STATUS_COLOR }
 import { useAwaitingFirstPull } from "@/lib/offline/useAwaitingFirstPull";
 import * as api from "@/lib/services";
 import type { InventoryItem } from "@/lib/types";
-import { useOnline } from "@/lib/useOnline";
+import { useCanEditOnline } from "@/lib/useOnline";
 
 type SortOption = "name" | "expiration" | "quantity";
 type Filter = "all" | "expiringSoon" | "expired";
@@ -73,7 +73,7 @@ export default function InventoryPage() {
   const router = useRouter();
   const db = useLocalDb();
   const { syncNow } = useSync();
-  const online = useOnline();
+  const canEdit = useCanEditOnline();
   const awaitingFirstPull = useAwaitingFirstPull("inventory_items");
   const rows = useLiveQuery(() => db.inventoryItems.toArray(), [db]);
   const items = useMemo(() => rows ?? [], [rows]);
@@ -135,7 +135,7 @@ export default function InventoryPage() {
 
   const renderRows = (list: readonly InventoryItem[]) =>
     list.map((i) => (
-      <SwipeRow key={i.id} disabled={!online} onDelete={() => remove(i.id)} onPress={() => router.push(`/inventory/${i.id}`)}>
+      <SwipeRow key={i.id} disabled={!canEdit} onDelete={() => remove(i.id)} onPress={() => router.push(`/inventory/${i.id}`)}>
         <InventoryRow item={i} />
       </SwipeRow>
     ));
@@ -168,12 +168,12 @@ export default function InventoryPage() {
             ]}
           />
         }
-        right={<IconButton icon={Plus} label="Add item" disabled={!online} onClick={() => setShowAdd(true)} />}
+        right={<IconButton icon={Plus} label="Add item" disabled={!canEdit} onClick={() => setShowAdd(true)} />}
       >
         <SearchBar value={search} onChange={setSearch} placeholder="Search items..." />
       </Toolbar>
 
-      {!online && <p className="px-8 pt-3 text-[13px] text-label-2">Needs a connection</p>}
+      {!canEdit && <p className="px-8 pt-3 text-[13px] text-label-2">Needs a connection</p>}
 
       {isLoading ? (
         <div className="flex min-h-[60dvh] flex-col items-center justify-center gap-4 text-label-2">
@@ -185,7 +185,7 @@ export default function InventoryPage() {
           <button
             type="button"
             onClick={() => setShowAdd(true)}
-            disabled={!online}
+            disabled={!canEdit}
             className="flex items-center gap-2 rounded-full bg-ios-blue px-5 py-2.5 text-[17px] font-semibold text-white disabled:opacity-40"
           >
             <CirclePlus size={20} /> Add Your First Item

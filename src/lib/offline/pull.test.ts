@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { type LocalDb, openUserDb } from "./db";
 import { FakeRemote } from "./__tests__/fakeRemote";
 import { saveExpense, saveShoppingItem } from "./mutations";
-import { pullAll } from "./pull";
+import { hasPulled, isAwaitingFirstPull, overlapCursor, pullAll } from "./pull";
 
 const exp = (id: string, over = {}) => ({
   id, amount: 5, currency: "EUR", expense_date: "2026-11-10T12:00:00.000Z", item: "Milk", deleted_at: null, account_id: "u",
@@ -32,7 +32,47 @@ describe("pullAll", () => {
     expect((await db.meta.get("cursor:expenses"))?.value).toBe("2026-11-12T00:00:00.000Z");
     remote.sinceCursors = [];
     await pullAll(db, remote, "u");
-    expect(remote.sinceCursors[0]).toBe("2026-11-12T00:00:00.000Z");
+    // queried from one minute before the stored cursor; the stored cursor stays the true max
+    expect(remote.sinceCursors[0]).toBe("2026-11-11T23:59:00.000Z");
+    expect((await db.meta.get("cursor:expenses"))?.value).toBe("2026-11-12T00:00:00.000Z");
+  });
+
+  it("overlapCursor subtracts one minute and keeps null", () => {
+    expect(overlapCursor(null)).toBeNull();
+    expect(overlapCursor("2026-11-12T00:00:30.000Z")).toBe("2026-11-11T23:59:30.000Z");
+    expect(overlapCursor("2026-11-12T00:00:00.123456+00:00")).toBe("2026-11-11T23:59:00.123Z");
+  });
+
+  it("re-applying overlapping rows does not move the cursor back", async () => {
+    remote.seed("expenses", exp("e1", { updated_at: "2026-11-12T00:00:00.000Z" }));
+    remote.seed("expenses", exp("e0", { updated_at: "2026-11-11T23:59:30.000Z" }));
+    await pullAll(db, remote, "u");
+    await pullAll(db, remote, "u");
+    expect((await db.meta.get("cursor:expenses"))?.value).toBe("2026-11-12T00:00:00.000Z");
+    expect(await db.expenses.count()).toBe(2);
+  });
+
+  it("writes pulled markers even when the server tables are empty", async () => {
+    expect(await hasPulled(db, "expenses")).toBe(false);
+    expect(await hasPulled(db, "refs")).toBe(false);
+    await pullAll(db, remote, "u");
+    for (const scope of ["expenses", "shopping_lists", "inventory_items", "refs"] as const) {
+      expect(await hasPulled(db, scope)).toBe(true);
+    }
+    expect(await db.meta.get("cursor:expenses")).toBeUndefined();
+  });
+
+  it("is awaiting the first pull only while syncing and before the marker exists", async () => {
+    expect(isAwaitingFirstPull(true, await hasPulled(db, "shopping_lists"))).toBe(true);
+    await pullAll(db, remote, "u");
+    expect(isAwaitingFirstPull(true, await hasPulled(db, "shopping_lists"))).toBe(false);
+    expect(isAwaitingFirstPull(false, false)).toBe(false);
+    expect(isAwaitingFirstPull(true, undefined)).toBe(false);
+  });
+
+  it("does not write a marker when stopped mid-pull", async () => {
+    await pullAll(db, remote, "u", () => true);
+    expect(await hasPulled(db, "expenses")).toBe(false);
   });
 
   it("removes a row soft-deleted remotely", async () => {
