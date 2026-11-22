@@ -4,6 +4,7 @@
 // signs up new emails (no password needed). Password sign-in and sign-up stay as the backup for when
 // the email quota is used up: a rate-limited magic link switches the screen to the password form.
 import { useState } from "react";
+import { AppLogo } from "./AppLogo";
 import { useAuth } from "./AuthProvider";
 import { Sheet, Spinner } from "./ui";
 
@@ -47,6 +48,7 @@ export function LoginView() {
           submit();
         }}
       >
+        <AppLogo className="size-16" />
         <h1 className="text-[34px] font-bold leading-tight">{mode === "sent" ? "Check your email" : "Lifestyle OS"}</h1>
 
         {mode === "sent" ? (
@@ -151,6 +153,7 @@ function SignUpSheet({ onClose }: { onClose: () => void }) {
           if (await signUp(email, password)) onClose();
         }}
       >
+        <AppLogo className="size-14" />
         <h2 className="pb-5 text-[28px] font-bold">Create Account</h2>
         <div className="flex w-full flex-col gap-[15px] p-4">
           <input

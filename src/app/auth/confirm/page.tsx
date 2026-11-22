@@ -66,10 +66,10 @@ export default function ConfirmPage() {
               </button>
             ) : params ? (
               <>
-                <p className="text-[17px] text-label-2">Press the button to finish signing in on this device.</p>
+                <p className="text-[17px] text-label-2">Good to see you! Tap below to finish signing in.</p>
                 {error && <p className="text-xs text-ios-red">{error}</p>}
                 <button className={primaryButton} onClick={confirm} disabled={verifying}>
-                  {verifying ? <Spinner className="text-white" /> : "Continue"}
+                  {verifying ? <Spinner className="text-white" /> : "Sign in"}
                 </button>
               </>
             ) : (
