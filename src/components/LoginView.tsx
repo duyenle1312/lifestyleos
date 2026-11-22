@@ -1,8 +1,8 @@
 "use client";
 
-// Port of Views/Auth/LoginView.swift + SignUpView.swift: email + password sign-in by default,
-// with an optional magic-link sign-in. If Supabase's email quota is used up, the magic-link
-// option falls back to the password form.
+// Port of Views/Auth/LoginView.swift + SignUpView.swift: magic-link sign-in by default, which also
+// signs up new emails (no password needed). Password sign-in and sign-up stay as the backup for when
+// the email quota is used up: a rate-limited magic link switches the screen to the password form.
 import { useState } from "react";
 import { useAuth } from "./AuthProvider";
 import { Sheet, Spinner } from "./ui";
@@ -12,12 +12,12 @@ const primaryButton =
   "flex w-full items-center justify-center rounded-[10px] bg-ios-blue p-4 text-[17px] font-semibold text-white disabled:opacity-50";
 const linkButton = "text-[17px] text-ios-blue";
 
-/** "password": default sign-in · "link": ask for a magic link · "sent": link emailed. */
+/** "link": default, ask for a magic link · "password": password sign-in · "sent": link emailed. */
 type Mode = "password" | "link" | "sent";
 
 export function LoginView() {
   const { sendMagicLink, signInWithPassword, isLoading, errorMessage, clearError } = useAuth();
-  const [mode, setMode] = useState<Mode>("password");
+  const [mode, setMode] = useState<Mode>("link");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showSignUp, setShowSignUp] = useState(false);
@@ -52,15 +52,15 @@ export function LoginView() {
         {mode === "sent" ? (
           <div className="flex w-full flex-col gap-[15px] p-4 text-center">
             <p className="text-[17px] text-label-2">
-              We sent a sign-in link to <span className="font-semibold text-label">{email.trim()}</span>. Open it on
+              We sent a link to <span className="font-semibold text-label">{email.trim()}</span>. Open it on
               this device to sign in.
             </p>
             {errorMessage && <p className="text-xs text-ios-red">{errorMessage}</p>}
             <button className={primaryButton} disabled={isLoading}>
               {isLoading ? <Spinner className="text-white" /> : "Resend Link"}
             </button>
-            <button type="button" className={linkButton} onClick={() => switchTo("password")}>
-              Back to sign in
+            <button type="button" className={linkButton} onClick={() => switchTo("link")}>
+              Use a different email
             </button>
           </div>
         ) : (
@@ -84,8 +84,22 @@ export function LoginView() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             )}
+            {/* {mode === "link" && (
+              <p className="text-center text-[15px] text-label-2">
+                We&apos;ll email you a link to sign in.
+              </p>
+            )} */}
             {errorMessage && !showSignUp && <p className="text-center text-xs text-ios-red">{errorMessage}</p>}
-            {mode === "password" ? (
+            {mode === "link" ? (
+              <>
+                <button className={primaryButton} disabled={isLoading || !email.trim()}>
+                  {isLoading ? <Spinner className="text-white" /> : "Sign in with Email"}
+                </button>
+                <button type="button" className="text-[15px] text-label-2" onClick={() => switchTo("password")}>
+                  Sign in with password instead
+                </button>
+              </>
+            ) : (
               <>
                 <button className={primaryButton} disabled={isLoading || !email.trim() || !password}>
                   {isLoading ? <Spinner className="text-white" /> : "Sign In"}
@@ -101,16 +115,7 @@ export function LoginView() {
                   Don&apos;t have an account? Sign Up
                 </button>
                 <button type="button" className="text-[15px] text-label-2" onClick={() => switchTo("link")}>
-                  Email me a sign-in link instead
-                </button>
-              </>
-            ) : (
-              <>
-                <button className={primaryButton} disabled={isLoading || !email.trim()}>
-                  {isLoading ? <Spinner className="text-white" /> : "Email Me a Sign-In Link"}
-                </button>
-                <button type="button" className={linkButton} onClick={() => switchTo("password")}>
-                  Use password instead
+                  Sign in with an email link instead
                 </button>
               </>
             )}

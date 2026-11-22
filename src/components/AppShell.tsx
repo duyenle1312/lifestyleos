@@ -25,6 +25,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, initializing } = useAuth();
   const pathname = usePathname();
 
+  // The email-link landing page works signed in or out, without the app chrome.
+  if (pathname === "/auth/confirm") return <>{children}</>;
+
   if (initializing) {
     return (
       <div className="flex min-h-dvh items-center justify-center">

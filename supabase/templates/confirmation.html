@@ -16,7 +16,9 @@
             <tr>
               <td align="center" style="padding:40px 32px 8px 32px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
                 <h1 style="margin:0 0 8px 0; font-size:24px; line-height:30px; font-weight:700; color:#000000;">Welcome to Lifestyle OS</h1>
-                <p style="margin:0; font-size:16px; line-height:24px; color:#3c3c43;">This link works once and expires in 1 hour. Open it on the same device and browser where you want to sign in.</p>
+                <p style="margin:0; font-size:16px; line-height:24px; color:#3c3c43;">
+                  Open it on the same device and browser where you want to sign in. This link will expire in 1 hour.
+                  </p>
               </td>
             </tr>
             <tr>
@@ -24,7 +26,7 @@
                 <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                   <tr>
                     <td align="center" style="border-radius:10px; background-color:#007aff;">
-                      <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block; padding:14px 32px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size:17px; font-weight:600; color:#ffffff; text-decoration:none; border-radius:10px;">Create Account &amp; Sign In</a>
+                      <a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=email" target="_blank" style="display:inline-block; padding:14px 32px; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size:17px; font-weight:600; color:#ffffff; text-decoration:none; border-radius:10px;">Create Account &amp; Sign In</a>
                     </td>
                   </tr>
                 </table>

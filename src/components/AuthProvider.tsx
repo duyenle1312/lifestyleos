@@ -15,11 +15,17 @@ interface AuthState {
   errorMessage: string | null;
   clearError: () => void;
   /**
-   * Optional passwordless sign-in. "sent" once the email is on its way; "rate_limited" when
-   * Supabase's email quota is used up (the login screen falls back to password); "error" otherwise.
+   * Default sign-in, and also sign-up: an unknown email gets an account on its first link.
+   * "sent" once the email is on its way; "rate_limited" when the email quota is used up
+   * (the login screen falls back to password); "error" otherwise.
    */
   sendMagicLink: (email: string) => Promise<MagicLinkResult>;
+  /** Backup to magic links: works even when the email quota is used up. */
   signInWithPassword: (email: string, password: string) => Promise<boolean>;
+  /**
+   * Backup sign-up with a password. Sends no email (so it works when the quota is used up)
+   * only if "Confirm email" is off in Supabase → Auth → Sign In / Providers → Email.
+   */
   signUp: (email: string, password: string) => Promise<boolean>;
   signOut: () => Promise<void>;
 }
@@ -48,7 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => data.subscription.unsubscribe();
   }, []);
 
-  /** Emails a one-time sign-in link. Only for existing users: new users must sign up first. */
+  /** Emails a one-time sign-in link. A new email gets an account (no password) on its first link. */
   const sendMagicLink = useCallback(async (email: string): Promise<MagicLinkResult> => {
     setIsLoading(true);
     setError(null);
@@ -56,23 +62,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          // Unknown emails are rejected (error code `otp_disabled`) instead of silently creating an account.
-          shouldCreateUser: false,
-          // The link brings the user back to the site they asked from (must be in
-          // Supabase → Auth → URL Configuration → Redirect URLs, otherwise Site URL is used).
-          // The SIGNED_IN listener above then picks up the session and creates the default account.
-          emailRedirectTo: `${window.location.origin}/expenses`,
+          // First link for an unknown email creates the user; Supabase sends the "Confirm signup"
+          // template instead of "Magic Link". Needs "Allow new users to sign up" on in Supabase.
+          shouldCreateUser: true,
+          // The email links to /auth/confirm on the site the user asked from, where a button
+          // finishes sign-in (so email scanners can't use the link up). Must be in Supabase →
+          // Auth → URL Configuration → Redirect URLs, otherwise Site URL is used.
+          emailRedirectTo: `${window.location.origin}/auth/confirm`,
         },
       });
       if (error) {
         // Supabase can't tell the browser how much quota is left; this error code is the signal.
         if (error.code === "over_email_send_rate_limit" || error.status === 429) {
-          setError("Too many sign-in emails were sent recently. Sign in with your password instead.");
+          setError("Too many sign-in emails were sent recently. Try again in a minute, or sign in with your password.");
           return "rate_limited";
-        }
-        if (error.code === "otp_disabled" || /signups not allowed/i.test(error.message)) {
-          setError("No account found for this email. Sign up first.");
-          return "error";
         }
         throw error;
       }
@@ -104,11 +107,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        // Send the confirmation link back to the site the user signed up on (must be in
-        // Supabase → Auth → URL Configuration → Redirect URLs, otherwise Site URL is used).
-        options: { emailRedirectTo: `${window.location.origin}/expenses` },
+        // Same /auth/confirm landing page as magic links (see sendMagicLink).
+        options: { emailRedirectTo: `${window.location.origin}/auth/confirm` },
       });
-      if (error) throw error;
+      if (error) {
+        if (error.code === "over_email_send_rate_limit" || error.status === 429) {
+          throw new Error(
+            "Can't send the confirmation email right now. Try again later, or turn off \"Confirm email\" in Supabase so password sign-ups skip the email.",
+          );
+        }
+        throw error;
+      }
       // Supabase hides whether an email is registered: for an existing account it returns a
       // user with no identities and sends no email.
       if (data.user && data.user.identities?.length === 0) {
@@ -155,8 +164,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 /**
  * Same as AuthViewModel.createDefaultAccount: a "Personal" account owned by the new user.
- * iOS runs it right after signUp; with email confirmation (and magic links) there may be no session
- * then, so here it runs on every sign-in and is a no-op once the account exists.
+ * iOS runs it right after signUp; with magic links there is no session until the link is opened,
+ * so here it runs on every sign-in and is a no-op once the account exists. The account's
+ * `signed_up_at` column defaults to now(), so it records the user's first sign-in.
  *
  * The app writes every row with account_id = the user's id (see services.ts), so the account
  * must have that same id, and the user must be linked to it, or RLS rejects the inserts.

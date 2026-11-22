@@ -60,7 +60,7 @@ Selection shortcuts need the split view (1024px or wider). `/`, `⌘K` and `N` w
 
 | iOS | Web |
 |---|---|
-| `LoginView` / `SignUpView` (merged: passwordless magic link) | `components/LoginView.tsx` |
+| `LoginView` / `SignUpView` (merged: magic link by default, which also signs up new emails; password sign-in kept for existing users) | `components/LoginView.tsx` |
 | `ExpenseListView`, `AddExpenseView`, `EditExpenseView`, `ExpenseDetailView`, `MonthPickerView` | `app/expenses`, `components/expenses/*` |
 | `ShoppingListsView`, `AddShoppingListView`, `EditShoppingListView` | `app/shopping`, `components/shopping/*` |
 | `InventoryListView`, `AddInventoryItemView`, `InventoryDetailView` | `app/inventory`, `app/inventory/[id]` |
