@@ -43,7 +43,6 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
     const engine = new SyncEngine(db, supabaseRemote, userId, () => navigator.onLine, sessionUserId);
     engine.start();
     // Publishing the freshly created pair is the point of this effect (it owns external resources).
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCtx({ db, engine, userId, generation: ++generation.current });
     return () => {
       setCtx((c) => (c?.engine === engine ? null : c));
