@@ -65,15 +65,38 @@ Email sign-in through Supabase Auth, sent via Resend on our own domain (custom S
 | **Magic link** (default) | Enter an email and get a link. An unknown email gets an account on its first link, with no password. | `sendMagicLink` in `components/AuthProvider.tsx` |
 | **Password** (backup) | "Sign in with password instead" shows email + password and a **Sign Up** form. | `signInWithPassword`, `signUp` |
 | **Set Password** | Settings → Account. Magic-link users can add a password; anyone can change theirs. | `components/SetPasswordSheet.tsx` |
+| **Name** | Settings → Account. Optional display name, saved to Supabase Auth user metadata (`user_metadata.full_name`). Empty removes it. | `components/NameSheet.tsx` |
 
 **When emails can't be sent.** If Supabase returns the email rate-limit error, the login screen switches to the password form and says why. Password sign-up only avoids email when **Confirm email** is off in Supabase (Authentication → Sign In / Providers → Email). With it on, sign-up also sends an email and fails the same way.
 
 **Email links go through `/auth/confirm`.** Templates link to `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email` instead of `{{ .ConfirmationURL }}`. The page calls `verifyOtp` only when the user presses **Continue**. Email security scanners (Outlook Safe Links, Microsoft Defender) open links before the user does, and a direct verify link would be spent by that visit. `AppShell` renders this page without the login gate. See `supabase/templates/README.md`.
 
-**After the first sign-in.** The `SIGNED_IN` listener runs `ensureDefaultAccount`, which creates the user's "Personal" account (id = user id) if it is missing. Its `signed_up_at` column (default `now()`) records when the user joined.
+**On sign-up.** A database trigger on `auth.users` (`on_auth_user_created_account` → `public.create_default_account()`) creates the user's "Personal" account (id = user id) and their `owner` row in `account_users`, with `signed_up_at` set to the user's creation time. Two more triggers seed default categories and payment methods; triggers for the same event run in name order, so the account comes first. As a fallback, the `SIGNED_IN` listener runs `ensureDefaultAccount`, which repairs a missing account or link. RLS lets a user insert only their own link (`account_id = user_id = auth.uid()`).
+
+### Admin view: users
+
+`admin.users` lists every user with their email, account and activity. Run it in the Supabase SQL editor:
 
 ```sql
-select date_trunc('month', signed_up_at) as month, count(*) from public.accounts group by 1 order by 1;
+select * from admin.users;
+```
+
+| Column | Meaning |
+|---|---|
+| `user_id`, `email` | From `auth.users` |
+| `name` | Display name from Settings → Name (`user_metadata.full_name`), `null` if not set |
+| `account_name` | `accounts.name` (usually "Personal") |
+| `signed_up_at`, `last_sign_in_at` | When they joined and last signed in |
+| `email_confirmed` | Whether the email address is confirmed |
+| `has_owner_link` | `false` means their `account_users` row is missing, so RLS blocks all their data |
+| `expenses`, `last_expense_at` | Non-deleted expense count, newest expense |
+
+It lives in the `admin` schema, which the Data API does not expose, and `anon`/`authenticated` have no grants, so emails never reach the browser. Don't move it to `public`: views run with their owner's rights, so any signed-in user could read every email. Source: `supabase/migrations/20261122180000_admin_users_view.sql`, `name` added in `20261122190000_admin_users_view_name.sql`.
+
+Sign-ups per month:
+
+```sql
+select date_trunc('month', signed_up_at) as month, count(*) from admin.users group by 1 order by 1;
 ```
 
 **Supabase settings this relies on:**

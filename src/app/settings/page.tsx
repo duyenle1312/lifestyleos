@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronRight, CreditCard, KeyRound, Tag } from "lucide-react";
+import { ChevronRight, CreditCard, KeyRound, Tag, UserRound } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { useCategories } from "@/components/CategoriesProvider";
 import { usePaymentMethods } from "@/components/PaymentMethodsProvider";
+import { NameSheet } from "@/components/NameSheet";
 import { SetPasswordSheet } from "@/components/SetPasswordSheet";
 import { ButtonRow, LargeTitle, Row, Section, Toolbar } from "@/components/ui";
 
@@ -15,6 +16,8 @@ export default function SettingsPage() {
   const payment = usePaymentMethods();
   const [showPassword, setShowPassword] = useState(false);
   const [passwordSaved, setPasswordSaved] = useState(false);
+  const [showName, setShowName] = useState(false);
+  const fullName = typeof user?.user_metadata?.full_name === "string" ? user.user_metadata.full_name : "";
   return (
     <>
       <Toolbar />
@@ -24,6 +27,18 @@ export default function SettingsPage() {
         className="pt-2"
         footer={passwordSaved ? "Password saved." : "A password lets you sign in when a sign-in link can't be emailed."}
       >
+        <button
+          type="button"
+          onClick={() => setShowName(true)}
+          className="flex min-h-11 w-full items-center gap-3 px-4 py-[11px] text-left text-[17px] active:bg-gray5"
+        >
+          <span className="flex size-[29px] items-center justify-center rounded-[7px] bg-ios-blue text-white">
+            <UserRound size={17} />
+          </span>
+          <span className="shrink-0">Name</span>
+          <span className={`ml-auto truncate ${fullName ? "text-label-2" : "text-label-3"}`}>{fullName || "Add"}</span>
+          <ChevronRight size={18} className="shrink-0 text-label-3" />
+        </button>
         {user?.email && <Row>Email: {user.email}</Row>}
         <button
           type="button"
@@ -63,6 +78,7 @@ export default function SettingsPage() {
           Sign Out
         </ButtonRow>
       </Section>
+      {showName && <NameSheet initialName={fullName} onClose={() => setShowName(false)} />}
       {showPassword && user?.email && (
         <SetPasswordSheet
           email={user.email}
