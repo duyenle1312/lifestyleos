@@ -9,6 +9,8 @@ import { useAuth } from "./AuthProvider";
 import { CategoriesProvider } from "./CategoriesProvider";
 import { PaymentMethodsProvider } from "./PaymentMethodsProvider";
 import { LoginView } from "./LoginView";
+import { OfflineProvider } from "./OfflineProvider";
+import { SyncBadge } from "./SyncBadge";
 import { Alert, Spinner } from "./ui";
 
 const TABS = [
@@ -43,6 +45,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isWide = SPLIT_VIEW_ROUTES.includes(pathname);
 
   return (
+    <OfflineProvider>
     <div className="min-h-dvh md:flex">
       {accountSetupError && (
         <Alert
@@ -72,6 +75,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </Link>
           ))}
         </nav>
+        <SyncBadge className="mt-auto" />
       </aside>
 
       <main className="min-w-0 flex-1 pb-[var(--tabbar-h)]">
@@ -81,6 +85,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </CategoriesProvider>
         </div>
       </main>
+
+      {/* Mobile sync badge, above the tab bar */}
+      <SyncBadge className="fixed inset-x-3 bottom-[calc(var(--tabbar-h)+8px)] z-20 md:hidden" />
 
       {/* Bottom tab bar – phones */}
       <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-separator bg-bar pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden">
@@ -98,5 +105,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         ))}
       </nav>
     </div>
+    </OfflineProvider>
   );
 }
