@@ -93,14 +93,14 @@ export function LoginView() {
             {/* Six boxes are only the look: one real input lies on top of them (invisible text), so typing,
                 paste and iOS "From Mail" autofill all work on a single field. */}
             <div className="relative">
-              <div className="grid grid-cols-6 gap-2" aria-hidden>
+              <div className="grid grid-cols-6 gap-2.5" aria-hidden>
                 {Array.from({ length: EMAIL_CODE_LENGTH }, (_, i) => {
                   const active = codeFocused && i === Math.min(code.length, EMAIL_CODE_LENGTH - 1);
                   return (
                     <div
                       key={i}
-                      className={`flex h-14 items-center justify-center rounded-[10px] border-2 border-ios-blue text-[26px] font-semibold tabular-nums ${
-                        active ? "bg-ios-blue/10" : "bg-transparent"
+                      className={`flex h-[52px] items-center justify-center rounded-lg border bg-primary-bg text-[22px] tabular-nums transition-colors ${
+                        active ? "border-ios-blue ring-[3px] ring-ios-blue/15" : "border-separator"
                       }`}
                     >
                       {code[i] ?? ""}
