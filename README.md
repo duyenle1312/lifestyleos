@@ -403,7 +403,7 @@ The three `auth.users` triggers run in name order, so the account exists before 
 
 | Role | Purpose |
 |---|---|
-| `dashboard_reader` | Login role for the usage dashboard. Can execute `dashboard.usage_stats()` and nothing else. Created `nologin` by `20261123120000_dashboard_stats.sql`; the owner enables login once (see [Usage dashboard](#usage-dashboard)). Exists in production only once that migration is applied. |
+| `dashboard_reader` | Login role for the usage dashboard. No table access; the only data it can get is from `dashboard.usage_stats()`. Created `nologin` by `20261123120000_dashboard_stats.sql`; the owner enables login once (see [Usage dashboard](#usage-dashboard)). Exists in production only once that migration is applied. |
 
 `anon` and `authenticated` are Supabase's API roles (signed-out and signed-in requests). Other roles in the project (`service_role`, `authenticator`, `pgbouncer`, `supabase_*`, `dashboard_user`) belong to Supabase.
 
@@ -415,7 +415,7 @@ A private, read-only page for the owner that shows whether the app gets used: to
 
 **Privacy.**
 - Aggregates only. `dashboard.usage_stats()` returns counts and sums as one JSON document, with no emails, names, ids, item text or category names.
-- The page connects as `dashboard_reader`, which can run that one function and nothing else: no access to `public`, `auth` or `admin` tables, and no Supabase service-role key anywhere in the dashboard. A leaked connection string exposes usage numbers only.
+- The page connects as `dashboard_reader`, which has no table access; the only data it can get is from `dashboard.usage_stats()`. There is no Supabase service-role key anywhere in the dashboard. A leaked connection string exposes usage numbers only.
 - There is no sign-in. The URL is unlisted and the page is `noindex` (robots metadata, `robots.txt` and an `X-Robots-Tag` header).
 - The numbers are fetched on every page load.
 
@@ -431,11 +431,13 @@ Until `dashboard/.env.local` sets `DASHBOARD_DATABASE_URL` (see `dashboard/.env.
 
 **One-time setup.**
 1. Apply `supabase/migrations/20261123120000_dashboard_stats.sql` in the Supabase SQL editor. It creates the `dashboard` schema, `dashboard.usage_stats()` and the `dashboard_reader` role, without a password.
-2. Give the role a password, also in the SQL editor (never commit it):
+2. Generate a URL-safe password with `openssl rand -hex 24` and give the role login, a connection cap and a statement timeout, also in the SQL editor (never commit the password):
    ```sql
-   alter role dashboard_reader with login password '<generated>';
+   alter role dashboard_reader with login password '<generated>' connection limit 3;
+   alter role dashboard_reader set statement_timeout = '10s';
    ```
-3. Take the connection string from Supabase → Connect → Transaction pooler: `postgres://dashboard_reader.<project-ref>:<password>@<pooler-host>:6543/postgres`.
+3. Take the connection string from Supabase → Connect → Transaction pooler: `postgres://dashboard_reader.<project-ref>:<password>@<pooler-host>:6543/postgres`. The connection always uses TLS (the code sets `ssl: "require"`), so no `?sslmode` is needed.
+4. Go-live check: run `select dashboard.usage_stats()->'totals'` in the SQL editor. `users` must equal the number of users in Authentication, and `active30` must be above 0. If `active30` is 0, the function owner isn't bypassing row-level security.
 
 **Deploy.** In Vercel create a new project from this repo with Root Directory `dashboard`, and set the environment variable `DASHBOARD_DATABASE_URL` to that connection string for **Production**. Until it is set, the deployed page shows mock data. If the query fails, the page shows "Couldn't load stats" and never the connection string.
 

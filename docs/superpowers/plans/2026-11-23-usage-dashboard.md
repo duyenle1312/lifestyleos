@@ -211,7 +211,7 @@ Behaviour (the mockup is the reference for markup, CSS and interactions — port
 
 ### Task 6: Go live (with the owner)
 
-- [ ] **Step 1: Owner applies** `20261123120000_dashboard_stats.sql` in the Supabase SQL editor and runs the `alter role … login password` line with a generated password (`openssl rand -base64 24`, run by the owner).
+- [ ] **Step 1: Owner applies** `20261123120000_dashboard_stats.sql` in the Supabase SQL editor and runs the setup SQL with a generated URL-safe password (`openssl rand -hex 24`, run by the owner): `alter role dashboard_reader with login password '<generated>' connection limit 3;` and `alter role dashboard_reader set statement_timeout = '10s';`. The connection uses TLS (`ssl: "require"` in code), so no `?sslmode` is needed.
 - [ ] **Step 2: Verify read-only** via Supabase MCP `execute_sql`: `select dashboard.usage_stats()->'totals'` returns plausible numbers (users ≥ 2, expensesAllTime ≈ 1.2k).
 - [ ] **Step 3: Owner puts the connection string in `dashboard/.env.local`**; `npm run dev` in `dashboard/` shows real numbers, no banner, `DB …ms` present.
 - [ ] **Step 4: Owner creates the Vercel project** (Root Directory `dashboard`, env var) and opens the URL.

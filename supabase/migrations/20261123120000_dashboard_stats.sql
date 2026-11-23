@@ -45,6 +45,7 @@ ev as (
          729 - (t.today - (e.ts at time zone 'Europe/Helsinki')::date) as idx
   from ev0 e cross join t
   where e.ts is not null and e.account_id is not null
+    and e.ts <= now() -- ignore future timestamps (device clock skew)
 ),
 -- per-day metric rows: (metric, day index, value)
 mrows as (

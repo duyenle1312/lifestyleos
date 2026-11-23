@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  bucketBounds, bucketSums, periodSum, pctChange, ratio, pct, eur, fmt, timeAgo, bucketStartDate,
+  bucketBounds, bucketSums, periodSum, pctChange, ratio, pct, eur, fmt, timeAgo, bucketStartDate, clamp01,
 } from "./stats";
 
 const ones = Array(730).fill(1);
@@ -69,5 +69,14 @@ describe("bucketStartDate", () => {
     const first = bucketStartDate("2026-11-23", 0);
     expect(first.getHours()).toBe(12);
     expect(Math.round((d.getTime() - first.getTime()) / 86400e3)).toBe(729);
+  });
+});
+
+describe("clamp01", () => {
+  it("clamps to [0,1] and keeps null", () => {
+    expect(clamp01(1.4)).toBe(1);
+    expect(clamp01(-0.2)).toBe(0);
+    expect(clamp01(0.5)).toBe(0.5);
+    expect(clamp01(null)).toBeNull();
   });
 });

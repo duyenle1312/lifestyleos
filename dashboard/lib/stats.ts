@@ -54,6 +54,7 @@ const num = new Intl.NumberFormat("en-GB", { maximumFractionDigits: 0 });
 
 export const fmt = (n: number): string => num.format(n);
 export const eur = (n: number): string => `€${num.format(n)}`;
+export const clamp01 = (r: number | null): number | null => (r === null ? null : Math.min(1, Math.max(0, r)));
 export const pct = (r: number | null): string => (r === null ? "—" : `${Math.round(r * 100)}%`);
 
 export function timeAgo(at: string, now: string): string {

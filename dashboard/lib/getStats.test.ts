@@ -22,6 +22,15 @@ describe("getStats", () => {
     expect(JSON.stringify(spy.mock.calls)).not.toContain("secretpw");
     spy.mockRestore();
   });
+
+  it("handles an unparseable url as a connect error without leaking it", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const r = await getStats({ DASHBOARD_DATABASE_URL: "postgres://u:ab/cd@h:1/p" });
+    expect(r).toEqual({ kind: "error", reason: "connect" });
+    expect(JSON.stringify(r)).not.toContain("ab/cd");
+    expect(JSON.stringify(spy.mock.calls)).not.toContain("ab/cd");
+    spy.mockRestore();
+  });
 });
 
 describe("mockStats", () => {

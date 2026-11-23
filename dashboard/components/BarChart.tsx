@@ -5,10 +5,11 @@ import type { Range } from "@/lib/types";
 
 export type Bucket = { v: number; start: Date; end: Date };
 
+// Fixed month names: toLocaleDateString differs between server and Safari ICU (hydration mismatch).
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
 const dateLbl = (d: Date, range: Range) =>
-  range === 365
-    ? d.toLocaleDateString("en-GB", { month: "short" })
-    : d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  range === 365 ? MONTHS[d.getMonth()] : `${d.getDate()} ${MONTHS[d.getMonth()]}`;
 
 export const bucketName = (range: Range) => ({ 30: "per day", 84: "per week", 365: "per month" })[range];
 

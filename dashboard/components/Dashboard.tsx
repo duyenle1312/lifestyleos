@@ -6,6 +6,7 @@ import {
   bucketBounds,
   bucketStartDate,
   bucketSums,
+  clamp01,
   eur,
   fmt,
   pct,
@@ -153,7 +154,7 @@ function Body({ stats, range, dbMs }: { stats: UsageStats; range: Range; dbMs: n
   const created = p("shopCreated");
   const ticked = p("shopTicked");
   const shopDeleted = p("shopDeleted");
-  const completion = pct(ratio(ticked, created));
+  const completion = pct(clamp01(ratio(ticked, created)));
   const shopTotal = Math.max(1, ticked + shopDeleted + t.shoppingOpen);
   const share = (n: number) => (n / shopTotal) * 100;
   const shopUnit = { shopCreated: "Items created", shopTicked: "Items ticked off", shopDeleted: "Items deleted" }[shopM];
@@ -241,7 +242,7 @@ function Body({ stats, range, dbMs }: { stats: UsageStats; range: Range; dbMs: n
           chart={<BarChart buckets={usersChart.buckets} range={range} unit={usersChart.unit} formatter={fmt} />}
         />
 
-        <Section accent="green" icon={<ExpensesIcon />} title="Expenses" pill={`${pct(ratio(expAdded - expDeleted, expAdded))} net kept`}
+        <Section accent="green" icon={<ExpensesIcon />} title="Expenses" pill={`${pct(clamp01(ratio(expAdded - expDeleted, expAdded)))} net kept`}
           stats={
             <>
               <Stat label="Tracked in EUR" value={eur(expEur)} note={`${eur(t.eurAllTime)} all time`} pressed={expM === "expEur"} onClick={() => setExpM("expEur")} />
@@ -272,7 +273,7 @@ function Body({ stats, range, dbMs }: { stats: UsageStats; range: Range; dbMs: n
             <>
               <Stat label="Created" value={fmt(created)} note={period} pressed={shopM === "shopCreated"} onClick={() => setShopM("shopCreated")} />
               <Stat label="Ticked off" value={fmt(ticked)} note={`${completion} of created`} pressed={shopM === "shopTicked"} onClick={() => setShopM("shopTicked")} />
-              <Stat label="Deleted" value={fmt(shopDeleted)} note="removed unticked" pressed={shopM === "shopDeleted"} onClick={() => setShopM("shopDeleted")} />
+              <Stat label="Deleted" value={fmt(shopDeleted)} note="removed" pressed={shopM === "shopDeleted"} onClick={() => setShopM("shopDeleted")} />
               <StaticStat label="Open now" value={fmt(t.shoppingOpen)} note="on active lists" />
             </>
           }
