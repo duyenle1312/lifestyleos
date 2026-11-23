@@ -16,3 +16,11 @@ Small fixes (one-line changes, copy tweaks, styling nudges) can skip straight to
 When a change alters the architecture — data flow, storage, sync/offline behaviour, auth, the database
 schema or migrations, deployment, or how the app is run or tested — update `README.md` in the same branch
 so it describes how things work now. Include it as a task in the plan for such features.
+
+### Database changes always go in the README
+
+Any change to the Supabase database — tables or columns, schemas (like `admin`, `dashboard`), functions,
+triggers, views, roles, grants or RLS policies — must update the **Database schema** section of `README.md`
+in the same branch: add, change or remove the entry, with a one-line purpose and the migration that created
+it. When unsure what exists, read the live database (Supabase MCP, read-only `information_schema` / `pg_*`
+queries). This also covers the `dashboard/` app's database pieces.
