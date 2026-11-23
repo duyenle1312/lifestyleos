@@ -436,10 +436,12 @@ Until `dashboard/.env.local` sets `DASHBOARD_DATABASE_URL` (see `dashboard/.env.
    alter role dashboard_reader with login password '<generated>' connection limit 3;
    alter role dashboard_reader set statement_timeout = '10s';
    ```
-3. Take the connection string from Supabase → Connect → Transaction pooler: `postgres://dashboard_reader.<project-ref>:<password>@<pooler-host>:6543/postgres`. The connection always uses TLS (the code sets `ssl: "require"`), so no `?sslmode` is needed.
+3. Build the connection string from Supabase → Connect, replacing the user `postgres` with `dashboard_reader` and the password with yours. The connection always uses TLS (the code sets `ssl: "require"`), so no `?sslmode` is needed.
+   - **Local** (Direct connection — what works on the owner's laptop): `postgresql://dashboard_reader:<password>@db.<project-ref>.supabase.co:5432/postgres`. There is no pooler host in this one.
+   - **Vercel**: the direct host `db.<project-ref>.supabase.co` is IPv6-only and Vercel can only reach IPv4, so use Connect → Transaction pooler instead: `postgresql://dashboard_reader.<project-ref>:<password>@<pooler-host>:6543/postgres` (on the pooler the user carries the `.<project-ref>` suffix; copy the host Supabase shows). Alternatively enable Supabase's IPv4 add-on and keep the direct string.
 4. Go-live check: run `select dashboard.usage_stats()->'totals'` in the SQL editor. `users` must equal the number of users in Authentication, and `active30` must be above 0. If `active30` is 0, the function owner isn't bypassing row-level security.
 
-**Deploy.** In Vercel create a new project from this repo with Root Directory `dashboard`, and set the environment variable `DASHBOARD_DATABASE_URL` to that connection string for **Production**. Until it is set, the deployed page shows mock data. If the query fails, the page shows "Couldn't load stats" and never the connection string.
+**Deploy.** In Vercel create a new project from this repo with Root Directory `dashboard`, and set the environment variable `DASHBOARD_DATABASE_URL` to the **pooler** connection string from step 3 for **Production**. Until it is set, the deployed page shows mock data. If the query fails, the page shows "Couldn't load stats" and never the connection string.
 
 ## Testing
 
