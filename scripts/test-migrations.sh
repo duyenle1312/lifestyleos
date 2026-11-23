@@ -41,4 +41,20 @@ run "$LAST"
 "$PGBIN/psql" -h "$DIR" -p "$PORT" -U postgres -d test -v ON_ERROR_STOP=1 -q -t -f "$ROOT/supabase/tests/expenses_ids_only_assert.sql"
 "$PGBIN/psql" -h "$DIR" -p "$PORT" -U postgres -d test -v ON_ERROR_STOP=1 -q -t -f "$ROOT/supabase/tests/expenses_same_account_assert.sql"
 
+# Dashboard stats: separate fresh databases (the "test" db above already holds other users).
+# "empty" = stub + migrations only; "dash" = stub + migrations + dashboard fixtures.
+for DB in empty dash; do
+  "$PGBIN/createdb" -h "$DIR" -p "$PORT" -U postgres "$DB"
+  runin() { "$PGBIN/psql" -h "$DIR" -p "$PORT" -U postgres -d "$DB" -v ON_ERROR_STOP=1 -q -f "$1" >/dev/null; }
+  runin "$ROOT/supabase/tests/stub_schema.sql"
+  for f in "$ROOT"/supabase/migrations/*.sql; do runin "$f"; done
+  runin "$f"  # idempotence of the newest migration
+  if [ "$DB" = empty ]; then
+    "$PGBIN/psql" -h "$DIR" -p "$PORT" -U postgres -d "$DB" -v ON_ERROR_STOP=1 -q -t -f "$ROOT/supabase/tests/dashboard_stats_assert_empty.sql"
+  else
+    runin "$ROOT/supabase/tests/dashboard_stats_fixtures.sql"
+    "$PGBIN/psql" -h "$DIR" -p "$PORT" -U postgres -d "$DB" -v ON_ERROR_STOP=1 -q -t -f "$ROOT/supabase/tests/dashboard_stats_assert.sql"
+  fi
+done
+
 echo "ALL MIGRATION TESTS PASSED"

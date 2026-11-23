@@ -83,3 +83,45 @@ as $$ begin new.updated_at = now(); return new; end; $$;
 
 create trigger trg_expenses_updated_at before update on public.expenses
   for each row execute function public.set_updated_at();
+
+-- Tables that exist in production but not in supabase/migrations (definitions read live 2026-11-23).
+create table public.shopping_lists (
+  id uuid primary key default gen_random_uuid(),
+  account_id uuid not null,
+  created_by_user_id uuid not null,
+  item text not null,
+  description text,
+  metadata jsonb not null default '{}',
+  deleted_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  location varchar,
+  available_date_start date,
+  available_date_end date,
+  unit_price numeric,
+  quantity integer,
+  purchased boolean default false,
+  scheduled_date date,
+  priority smallint
+);
+
+create trigger trg_shopping_lists_updated_at before update on public.shopping_lists
+  for each row execute function public.set_updated_at();
+
+create table public.inventory_items (
+  id uuid primary key default gen_random_uuid(),
+  account_id uuid not null,
+  created_by_user_id uuid not null,
+  name text not null,
+  quantity numeric not null default 0,
+  unit text,
+  description text,
+  metadata jsonb not null default '{}',
+  deleted_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  expiration_date timestamp
+);
+
+create trigger trg_inventory_updated_at before update on public.inventory_items
+  for each row execute function public.set_updated_at();
