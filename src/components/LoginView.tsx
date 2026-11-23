@@ -37,7 +37,10 @@ export function LoginView() {
   const verifyCode = async (value: string) => {
     if (!isCompleteEmailCode(value) || isLoading) return;
     lastSubmittedCode.current = value;
-    if (!(await verifyEmailCode(email.trim(), value))) {
+    const result = await verifyEmailCode(email.trim(), value);
+    if (result === "ok") return;
+    // Keep lastSubmittedCode on "retry" so the unchanged code isn't re-sent on its own; Sign In retries.
+    if (result === "wrong") {
       setCode("");
       lastSubmittedCode.current = "";
       codeInputRef.current?.focus();
