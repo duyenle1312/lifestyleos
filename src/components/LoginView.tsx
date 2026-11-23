@@ -6,7 +6,7 @@
 // the email quota is used up: a rate-limited magic link switches the screen to the password form.
 import { useRef, useState } from "react";
 import { AppLogo } from "./AppLogo";
-import { isCompleteEmailCode, sanitizeEmailCode } from "@/lib/emailCode";
+import { EMAIL_CODE_LENGTH, isCompleteEmailCode, sanitizeEmailCode } from "@/lib/emailCode";
 import { useAuth } from "./AuthProvider";
 import { Sheet, Spinner } from "./ui";
 
@@ -26,6 +26,7 @@ export function LoginView() {
   const [showSignUp, setShowSignUp] = useState(false);
   const [code, setCode] = useState("");
   const codeInputRef = useRef<HTMLInputElement>(null);
+  const [codeFocused, setCodeFocused] = useState(false);
   // Last code sent for verification, so autofill firing twice can't submit it twice.
   const lastSubmittedCode = useRef("");
 
@@ -89,23 +90,43 @@ export function LoginView() {
               We sent a code to <b className="font-semibold text-label">{email.trim()}</b>. Enter it below, or
               open the link on this device.
             </p>
-            <input
-              ref={codeInputRef}
-              className={`${fieldClass} text-center tracking-[0.5em] text-[22px]`}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              pattern="[0-9]*"
-              autoFocus
-              aria-label="Sign-in code"
-              placeholder="000000"
-              value={code}
-              onChange={(e) => {
-                const next = sanitizeEmailCode(e.target.value);
-                setCode(next);
-                if (!isCompleteEmailCode(next)) lastSubmittedCode.current = "";
-                if (next !== lastSubmittedCode.current) void verifyCode(next);
-              }}
-            />
+            {/* Six boxes are only the look: one real input lies on top of them (invisible text), so typing,
+                paste and iOS "From Mail" autofill all work on a single field. */}
+            <div className="relative">
+              <div className="grid grid-cols-6 gap-2" aria-hidden>
+                {Array.from({ length: EMAIL_CODE_LENGTH }, (_, i) => {
+                  const active = codeFocused && i === Math.min(code.length, EMAIL_CODE_LENGTH - 1);
+                  return (
+                    <div
+                      key={i}
+                      className={`flex h-14 items-center justify-center rounded-[10px] border-2 border-ios-blue text-[26px] font-semibold tabular-nums ${
+                        active ? "bg-ios-blue/10" : "bg-transparent"
+                      }`}
+                    >
+                      {code[i] ?? ""}
+                    </div>
+                  );
+                })}
+              </div>
+              <input
+                ref={codeInputRef}
+                className="absolute inset-0 h-full w-full bg-transparent text-[16px] text-transparent caret-transparent outline-none selection:bg-transparent"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9]*"
+                autoFocus
+                aria-label="Sign-in code"
+                value={code}
+                onFocus={() => setCodeFocused(true)}
+                onBlur={() => setCodeFocused(false)}
+                onChange={(e) => {
+                  const next = sanitizeEmailCode(e.target.value);
+                  setCode(next);
+                  if (!isCompleteEmailCode(next)) lastSubmittedCode.current = "";
+                  if (next !== lastSubmittedCode.current) void verifyCode(next);
+                }}
+              />
+            </div>
             {errorMessage && <p className="text-xs text-ios-red">{errorMessage}</p>}
             <button className={primaryButton} disabled={isLoading || !isCompleteEmailCode(code)}>
               {isLoading ? <Spinner className="text-white" /> : "Sign In"}
