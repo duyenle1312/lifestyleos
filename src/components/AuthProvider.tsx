@@ -26,6 +26,11 @@ interface AuthState {
    * (the login screen falls back to password); "error" otherwise.
    */
   sendMagicLink: (email: string) => Promise<MagicLinkResult>;
+  /**
+   * Signs in with the 6-digit code from the same email as the magic link. Resolves true on success
+   * (the SIGNED_IN listener then sets up the session), false with an error message otherwise.
+   */
+  verifyEmailCode: (email: string, code: string) => Promise<boolean>;
   /** Backup to magic links: works even when the email quota is used up. */
   signInWithPassword: (email: string, password: string) => Promise<boolean>;
   /**
@@ -140,6 +145,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [isOfflineSession]);
 
+  /**
+   * Verifies the emailed 6-digit code. Unlike a magic link, this works inside the home-screen app
+   * on iOS, because nothing leaves the app (the link opens Safari, which has separate storage).
+   */
+  const verifyEmailCode = useCallback(async (email: string, code: string): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const { error } = await supabase.auth.verifyOtp({ email, token: code, type: "email" });
+      if (error) {
+        setError("That code is wrong or has expired. Check the latest email or resend.");
+        return false;
+      }
+      return true;
+    } catch (e) {
+      setError(errorMessage(e));
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   /** Emails a one-time sign-in link. A new email gets an account (no password) on its first link. */
   const sendMagicLink = useCallback(async (email: string): Promise<MagicLinkResult> => {
     setIsLoading(true);
@@ -248,6 +275,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       errorMessage: error,
       clearError: () => setError(null),
       sendMagicLink,
+      verifyEmailCode,
       signInWithPassword,
       signUp,
       signOut,
@@ -257,7 +285,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       dismissAccountSetupError: () => setAccountSetupError(null),
     }),
-    [session, offlineUser, isOfflineSession, initializing, isLoading, error, sendMagicLink, signInWithPassword, signUp, signOut, accountSetupError, setUpAccount],
+    [session, offlineUser, isOfflineSession, initializing, isLoading, error, sendMagicLink, verifyEmailCode, signInWithPassword, signUp, signOut, accountSetupError, setUpAccount],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
