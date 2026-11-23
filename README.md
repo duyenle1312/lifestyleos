@@ -22,6 +22,14 @@ On wide screens, Expenses becomes an iPadOS-style split view (see [Desktop](#des
 - [Offline data](#offline-data)
   - [What works offline](#what-works-offline)
   - [Sign-in and accounts while offline](#sign-in-and-accounts-while-offline)
+- [Database schema](#database-schema)
+  - [Tables](#tables)
+  - [Schemas](#schemas)
+  - [Functions](#functions)
+  - [Triggers](#triggers)
+  - [Views](#views)
+  - [Roles](#roles)
+- [Usage dashboard](#usage-dashboard)
 - [Testing](#testing)
 - [Screens](#screens)
 - [Notes](#notes)
@@ -249,14 +257,197 @@ Expenses and the shopping list are read from and written to a database on the de
 - **Sign Out** (Settings) asks first if changes are unsynced ("They'll be sent next time you sign in"). It always clears the device session, locally too if the server call fails or the session was offline-only; otherwise the stored refresh token would sign the user back in later.
 - When a different account signs in, other accounts' local databases are deleted only if their outbox is empty (`cleanupOtherUserDbs` in `session.ts`).
 
+## Database schema
+
+Everything the app owns in the Supabase Postgres database, checked against the live database (catalog queries only, no row data). Every `public` table has Row Level Security on. Most rows are soft-deleted: a non-null `deleted_at` means deleted, and reads filter on `deleted_at is null`. Keep this section current whenever a migration adds, changes or removes a table, column, schema, function, trigger, view, role, grant or policy.
+
+`shopping_lists`, `inventory_items` and the original `expenses` table predate the repo's migrations, so no migration here creates them. `expenses` was later changed by `20261122150000_expenses_ids_only.sql`.
+
+### Tables
+
+`account_id` links a row to its account (see [Users and accounts](#users-and-accounts)).
+
+**`accounts`**: the space a user's data lives in. One per user today (id = user id).
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid | default `uuid_generate_v4()` |
+| `name` | text | "Personal" |
+| `created_at` | timestamptz | default `now()` |
+| `signed_up_at` | timestamptz | default `now()`; set to the user's creation time on sign-up (`20261122120000_accounts_signed_up_at.sql`) |
+
+**`account_users`**: links users to accounts; RLS goes through it.
+
+| Column | Type | Notes |
+|---|---|---|
+| `account_id` | uuid | |
+| `user_id` | uuid | `auth.users` id |
+| `role` | `account_role` enum | default `member`; `owner` / `member` |
+| `joined_at` | timestamptz | default `now()` |
+
+**`expenses`**: one purchase or receipt line. Soft-deleted.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid | default `uuid_generate_v4()` (the app sets its own) |
+| `account_id`, `created_by_user_id` | uuid | |
+| `amount` | numeric | |
+| `currency` | char | e.g. `EUR` |
+| `expense_date` | date | |
+| `item`, `description` | varchar, text | nullable |
+| `category_id` | uuid | nullable; same account (trigger) |
+| `payment_method_id` | uuid | nullable; same account (trigger) |
+| `location` | varchar | nullable |
+| `unit`, `unit_price` | numeric | nullable |
+| `expire_date` | date | nullable |
+| `metadata` | jsonb | default `{}`; holds `restored_after_delete` ([Offline data](#offline-data)) |
+| `deleted_at` | timestamptz | nullable, soft delete |
+| `created_at`, `updated_at` | timestamptz | default `now()`; `updated_at` maintained by trigger |
+
+**`categories`**: per-account expense categories, seeded on sign-up (`20261121180000_categories.sql`, icons and colors in `20261121190000_category_ids_icons.sql`). Deleted for real, not soft-deleted.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid | default `gen_random_uuid()` |
+| `account_id` | uuid | default `auth.uid()` |
+| `name` | text | |
+| `sort_order` | integer | default 0 |
+| `icon`, `color` | text | default `tag`, `gray` |
+| `created_at`, `updated_at` | timestamptz | default `now()` |
+
+**`payment_methods`**: per-account payment methods, seeded on sign-up (`20261121200000_payment_methods.sql`). Deleted for real, not soft-deleted.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid | default `gen_random_uuid()` |
+| `account_id` | uuid | default `auth.uid()` |
+| `name` | text | |
+| `sort_order` | integer | default 0 |
+| `created_at`, `updated_at` | timestamptz | default `now()` |
+
+**`shopping_lists`**: one shopping item per row (the table name is historical). Soft-deleted. Ticking an item sets `purchased`; there is no ticked-at column.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid | default `uuid_generate_v4()` |
+| `account_id`, `created_by_user_id` | uuid | |
+| `item` | text | |
+| `description`, `location` | text, varchar | nullable |
+| `quantity` | integer | nullable |
+| `unit_price` | numeric | nullable |
+| `purchased` | boolean | nullable, default `false` |
+| `priority` | smallint | nullable |
+| `scheduled_date`, `available_date_start`, `available_date_end` | date | nullable |
+| `metadata` | jsonb | default `{}` |
+| `deleted_at` | timestamptz | nullable, soft delete |
+| `created_at`, `updated_at` | timestamptz | default `now()`; `updated_at` maintained by trigger |
+
+**`inventory_items`**: home inventory. Soft-deleted.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | uuid | default `uuid_generate_v4()` |
+| `account_id`, `created_by_user_id` | uuid | |
+| `name` | text | |
+| `quantity` | numeric | default 0 |
+| `unit`, `description` | text | nullable |
+| `expiration_date` | timestamp (no zone) | nullable |
+| `metadata` | jsonb | default `{}` |
+| `deleted_at` | timestamptz | nullable, soft delete |
+| `created_at`, `updated_at` | timestamptz | default `now()`; `updated_at` maintained by trigger |
+
+### Schemas
+
+| Schema | Purpose | Who can use it |
+|---|---|---|
+| `public` | The app's tables and functions | `anon`, `authenticated` (through RLS), `service_role` |
+| `admin` | `admin.users` view for the owner, not exposed by the Data API (`20261122180000_admin_users_view.sql`) | `postgres` only; no grants for `anon` / `authenticated` |
+| `dashboard` | `dashboard.usage_stats()` for the [usage dashboard](#usage-dashboard) (`20261123120000_dashboard_stats.sql`). Created by that migration, so it exists in production only once the migration is applied | `dashboard_reader` only (usage revoked from `public`, `anon`, `authenticated`) |
+
+### Functions
+
+None takes arguments. "Execute" lists who may call the function. The trigger functions only run as triggers, since Postgres doesn't let a trigger function be called directly.
+
+| Function | Returns | `security definer` | Execute | Purpose | Migration |
+|---|---|---|---|---|---|
+| `public.create_default_account()` | trigger | yes | `postgres`, `service_role` | Creates the user's "Personal" account and `owner` link on sign-up | `20261122170000_create_account_on_signup.sql` |
+| `public.seed_default_categories()` | trigger | yes | `anon`, `authenticated`, `postgres`, `service_role` | Inserts default categories for a new user | `20261121180000_categories.sql`, redefined in `20261121190000_category_ids_icons.sql` |
+| `public.seed_default_payment_methods()` | trigger | yes | same as above | Inserts default payment methods for a new user | `20261121200000_payment_methods.sql` |
+| `public.expenses_check_same_account()` | trigger | no | same as above | Rejects an expense whose category or payment method belongs to another account (SQLSTATE `23503`) | `20261122200000_expenses_same_account_refs.sql` |
+| `public.set_updated_at()` | trigger | no | same as above | Sets `updated_at = now()` on update | Predates the repo's migrations |
+| `dashboard.usage_stats()` | jsonb | yes (`search_path = ''`) | `dashboard_reader` only | Aggregate usage statistics, no personal data | `20261123120000_dashboard_stats.sql` |
+
+`admin` has no functions.
+
+### Triggers
+
+| Table | Trigger | When | Function |
+|---|---|---|---|
+| `auth.users` | `on_auth_user_created_account` | after insert | `create_default_account()` |
+| `auth.users` | `on_auth_user_created_seed_categories` | after insert | `seed_default_categories()` |
+| `auth.users` | `on_auth_user_created_seed_payment_methods` | after insert | `seed_default_payment_methods()` |
+| `public.expenses` | `expenses_same_account_refs` | before insert, or update of `account_id`, `category_id`, `payment_method_id` | `expenses_check_same_account()` |
+| `public.expenses` | `trg_expenses_updated_at` | before update | `set_updated_at()` |
+| `public.shopping_lists` | `trg_shopping_lists_updated_at` | before update | `set_updated_at()` |
+| `public.inventory_items` | `trg_inventory_updated_at` | before update | `set_updated_at()` |
+
+The three `auth.users` triggers run in name order, so the account exists before its categories and payment methods are seeded. Only triggers whose functions this repo defines are listed; Supabase's own on `auth.users` are left out. The `trg_*_updated_at` triggers predate the repo's migrations.
+
+### Views
+
+| View | Purpose | Migration |
+|---|---|---|
+| `admin.users` | Users with email, account and activity, for the owner ([Admin view: users](#admin-view-users)) | `20261122180000_admin_users_view.sql`, `name` added in `20261122190000_admin_users_view_name.sql` |
+
+### Roles
+
+| Role | Purpose |
+|---|---|
+| `dashboard_reader` | Login role for the usage dashboard. Can execute `dashboard.usage_stats()` and nothing else. Created `nologin` by `20261123120000_dashboard_stats.sql`; the owner enables login once (see [Usage dashboard](#usage-dashboard)). Exists in production only once that migration is applied. |
+
+`anon` and `authenticated` are Supabase's API roles (signed-out and signed-in requests). Other roles in the project (`service_role`, `authenticator`, `pgbouncer`, `supabase_*`, `dashboard_user`) belong to Supabase.
+
+## Usage dashboard
+
+A private, read-only page for the owner that shows whether the app gets used: total users, active users (7 and 30 days), D30 retention, last activity, and how much expenses, the shopping list and inventory are used, over 30 days, 12 weeks or 12 months. It is a separate Next.js app in `dashboard/` (own `package.json`), deployed as its own Vercel project. Design: `docs/superpowers/specs/2026-11-23-usage-dashboard-design.md`.
+
+**Activity** means any create, update or delete (`created_at`, `updated_at`, `deleted_at`) on a row of `expenses`, `shopping_lists`, `inventory_items`, `categories` or `payment_methods`, attributed to the row's account. Sign-ins don't count. Days are Helsinki days. Every account is counted, including the owner's.
+
+**Privacy.**
+- Aggregates only. `dashboard.usage_stats()` returns counts and sums as one JSON document, with no emails, names, ids, item text or category names.
+- The page connects as `dashboard_reader`, which can run that one function and nothing else: no access to `public`, `auth` or `admin` tables, and no Supabase service-role key anywhere in the dashboard. A leaked connection string exposes usage numbers only.
+- There is no sign-in. The URL is unlisted and the page is `noindex` (robots metadata, `robots.txt` and an `X-Robots-Tag` header).
+- The numbers are fetched on every page load.
+
+**Run locally.**
+
+```bash
+cd dashboard
+npm install
+npm run dev                  # http://localhost:3001
+```
+
+Until `dashboard/.env.local` sets `DASHBOARD_DATABASE_URL` (see `dashboard/.env.example`), the page shows generated mock data under an orange "Mock data" banner.
+
+**One-time setup.**
+1. Apply `supabase/migrations/20261123120000_dashboard_stats.sql` in the Supabase SQL editor. It creates the `dashboard` schema, `dashboard.usage_stats()` and the `dashboard_reader` role, without a password.
+2. Give the role a password, also in the SQL editor (never commit it):
+   ```sql
+   alter role dashboard_reader with login password '<generated>';
+   ```
+3. Take the connection string from Supabase → Connect → Transaction pooler: `postgres://dashboard_reader.<project-ref>:<password>@<pooler-host>:6543/postgres`.
+
+**Deploy.** In Vercel create a new project from this repo with Root Directory `dashboard`, and set the environment variable `DASHBOARD_DATABASE_URL` to that connection string for **Production**. Until it is set, the deployed page shows mock data. If the query fails, the page shows "Couldn't load stats" and never the connection string.
+
 ## Testing
 
 ```bash
 npm test                      # Vitest + fake-indexeddb (IndexedDB in Node); TZ pinned in vitest.setup.ts (Europe/Helsinki)
+cd dashboard && npm test      # Vitest for the dashboard's stats helpers and data loading
 bash scripts/test-migrations.sh   # applies the migrations to a throwaway local Postgres and runs the SQL assertions
 ```
 
-`npm test` runs every `*.test.ts` under `src/`: outbox, push, pull, engine, paging, error mapping, session helpers and more. The migration script checks both the ids-only migration (`supabase/tests/expenses_ids_only_assert.sql`) and the same-account trigger, including a row-level-security test (`supabase/tests/expenses_same_account_assert.sql`). It needs a local Postgres (`PGBIN` defaults to `/opt/homebrew/bin`); it starts and removes its own temporary cluster.
+`npm test` runs every `*.test.ts` under `src/`: outbox, push, pull, engine, paging, error mapping, session helpers and more. The migration script checks both the ids-only migration (`supabase/tests/expenses_ids_only_assert.sql`) and the same-account trigger, including a row-level-security test (`supabase/tests/expenses_same_account_assert.sql`). It also checks the dashboard function and role (`supabase/tests/dashboard_stats_assert*.sql`): the numbers against fixtures, that `anon` and `authenticated` can't call the function, and that `dashboard_reader` can call it but can't read `public` or `auth` tables or log in. It needs a local Postgres (`PGBIN` defaults to `/opt/homebrew/bin`); it starts and removes its own temporary cluster.
 
 ## Screens
 
