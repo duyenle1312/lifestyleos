@@ -32,7 +32,7 @@ begin
   if (s->'daily'->'signups'->>728)::int <> 1 then raise exception 'FAIL: signups yesterday'; end if;
   if s->'lastActivity'->>'kind' is null then raise exception 'FAIL: lastActivity kind'; end if;
   if s->>'today' is null or s->>'generatedAt' is null then raise exception 'FAIL: today/generatedAt'; end if;
-  -- today's activity is A and C: the last bucket of each view counts 2 (a day, a week or month may also hold B's... no, B is inactive)
+  -- today: A (expenses) and C (signed up yesterday) are active; B is not
   if (s->'activeBuckets'->'d30'->>29)::int <> 2 then raise exception 'FAIL: d30 last bucket %', s->'activeBuckets'->'d30'->>29; end if;
 end $$;
 
