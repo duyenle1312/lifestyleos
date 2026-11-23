@@ -80,14 +80,14 @@ Email sign-in through Supabase Auth, sent via Resend on our own domain (custom S
 
 | Method | How it works | Code |
 |---|---|---|
-| **Magic link** (default) | Enter an email and get a link. An unknown email gets an account on its first link, with no password. | `sendMagicLink` in `components/AuthProvider.tsx` |
+| **Email code + link** (default) | Enter an email and get a 6-digit code and a link. Type the code in the app (works in the home-screen app, whose storage is separate from Safari, and email scanners cannot spend it) or open the link on the same device. An unknown email gets an account on its first code or link, with no password. | `sendMagicLink`, `verifyEmailCode` in `components/AuthProvider.tsx` |
 | **Password** (backup) | "Sign in with password instead" shows email + password and a **Sign Up** form. | `signInWithPassword`, `signUp` |
-| **Set Password** | Settings → Account. Magic-link users can add a password; anyone can change theirs. | `components/SetPasswordSheet.tsx` |
+| **Set Password** | Settings → Account. Email-code users can add a password; anyone can change theirs. | `components/SetPasswordSheet.tsx` |
 | **Name** | Settings → Account. Optional display name, saved to Supabase Auth user metadata (`user_metadata.full_name`). Empty removes it. | `components/NameSheet.tsx` |
 
 **When emails can't be sent.** If Supabase returns the email rate-limit error, the login screen switches to the password form and says why. Password sign-up only avoids email when **Confirm email** is off in Supabase (Authentication → Sign In / Providers → Email). With it on, sign-up also sends an email and fails the same way.
 
-**Email links go through `/auth/confirm`.** Templates link to `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email` instead of `{{ .ConfirmationURL }}`. The page calls `verifyOtp` only when the user presses **Continue**. Email security scanners (Outlook Safe Links, Microsoft Defender) open links before the user does, and a direct verify link would be spent by that visit. `AppShell` renders this page without the login gate. See `supabase/templates/README.md`.
+**Email links go through `/auth/confirm`** (the link path only; the code is verified in the app). Templates link to `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email` instead of `{{ .ConfirmationURL }}`. The page calls `verifyOtp` only when the user presses **Continue**. Email security scanners (Outlook Safe Links, Microsoft Defender) open links before the user does, and a direct verify link would be spent by that visit. `AppShell` renders this page without the login gate. See `supabase/templates/README.md`.
 
 **On sign-up.** A database trigger on `auth.users` (`on_auth_user_created_account` → `public.create_default_account()`) creates the user's "Personal" account (id = user id) and their `owner` row in `account_users`, with `signed_up_at` set to the user's creation time. Two more triggers seed default categories and payment methods; triggers for the same event run in name order, so the account comes first. As a fallback, the `SIGNED_IN` listener runs `ensureDefaultAccount`, which repairs a missing account or link. RLS lets a user insert only their own link (`account_id = user_id = auth.uid()`).
 
@@ -118,9 +118,10 @@ select date_trunc('month', signed_up_at) as month, count(*) from admin.users gro
 ```
 
 **Supabase settings this relies on:**
-- Authentication → Sign In / Providers: **Allow new users to sign up** on (needed for sign-up by magic link).
+- Authentication → Sign In / Providers: **Allow new users to sign up** on (needed for sign-up by email code or link).
+- Authentication → Providers → Email: **Email OTP Length** = 6 (the app and templates assume 6 digits).
 - Authentication → URL Configuration → Redirect URLs: `https://www.lifestyleos.homes/**` and `http://localhost:3000/**`. Otherwise Supabase swaps in the Site URL and links miss `/auth/confirm`.
-- Authentication → Emails → Templates: **Magic Link** and **Confirm signup** pasted from `supabase/templates/`.
+- Authentication → Emails → Templates: **Magic Link** and **Confirm signup** pasted from `supabase/templates/`. Re-paste both after any template change; the dashboard is the source of truth.
 - **Secure password change** off. Otherwise Set Password needs an emailed confirmation too.
 
 ### Email delivery (Resend)
@@ -239,7 +240,7 @@ Expenses and the shopping list are read from and written to a database on the de
 | Add, edit and delete expenses | Add, edit and delete inventory items |
 | Add, edit, tick and delete shopping items | Scan a receipt (Gemini). Saving the scanned lines is offline-safe |
 | Use existing categories and payment methods | Create, rename or delete categories and payment methods |
-| Open all tabs of the installed app | Set Password, Name, sign-in by email link |
+| Open all tabs of the installed app | Set Password, Name, sign-in by email code or link |
 
 ### Sign-in and accounts while offline
 
