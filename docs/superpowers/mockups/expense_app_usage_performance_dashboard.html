@@ -1,0 +1,1221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Usage & Performance · Lifestyle OS</title>
+<style>
+  /* Design Tokens: iOS warm-paper light mode & OLED dark mode */
+  :root {
+    color-scheme: light dark;
+    --ios-blue: #007aff;
+    --ios-blue-tint: rgba(0, 122, 255, 0.11);
+    --ios-green: #28cd41;
+    --ios-green-strong: #248a3d;
+    --ios-green-tint: rgba(52, 199, 89, 0.12);
+    --ios-orange: #ff9500;
+    --ios-orange-tint: rgba(255, 149, 0, 0.12);
+    --ios-indigo: #5856d6;
+    --ios-indigo-tint: rgba(88, 86, 214, 0.11);
+    --ios-red: #ff3b30;
+    --ios-gray: #8e8e93;
+
+    --bg-grouped: #f6f5f2;
+    --bg-cell: #ffffff;
+    --bg-subcell: #f2f1ed;
+    --label: #111113;
+    --label-2: rgba(60, 60, 67, 0.68);
+    --label-3: rgba(60, 60, 67, 0.36);
+    --separator: rgba(60, 55, 45, 0.13);
+    --fill: rgba(118, 118, 128, 0.10);
+    --fill-hover: rgba(118, 118, 128, 0.16);
+    --seg-active: #ffffff;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(30, 25, 15, 0.04);
+    --shadow-hover: 0 4px 16px rgba(30, 25, 15, 0.08);
+    --tip-bg: rgba(28, 28, 30, 0.94);
+    --tip-fg: #ffffff;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ios-blue: #0a84ff;
+      --ios-blue-tint: rgba(10, 132, 255, 0.18);
+      --ios-green: #30d158;
+      --ios-green-strong: #32d74b;
+      --ios-green-tint: rgba(48, 209, 88, 0.17);
+      --ios-orange: #ff9f0a;
+      --ios-orange-tint: rgba(255, 159, 10, 0.18);
+      --ios-indigo: #5e5ce6;
+      --ios-indigo-tint: rgba(94, 92, 230, 0.19);
+      --ios-red: #ff453a;
+      --ios-gray: #98989d;
+
+      --bg-grouped: #000000;
+      --bg-cell: #1c1c1e;
+      --bg-subcell: #2c2c2e;
+      --label: #ffffff;
+      --label-2: rgba(235, 235, 245, 0.65);
+      --label-3: rgba(235, 235, 245, 0.35);
+      --separator: rgba(84, 84, 88, 0.55);
+      --fill: rgba(118, 118, 128, 0.22);
+      --fill-hover: rgba(118, 118, 128, 0.32);
+      --seg-active: #48484a;
+      --shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+      --shadow-hover: 0 0 0 1px rgba(255, 255, 255, 0.12);
+      --tip-bg: rgba(44, 44, 46, 0.96);
+      --tip-fg: #ffffff;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ios-blue: #0a84ff;
+    --ios-blue-tint: rgba(10, 132, 255, 0.18);
+    --ios-green: #30d158;
+    --ios-green-strong: #32d74b;
+    --ios-green-tint: rgba(48, 209, 88, 0.17);
+    --ios-orange: #ff9f0a;
+    --ios-orange-tint: rgba(255, 159, 10, 0.18);
+    --ios-indigo: #5e5ce6;
+    --ios-indigo-tint: rgba(94, 92, 230, 0.19);
+    --ios-red: #ff453a;
+    --ios-gray: #98989d;
+
+    --bg-grouped: #000000;
+    --bg-cell: #1c1c1e;
+    --bg-subcell: #2c2c2e;
+    --label: #ffffff;
+    --label-2: rgba(235, 235, 245, 0.65);
+    --label-3: rgba(235, 235, 245, 0.35);
+    --separator: rgba(84, 84, 88, 0.55);
+    --fill: rgba(118, 118, 128, 0.22);
+    --fill-hover: rgba(118, 118, 128, 0.32);
+    --seg-active: #48484a;
+    --shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+    --shadow-hover: 0 0 0 1px rgba(255, 255, 255, 0.12);
+    --tip-bg: rgba(44, 44, 46, 0.96);
+    --tip-fg: #ffffff;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--bg-grouped);
+    color: var(--label);
+    font: 15px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  .wrap {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 28px 18px 72px;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 22px;
+  }
+
+  .title-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  h1 {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    margin: 0;
+    line-height: 1.15;
+  }
+
+  .pill-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--ios-orange-tint);
+    color: var(--ios-orange);
+    border: 1px solid rgba(255, 149, 0, 0.25);
+  }
+
+  .sub {
+    color: var(--label-2);
+    font-size: 13px;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  /* iOS Segmented Control */
+  .seg {
+    display: inline-flex;
+    background: var(--fill);
+    border-radius: 10px;
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .seg button {
+    border: 0;
+    background: transparent;
+    color: var(--label-2);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: background-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+  }
+
+  .seg button:hover {
+    color: var(--label);
+  }
+
+  .seg button[aria-pressed="true"] {
+    background: var(--seg-active);
+    color: var(--label);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 1px rgba(0, 0, 0, 0.04);
+    font-weight: 600;
+  }
+
+  .seg button:focus-visible {
+    outline: 2px solid var(--ios-blue);
+    outline-offset: 1px;
+  }
+
+  .theme-seg button {
+    padding: 6px 9px;
+  }
+
+  /* KPI Hero Row */
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+
+  @media (max-width: 900px) {
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 480px) {
+    .kpis { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--bg-cell);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+
+  .kpi {
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .kpi-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .kpi .label {
+    color: var(--label-2);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .delta-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .delta-up {
+    background: var(--ios-green-tint);
+    color: var(--ios-green-strong);
+  }
+
+  .delta-neutral {
+    background: var(--ios-blue-tint);
+    color: var(--ios-blue);
+  }
+
+  .kpi-main {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .kpi .value {
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+  }
+
+  .kpi .note {
+    color: var(--label-2);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .sparkline {
+    width: 74px;
+    height: 28px;
+    flex-shrink: 0;
+    overflow: visible;
+  }
+
+  /* Live Pulse Dot */
+  .pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--ios-green);
+    display: inline-block;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .pulse-dot::after {
+    content: "";
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    background: var(--ios-green);
+    opacity: 0.4;
+    animation: pulseRing 2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+  }
+
+  @keyframes pulseRing {
+    0% { transform: scale(0.7); opacity: 0.6; }
+    75% { transform: scale(1.8); opacity: 0; }
+    100% { transform: scale(1.8); opacity: 0; }
+  }
+
+  /* Main Section Grid */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 880px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .section {
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    min-width: 0;
+    --sec-accent: var(--ios-blue);
+    --sec-tint: var(--ios-blue-tint);
+  }
+
+  .section[data-accent="green"] {
+    --sec-accent: var(--ios-green);
+    --sec-tint: var(--ios-green-tint);
+    box-shadow: var(--shadow), inset 0 2px 0 0 rgba(40, 205, 65, 0.45);
+  }
+
+  .section[data-accent="orange"] {
+    --sec-accent: var(--ios-orange);
+    --sec-tint: var(--ios-orange-tint);
+  }
+
+  .section[data-accent="indigo"] {
+    --sec-accent: var(--ios-indigo);
+    --sec-tint: var(--ios-indigo-tint);
+  }
+
+  .section-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .section-head h2 {
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .dot {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    background: var(--sec-accent);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    flex-shrink: 0;
+  }
+
+  .sec-pill {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--label-2);
+    background: var(--fill);
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+
+  /* Stat Tiles inside Section */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+    gap: 9px;
+  }
+
+  .stat {
+    position: relative;
+    text-align: left;
+    border: 1.5px solid transparent;
+    font: inherit;
+    color: inherit;
+    background: var(--fill);
+    border-radius: 12px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: background-color 0.16s ease, border-color 0.16s ease, transform 0.12s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .stat:not(.static):hover {
+    background: var(--fill-hover);
+  }
+
+  .stat:not(.static):active {
+    transform: scale(0.985);
+  }
+
+  .stat[aria-pressed="true"] {
+    border-color: var(--sec-accent);
+    background: var(--sec-tint);
+  }
+
+  .stat.static {
+    cursor: default;
+  }
+
+  .stat-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+  }
+
+  .stat .label {
+    color: var(--label-2);
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .stat .value {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+  }
+
+  .stat .note {
+    color: var(--label-2);
+    font-size: 11px;
+  }
+
+  /* Multi-currency & Secondary Metadata Strip */
+  .meta-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 11px;
+    background: var(--bg-subcell);
+    border-radius: 10px;
+    font-size: 12px;
+    color: var(--label-2);
+  }
+
+  .currency-pills {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .curr-pill {
+    background: var(--bg-cell);
+    color: var(--label);
+    font-weight: 600;
+    font-size: 11.5px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  /* Bar Chart */
+  .chart-wrap {
+    margin-top: auto;
+    padding-top: 4px;
+  }
+
+  .chart-title {
+    color: var(--label-2);
+    font-size: 12.5px;
+    font-weight: 500;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .chart {
+    position: relative;
+    height: 146px;
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    padding-left: 34px;
+    border-bottom: 1px solid var(--separator);
+  }
+
+  .chart .gl {
+    position: absolute;
+    left: 34px;
+    right: 0;
+    border-top: 1px dashed var(--separator);
+    pointer-events: none;
+  }
+
+  .chart .gl span {
+    position: absolute;
+    left: -34px;
+    width: 28px;
+    text-align: right;
+    top: -7px;
+    font-size: 10px;
+    color: var(--label-3);
+  }
+
+  .bar-hit {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    cursor: crosshair;
+    border-radius: 5px 5px 0 0;
+    padding: 0 1px;
+    transition: background-color 0.12s ease;
+  }
+
+  .bar-hit:hover {
+    background: var(--fill);
+  }
+
+  .bar {
+    width: 100%;
+    min-height: 2px;
+    border-radius: 4px 4px 0 0;
+    background: linear-gradient(180deg, var(--sec-accent) 0%, color-mix(in srgb, var(--sec-accent) 72%, transparent) 100%);
+    transition: height 0.32s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.15s ease;
+  }
+
+  .bar-hit:hover .bar {
+    filter: brightness(1.08);
+  }
+
+  .axis {
+    display: flex;
+    padding-left: 34px;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--label-3);
+    margin-top: 6px;
+  }
+
+  /* Floating Tooltip */
+  .tip {
+    position: fixed;
+    pointer-events: none;
+    background: var(--tip-bg);
+    color: var(--tip-fg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 10px;
+    padding: 8px 11px;
+    font-size: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.12s ease, transform 0.12s ease;
+    z-index: 50;
+    white-space: nowrap;
+  }
+
+  .tip.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .tip b {
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .tip-meta {
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 11px;
+    margin-top: 2px;
+  }
+
+  /* Shopping Outcome Bar */
+  .split-box {
+    background: var(--bg-subcell);
+    padding: 10px 12px;
+    border-radius: 11px;
+  }
+
+  .split {
+    display: flex;
+    height: 10px;
+    gap: 3px;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .split div {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--label-2);
+    margin-top: 8px;
+  }
+
+  .legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .legend i {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+  }
+
+  /* Inventory Grouped List Rows */
+  .rows {
+    list-style: none;
+    margin: 0;
+    padding: 2px 12px;
+    background: var(--bg-subcell);
+    border-radius: 11px;
+  }
+
+  .rows li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--separator);
+    font-size: 13.5px;
+  }
+
+  .rows li:last-child {
+    border-bottom: 0;
+  }
+
+  .row-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .mini-prog {
+    width: 56px;
+    height: 6px;
+    background: var(--fill);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .mini-prog > div {
+    height: 100%;
+    background: var(--ios-indigo);
+    border-radius: 999px;
+    transition: width 0.35s ease;
+  }
+
+  .rows .v {
+    color: var(--label-2);
+    font-weight: 600;
+    font-size: 12.5px;
+    min-width: 54px;
+    text-align: right;
+  }
+
+  .alert-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ios-orange);
+    background: var(--ios-orange-tint);
+    padding: 2px 7px;
+    border-radius: 6px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="title-row">
+        <h1>Usage & Performance</h1>
+        <span class="pill-status">MOCK DATA</span>
+      </div>
+      <div class="sub">
+        <span>Lifestyle OS</span>
+        <span>·</span>
+        <span>Aggregated metrics only, zero PII</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <!-- Theme Switcher -->
+      <div class="seg theme-seg" id="themeSwitch" role="group" aria-label="Color Theme">
+        <button data-theme-val="light" aria-pressed="false" title="Light Mode">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        </button>
+        <button data-theme-val="auto" aria-pressed="true" title="System Theme">
+          <span>Auto</span>
+        </button>
+        <button data-theme-val="dark" aria-pressed="false" title="Dark Mode">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        </button>
+      </div>
+
+      <!-- Time Period Switcher -->
+      <div class="seg" id="range" role="group" aria-label="Time Period">
+        <button data-v="30" aria-pressed="false">30 days</button>
+        <button data-v="84" aria-pressed="true">12 weeks</button>
+        <button data-v="365" aria-pressed="false">12 months</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero KPI Cards -->
+  <div class="kpis" id="kpis"></div>
+
+  <!-- 2x2 Feature Performance Grid -->
+  <div class="grid">
+    <section class="card section" id="users" data-accent="blue"></section>
+    <section class="card section" id="expenses" data-accent="green"></section>
+    <section class="card section" id="shopping" data-accent="orange"></section>
+    <section class="card section" id="inventory" data-accent="indigo"></section>
+  </div>
+</div>
+
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script>
+// ---------- Deterministic Mock Data (365 days) ----------
+let seed = 7;
+const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+const DAYS = 365;
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+const dayDate = (i) => new Date(today.getTime() - (DAYS - 1 - i) * 864e5);
+
+const gen = (base, growth, noise) => Array.from({ length: DAYS }, (_, i) => {
+  const t = i / DAYS;
+  const wk = [0.72, 1.0, 1.02, 0.98, 1.12, 1.34, 1.22][dayDate(i).getDay()];
+  return Math.max(0, Math.round((base + growth * t) * wk * (1 + (rnd() - 0.5) * noise)));
+});
+
+const D = {
+  signups: Array.from({ length: DAYS }, (_, i) => (rnd() < (0.045 + (i / DAYS) * 0.03) ? 1 : 0)),
+  active: gen(1.4, 5.4, 0.75),
+  expAdded: gen(1.5, 9.5, 1.1),
+  expDeleted: gen(0.1, 0.65, 1.8),
+  shopCreated: gen(0.6, 4.2, 1.15),
+  shopTicked: gen(0.4, 3.2, 1.15),
+  shopDeleted: gen(0.05, 0.45, 1.8),
+  invAdded: gen(0.15, 1.1, 1.8),
+  invDeleted: gen(0.02, 0.25, 1.8),
+};
+
+const AVG_EUR = 21.7;
+D.expVolume = D.expAdded.map((count, i) => {
+  if (count === 0) return 0;
+  const variance = 0.78 + 0.44 * Math.abs(Math.sin(i * 1.7 + 0.5));
+  return Math.round(count * AVG_EUR * variance);
+});
+
+const sum = (a, from = 0, to = a.length) => a.slice(Math.max(0, from), to).reduce((s, v) => s + v, 0);
+const fmt = (n) => Math.round(n).toLocaleString("en-GB");
+const eur = (n) => "€" + Math.round(n).toLocaleString("en-GB");
+
+// ---------- Crisp SF-style Inline SVG Icons ----------
+const ICONS = {
+  users: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  expenses: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>`,
+  shopping: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>`,
+  inventory: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`
+};
+
+// ---------- Application State ----------
+const state = {
+  range: 84,
+  theme: "auto",
+  users: "signups",
+  expenses: "expVolume",
+  shopping: "shopCreated",
+  inventory: "invAdded"
+};
+
+// ---------- Bucketing & Formatting Helpers ----------
+function buckets(key, range) {
+  const from = DAYS - range;
+  const arr = D[key];
+  const out = [];
+  const size = range === 30 ? 1 : range === 84 ? 7 : 30.416;
+  const n = Math.round(range / size);
+
+  for (let b = 0; b < n; b++) {
+    const s = from + Math.round(b * size);
+    const e = Math.min(DAYS, from + Math.round((b + 1) * size));
+    let v = sum(arr, s, e);
+    if (key === "active") {
+      v = Math.round((v / Math.max(1, e - s)) * (size === 1 ? 1 : 1.75));
+    }
+    out.push({ v, start: dayDate(s), end: dayDate(Math.max(s, e - 1)), days: Math.max(1, e - s) });
+  }
+  return out;
+}
+
+const dateLbl = (d, range) => range === 365
+  ? d.toLocaleDateString("en-GB", { month: "short" })
+  : d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+
+const periodName = () => ({ 30: "last 30 days", 84: "last 12 weeks", 365: "last 12 months" })[state.range];
+const bucketName = () => ({ 30: "per day", 84: "per week", 365: "per month" })[state.range];
+
+// ---------- Sparkline SVG Generator ----------
+function sparklineSvg(values, color) {
+  if (!values.length) return "";
+  const w = 74, h = 28, pad = 2;
+  const min = Math.min(...values);
+  const max = Math.max(...values, min + 1);
+  const pts = values.map((v, i) => {
+    const x = pad + (i / Math.max(1, values.length - 1)) * (w - pad * 2);
+    const y = h - pad - ((v - min) / (max - min)) * (h - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const areaPts = `${pad},${h} ${pts.join(" ")} ${w - pad},${h}`;
+  const uid = "sp-" + Math.random().toString(36).slice(2, 7);
+
+  return `
+    <svg class="sparkline" viewBox="0 0 ${w} ${h}" aria-hidden="true">
+      <defs>
+        <linearGradient id="${uid}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${color}" stop-opacity="0.28" />
+          <stop offset="100%" stop-color="${color}" stop-opacity="0.0" />
+        </linearGradient>
+      </defs>
+      <polygon points="${areaPts}" fill="url(#${uid})" />
+      <polyline points="${pts.join(" ")}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>`;
+}
+
+// ---------- Interactive Bar Chart Renderer ----------
+const tip = document.getElementById("tip");
+
+function chart(key, unit, formatter = fmt) {
+  const bs = buckets(key, state.range);
+  const max = Math.max(1, ...bs.map(b => b.v));
+  const nice = Math.pow(10, Math.floor(Math.log10(max)));
+  const top = Math.ceil(max / nice) * nice;
+  const avgBucket = bs.reduce((acc, b) => acc + b.v, 0) / Math.max(1, bs.length);
+
+  const bars = bs.map((b, i) => {
+    const hPct = Math.max(b.v > 0 ? 3 : 0, (b.v / top) * 100);
+    return `<div class="bar-hit" data-i="${i}"><div class="bar" style="height:${hPct}%"></div></div>`;
+  }).join("");
+
+  const lbl = (b) => dateLbl(b.start, state.range);
+
+  const html = `
+    <div class="chart-wrap">
+      <div class="chart-title">
+        <span>${unit} ${bucketName()}</span>
+        <span class="tnum">Avg ${formatter(avgBucket)} ${bucketName()}</span>
+      </div>
+      <div class="chart" data-key="${key}">
+        <div class="gl" style="bottom:100%"><span>${formatter(top)}</span></div>
+        <div class="gl" style="bottom:50%"><span>${formatter(Math.round(top / 2))}</span></div>
+        <div class="gl" style="bottom:0;border:0"><span>${formatter(0)}</span></div>
+        ${bars}
+      </div>
+      <div class="axis">
+        <span>${lbl(bs[0])}</span>
+        <span>${lbl(bs[Math.floor(bs.length / 2)])}</span>
+        <span>${lbl(bs[bs.length - 1])}</span>
+      </div>
+    </div>`;
+  return { html, bs, unit, avgBucket, formatter };
+}
+
+function wireChart(root, c) {
+  const showTip = (el, clientX, clientY) => {
+    const b = c.bs[+el.dataset.i];
+    if (!b) return;
+    const when = state.range === 30
+      ? dateLbl(b.start, 30)
+      : `${dateLbl(b.start, 84)} – ${dateLbl(b.end, 84)}`;
+    const diffPct = c.avgBucket > 0 ? Math.round(((b.v - c.avgBucket) / c.avgBucket) * 100) : 0;
+    const diffStr = diffPct >= 0 ? `+${diffPct}% vs avg` : `${diffPct}% vs avg`;
+
+    tip.innerHTML = `
+      <div><b class="tnum">${c.formatter(b.v)}</b> ${c.unit.toLowerCase()}</div>
+      <div class="tip-meta">${when} · ${diffStr}</div>`;
+    tip.classList.add("visible");
+    const left = Math.max(8, Math.min(clientX + 12, window.innerWidth - tip.offsetWidth - 10));
+    const top = Math.max(8, clientY - 56);
+    tip.style.left = left + "px";
+    tip.style.top = top + "px";
+  };
+
+  root.querySelectorAll(".bar-hit").forEach(el => {
+    el.addEventListener("mousemove", (e) => showTip(el, e.clientX, e.clientY));
+    el.addEventListener("touchstart", (e) => {
+      const t = e.touches[0];
+      if (t) showTip(el, t.clientX, t.clientY);
+    }, { passive: true });
+    el.addEventListener("mouseleave", () => tip.classList.remove("visible"));
+    el.addEventListener("touchend", () => tip.classList.remove("visible"));
+  });
+}
+
+// ---------- Tile & Section Builders ----------
+function stat(id, metric, label, value, note, selected) {
+  return `
+    <button class="stat" data-sec="${id}" data-metric="${metric}" aria-pressed="${selected}">
+      <div class="stat-top">
+        <span class="label">${label}</span>
+      </div>
+      <div class="value tnum">${value}</div>
+      <div class="note">${note}</div>
+    </button>`;
+}
+
+function staticStat(label, value, note) {
+  return `
+    <div class="stat static">
+      <div class="stat-top"><span class="label">${label}</span></div>
+      <div class="value tnum">${value}</div>
+      <div class="note">${note}</div>
+    </div>`;
+}
+
+function section(id, iconSvg, title, pillText, statsHtml, chartKey, unit, extra = "", formatter = fmt) {
+  const root = document.getElementById(id);
+  const c = chart(chartKey, unit, formatter);
+  root.innerHTML = `
+    <div class="section-head">
+      <h2><span class="dot">${iconSvg}</span>${title}</h2>
+      <span class="sec-pill">${pillText}</span>
+    </div>
+    <div class="stats">${statsHtml}</div>
+    ${extra}
+    ${c.html}`;
+  wireChart(root, c);
+  root.querySelectorAll(".stat[data-metric]").forEach(b => {
+    b.addEventListener("click", () => {
+      state[id] = b.dataset.metric;
+      render();
+    });
+  });
+}
+
+// ---------- Main Render ----------
+function render() {
+  const r = state.range;
+  const from = DAYS - r;
+  const prevFrom = Math.max(0, from - r);
+
+  const totalUsers = 9 + sum(D.signups);
+  const periodSignups = sum(D.signups, from);
+  const a7 = 6;
+  const a30 = 10;
+  const stickiness = Math.round((a7 / Math.max(1, a30)) * 100);
+
+  const expAddedPeriod = sum(D.expAdded, from);
+  const expAddedPrev = Math.max(1, sum(D.expAdded, prevFrom, from));
+  const expDeltaPct = Math.round(((expAddedPeriod - expAddedPrev) / expAddedPrev) * 100);
+  const expVolPeriod = sum(D.expVolume, from);
+  const expVolAllTime = sum(D.expVolume);
+
+  const expSpark = buckets("expVolume", r).slice(-10).map(b => b.v);
+  const userSpark = buckets("active", r).slice(-10).map(b => b.v);
+
+  // 1. Hero KPI Cards
+  document.getElementById("kpis").innerHTML = `
+    <div class="card kpi">
+      <div class="kpi-top">
+        <span class="label">Total Users</span>
+        <span class="delta-badge delta-up tnum">+${periodSignups} new</span>
+      </div>
+      <div class="kpi-main">
+        <div class="value tnum">${fmt(totalUsers)}</div>
+        ${sparklineSvg(userSpark, "var(--ios-blue)")}
+      </div>
+      <div class="note">In ${periodName()}</div>
+    </div>
+
+    <div class="card kpi">
+      <div class="kpi-top">
+        <span class="label">Active Users (7d / 30d)</span>
+        <span class="delta-badge delta-neutral tnum">${stickiness}% sticky</span>
+      </div>
+      <div class="kpi-main">
+        <div class="value tnum">${a7} <span style="font-size:18px;color:var(--label-2);font-weight:600">/ ${a30}</span></div>
+      </div>
+      <div class="note">${Math.round((a30 / totalUsers) * 100)}% of total user base active</div>
+    </div>
+
+    <div class="card kpi">
+      <div class="kpi-top">
+        <span class="label">Expenses Logged</span>
+        <span class="delta-badge ${expDeltaPct >= 0 ? "delta-up" : "delta-neutral"} tnum">${expDeltaPct >= 0 ? "+" : ""}${expDeltaPct}%</span>
+      </div>
+      <div class="kpi-main">
+        <div class="value tnum">${fmt(expAddedPeriod)}</div>
+        ${sparklineSvg(expSpark, "var(--ios-green)")}
+      </div>
+      <div class="note">${eur(expVolPeriod)} EUR volume · ${periodName()}</div>
+    </div>
+
+    <div class="card kpi">
+      <div class="kpi-top">
+        <span class="label">System & Activity</span>
+        <span class="delta-badge delta-up">99.98% uptime</span>
+      </div>
+      <div class="kpi-main">
+        <div class="value" style="font-size:24px;line-height:1.25">3 min ago</div>
+      </div>
+      <div class="note"><span class="pulse-dot"></span><span>Expense logged · API 42ms</span></div>
+    </div>
+  `;
+
+  // 2. Users Section
+  const u = state.users;
+  section(
+    "users",
+    ICONS.users,
+    "Users & Retention",
+    "64% D30 retention",
+    stat("users", "signups", "New sign-ups", fmt(periodSignups), periodName(), u === "signups") +
+    stat("users", "active", "Active users", fmt(Math.round((sum(D.active, from) / r) * 1.75)), `avg ${bucketName()}`, u === "active") +
+    staticStat("D30 Retention", "64%", "active 30d post-signup"),
+    u,
+    u === "signups" ? "Sign-ups" : "Active users"
+  );
+
+  // 3. Expenses Section (Primary App Focus)
+  const e = state.expenses;
+  const added = expAddedPeriod;
+  const deleted = sum(D.expDeleted, from);
+  const netRetention = Math.round(((added - deleted) / Math.max(1, added)) * 100);
+  const expChartMeta = {
+    expVolume: { unit: "EUR tracked", formatter: eur },
+    expAdded: { unit: "Expenses added", formatter: fmt },
+    expDeleted: { unit: "Expenses deleted", formatter: fmt }
+  }[e];
+
+  section(
+    "expenses",
+    ICONS.expenses,
+    "Expenses",
+    `${netRetention}% net kept`,
+    stat("expenses", "expVolume", "Tracked in EUR", eur(expVolPeriod), `${eur(expVolAllTime)} all time`, e === "expVolume") +
+    stat("expenses", "expAdded", "Added", fmt(added), `${fmt(sum(D.expAdded))} all time`, e === "expAdded") +
+    stat("expenses", "expDeleted", "Deleted", fmt(deleted), `${fmt(sum(D.expDeleted))} all time`, e === "expDeleted") +
+    staticStat("Per active user", fmt(Math.round(added / a30 / (r / 30))), "entries / month"),
+    e,
+    expChartMeta.unit,
+    `<div class="meta-strip">
+      <span>Other currencies (raw):</span>
+      <div class="currency-pills tnum">
+        <span class="curr-pill">$1,240 USD</span>
+        <span class="curr-pill">£310 GBP</span>
+        <span class="curr-pill">4,200 CZK</span>
+      </div>
+    </div>`,
+    expChartMeta.formatter
+  );
+
+  // 4. Shopping List Section
+  const s = state.shopping;
+  const cr = sum(D.shopCreated, from);
+  const tk = sum(D.shopTicked, from);
+  const dl = sum(D.shopDeleted, from);
+  const open = 58;
+  const totalShop = Math.max(1, tk + dl + open);
+  const pct = (n) => (n / totalShop) * 100;
+
+  section(
+    "shopping",
+    ICONS.shopping,
+    "Shopping List",
+    `${Math.round((tk / Math.max(1, cr)) * 100)}% completion`,
+    stat("shopping", "shopCreated", "Created", fmt(cr), periodName(), s === "shopCreated") +
+    stat("shopping", "shopTicked", "Ticked off", fmt(tk), `${Math.round((tk / Math.max(1, cr)) * 100)}% of created`, s === "shopTicked") +
+    stat("shopping", "shopDeleted", "Deleted", fmt(dl), "removed unticked", s === "shopDeleted") +
+    staticStat("Open now", fmt(open), "on active lists"),
+    s,
+    { shopCreated: "Items created", shopTicked: "Items ticked off", shopDeleted: "Items deleted" }[s],
+    `<div class="split-box">
+      <div class="split" role="img" aria-label="Ticked off ${Math.round(pct(tk))}%, open ${Math.round(pct(open))}%, deleted ${Math.round(pct(dl))}%">
+        <div style="width:${pct(tk)}%;background:var(--ios-green)"></div>
+        <div style="width:${pct(open)}%;background:var(--ios-gray)"></div>
+        <div style="width:${pct(dl)}%;background:var(--ios-red)"></div>
+      </div>
+      <div class="legend tnum">
+        <span><i style="background:var(--ios-green)"></i>Ticked off <b>${Math.round(pct(tk))}%</b></span>
+        <span><i style="background:var(--ios-gray)"></i>Open <b>${Math.round(pct(open))}%</b></span>
+        <span><i style="background:var(--ios-red)"></i>Deleted <b>${Math.round(pct(dl))}%</b></span>
+      </div>
+    </div>`
+  );
+
+  // 5. Inventory & Personalization Section
+  const iv = state.inventory;
+  const customCats = 7;
+  const customPays = 5;
+  const catPct = Math.round((customCats / totalUsers) * 100);
+  const payPct = Math.round((customPays / totalUsers) * 100);
+
+  section(
+    "inventory",
+    ICONS.inventory,
+    "Inventory & Setup",
+    "96 items tracked",
+    stat("inventory", "invAdded", "Added", fmt(sum(D.invAdded, from)), periodName(), iv === "invAdded") +
+    stat("inventory", "invDeleted", "Removed", fmt(sum(D.invDeleted, from)), periodName(), iv === "invDeleted") +
+    staticStat("In stock now", "96", "across all households") +
+    staticStat("Expiring soon", `<span class="alert-badge">4 items</span>`, "within next 7 days"),
+    iv,
+    iv === "invAdded" ? "Items added" : "Items removed",
+    `<ul class="rows">
+      <li>
+        <span>Custom expense categories</span>
+        <div class="row-right">
+          <div class="mini-prog" aria-hidden="true"><div style="width:${catPct}%"></div></div>
+          <span class="v tnum">${customCats} of ${totalUsers}</span>
+        </div>
+      </li>
+      <li>
+        <span>Custom payment methods</span>
+        <div class="row-right">
+          <div class="mini-prog" aria-hidden="true"><div style="width:${payPct}%"></div></div>
+          <span class="v tnum">${customPays} of ${totalUsers}</span>
+        </div>
+      </li>
+    </ul>`
+  );
+}
+
+// ---------- Event Listeners ----------
+document.querySelectorAll("#range button").forEach(b => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll("#range button").forEach(x => x.setAttribute("aria-pressed", x === b));
+    state.range = +b.dataset.v;
+    render();
+  });
+});
+
+document.querySelectorAll("#themeSwitch button").forEach(b => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll("#themeSwitch button").forEach(x => x.setAttribute("aria-pressed", x === b));
+    const val = b.dataset.themeVal;
+    state.theme = val;
+    if (val === "auto") {
+      document.documentElement.removeAttribute("data-theme");
+    } else {
+      document.documentElement.setAttribute("data-theme", val);
+    }
+  });
+});
+
+// Initial Render
+render();
+</script>
+</body>
+</html>
