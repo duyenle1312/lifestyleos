@@ -1,10 +1,12 @@
 "use client";
 
-// Magic-link sign-in by default, which also
-// signs up new emails (no password needed). Password sign-in and sign-up stay as the backup for when
+// Email sign-in by default, which also signs up new emails (no password needed). The email carries a
+// magic link and a 6-digit code; the code is typed here, so it works in the iOS home-screen app
+// where the link would open Safari instead. Password sign-in and sign-up stay as the backup for when
 // the email quota is used up: a rate-limited magic link switches the screen to the password form.
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AppLogo } from "./AppLogo";
+import { EMAIL_CODE_LENGTH, isCompleteEmailCode, sanitizeEmailCode } from "@/lib/emailCode";
 import { useAuth } from "./AuthProvider";
 import { Sheet, Spinner } from "./ui";
 
@@ -13,22 +15,53 @@ const primaryButton =
   "flex w-full items-center justify-center rounded-[10px] bg-ios-blue p-4 text-[17px] font-semibold text-white disabled:opacity-50";
 const linkButton = "text-[17px] text-ios-blue";
 
-/** "link": default, ask for a magic link · "password": password sign-in · "sent": link emailed. */
+/** "link": default, ask for a magic link · "password": password sign-in · "sent": code and link emailed. */
 type Mode = "password" | "link" | "sent";
 
 export function LoginView() {
-  const { sendMagicLink, signInWithPassword, isLoading, errorMessage, clearError } = useAuth();
+  const { sendMagicLink, verifyEmailCode, signInWithPassword, isLoading, errorMessage, clearError } = useAuth();
   const [mode, setMode] = useState<Mode>("link");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showSignUp, setShowSignUp] = useState(false);
+  const [code, setCode] = useState("");
+  const codeInputRef = useRef<HTMLInputElement>(null);
+  const [codeFocused, setCodeFocused] = useState(false);
+  // Last code sent for verification, so autofill firing twice can't submit it twice.
+  const lastSubmittedCode = useRef("");
 
   const switchTo = (next: Mode) => {
     clearError();
     setMode(next);
   };
 
+  const verifyCode = async (value: string) => {
+    if (!isCompleteEmailCode(value) || isLoading) return;
+    lastSubmittedCode.current = value;
+    const result = await verifyEmailCode(email.trim(), value);
+    if (result === "ok") return;
+    // Keep lastSubmittedCode on "retry" so the unchanged code isn't re-sent on its own; Sign In retries.
+    if (result === "wrong") {
+      setCode("");
+      lastSubmittedCode.current = "";
+      codeInputRef.current?.focus();
+    }
+  };
+
+  const resend = async () => {
+    setCode("");
+    lastSubmittedCode.current = "";
+    // Keep the rate-limit message visible: it explains why the password field appeared.
+    const result = await sendMagicLink(email.trim());
+    if (result === "rate_limited") setMode("password");
+    if (result === "sent") codeInputRef.current?.focus();
+  };
+
   const submit = async () => {
+    if (mode === "sent") {
+      await verifyCode(code);
+      return;
+    }
     if (mode === "password") {
       await signInWithPassword(email.trim(), password);
       return;
@@ -54,14 +87,62 @@ export function LoginView() {
         {mode === "sent" ? (
           <div className="flex w-full flex-col gap-[15px] p-4 text-center">
             <p className="text-[17px] text-label-2">
-              We sent a link to <span className="font-semibold text-label">{email.trim()}</span>. Open it on
-              this device to sign in.
+              We sent a code to <b className="font-semibold text-label">{email.trim()}</b>. Enter it below, or
+              open the link on this device.
             </p>
+            {/* Six boxes are only the look: one real input lies on top of them (invisible text), so typing,
+                paste and iOS "From Mail" autofill all work on a single field. */}
+            <div className="relative">
+              <div className="grid grid-cols-6 gap-2.5" aria-hidden>
+                {Array.from({ length: EMAIL_CODE_LENGTH }, (_, i) => {
+                  const active = codeFocused && i === Math.min(code.length, EMAIL_CODE_LENGTH - 1);
+                  return (
+                    <div
+                      key={i}
+                      className={`flex h-[52px] items-center justify-center rounded-lg border bg-primary-bg text-[22px] tabular-nums transition-colors ${
+                        active ? "border-ios-blue ring-[3px] ring-ios-blue/15" : "border-separator"
+                      }`}
+                    >
+                      {code[i] ?? ""}
+                    </div>
+                  );
+                })}
+              </div>
+              <input
+                ref={codeInputRef}
+                className="absolute inset-0 h-full w-full bg-transparent text-[16px] text-transparent caret-transparent outline-none selection:bg-transparent"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9]*"
+                autoFocus
+                aria-label="Sign-in code"
+                value={code}
+                onFocus={() => setCodeFocused(true)}
+                onBlur={() => setCodeFocused(false)}
+                onChange={(e) => {
+                  const next = sanitizeEmailCode(e.target.value);
+                  setCode(next);
+                  if (!isCompleteEmailCode(next)) lastSubmittedCode.current = "";
+                  if (next !== lastSubmittedCode.current) void verifyCode(next);
+                }}
+              />
+            </div>
             {errorMessage && <p className="text-xs text-ios-red">{errorMessage}</p>}
-            <button className={primaryButton} disabled={isLoading}>
-              {isLoading ? <Spinner className="text-white" /> : "Resend Link"}
+            <button className={primaryButton} disabled={isLoading || !isCompleteEmailCode(code)}>
+              {isLoading ? <Spinner className="text-white" /> : "Sign In"}
             </button>
-            <button type="button" className={linkButton} onClick={() => switchTo("link")}>
+            <button type="button" className={linkButton} disabled={isLoading} onClick={() => void resend()}>
+              Resend Code
+            </button>
+            <button
+              type="button"
+              className={linkButton}
+              onClick={() => {
+                setCode("");
+                lastSubmittedCode.current = "";
+                switchTo("link");
+              }}
+            >
               Use a different email
             </button>
           </div>

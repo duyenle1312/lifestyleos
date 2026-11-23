@@ -7,6 +7,8 @@ import { errorMessage } from "@/lib/helpers";
 import { isRetryable } from "@/lib/offline/remote";
 import { cleanupOtherUserDbs, forgetRememberedUser, needsLocalSignOut, rememberUser, rememberedUserId, resolveInitialUser } from "@/lib/offline/session";
 
+type EmailCodeResult = "ok" | "wrong" | "retry";
+
 interface AuthState {
   user: User | null;
   session: Session | null;
@@ -26,6 +28,12 @@ interface AuthState {
    * (the login screen falls back to password); "error" otherwise.
    */
   sendMagicLink: (email: string) => Promise<MagicLinkResult>;
+  /**
+   * Signs in with the 6-digit code from the same email as the magic link. "ok" on success (the
+   * SIGNED_IN listener then sets up the session); "wrong" when the code is wrong or expired;
+   * "retry" for rate limits and network failures, where the code may still be valid.
+   */
+  verifyEmailCode: (email: string, code: string) => Promise<EmailCodeResult>;
   /** Backup to magic links: works even when the email quota is used up. */
   signInWithPassword: (email: string, password: string) => Promise<boolean>;
   /**
@@ -140,6 +148,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [isOfflineSession]);
 
+  /**
+   * Verifies the emailed 6-digit code. Unlike a magic link, this works inside the home-screen app
+   * on iOS, because nothing leaves the app (the link opens Safari, which has separate storage).
+   */
+  const verifyEmailCode = useCallback(async (email: string, code: string): Promise<EmailCodeResult> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const { error } = await supabase.auth.verifyOtp({ email, token: code, type: "email" });
+      if (error) throw error;
+      return "ok";
+    } catch (e) {
+      if ((e as { status?: unknown }).status === 429) {
+        setError("Too many attempts. Wait a minute and try again.");
+        return "retry";
+      }
+      if (isRetryable(e)) {
+        setError("Couldn't reach the server. Check your connection and try again.");
+        return "retry";
+      }
+      setError("That code is wrong or has expired. Check the latest email or resend.");
+      return "wrong";
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   /** Emails a one-time sign-in link. A new email gets an account (no password) on its first link. */
   const sendMagicLink = useCallback(async (email: string): Promise<MagicLinkResult> => {
     setIsLoading(true);
@@ -248,6 +283,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       errorMessage: error,
       clearError: () => setError(null),
       sendMagicLink,
+      verifyEmailCode,
       signInWithPassword,
       signUp,
       signOut,
@@ -257,7 +293,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       dismissAccountSetupError: () => setAccountSetupError(null),
     }),
-    [session, offlineUser, isOfflineSession, initializing, isLoading, error, sendMagicLink, signInWithPassword, signUp, signOut, accountSetupError, setUpAccount],
+    [session, offlineUser, isOfflineSession, initializing, isLoading, error, sendMagicLink, verifyEmailCode, signInWithPassword, signUp, signOut, accountSetupError, setUpAccount],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
