@@ -73,7 +73,10 @@ export function LoginView() {
   };
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-primary-bg p-4">
+    // On the code screen, extra bottom padding lifts the content above centre, clear of the iPhone keyboard.
+    <div
+      className={`flex min-h-dvh items-center justify-center bg-primary-bg p-4 ${mode === "sent" ? "pb-[30dvh]" : ""}`}
+    >
       <form
         className="flex w-full max-w-md flex-col items-center gap-5 p-4"
         onSubmit={(e) => {
