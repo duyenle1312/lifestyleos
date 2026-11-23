@@ -4,6 +4,9 @@ import { fileURLToPath } from "node:url";
 const nextConfig: NextConfig = {
   // The repo root has its own lockfile; pin the root to this app.
   turbopack: { root: fileURLToPath(new URL(".", import.meta.url)) },
+  async headers() {
+    return [{ source: "/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] }];
+  },
 };
 
 export default nextConfig;
