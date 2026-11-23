@@ -15,7 +15,7 @@ const primaryButton =
   "flex w-full items-center justify-center rounded-[10px] bg-ios-blue p-4 text-[17px] font-semibold text-white disabled:opacity-50";
 const linkButton = "text-[17px] text-ios-blue";
 
-/** "link": default, ask for a magic link · "password": password sign-in · "sent": link emailed. */
+/** "link": default, ask for a magic link · "password": password sign-in · "sent": code and link emailed. */
 type Mode = "password" | "link" | "sent";
 
 export function LoginView() {
@@ -51,7 +51,9 @@ export function LoginView() {
     setCode("");
     lastSubmittedCode.current = "";
     // Keep the rate-limit message visible: it explains why the password field appeared.
-    if ((await sendMagicLink(email.trim())) === "rate_limited") setMode("password");
+    const result = await sendMagicLink(email.trim());
+    if (result === "rate_limited") setMode("password");
+    if (result === "sent") codeInputRef.current?.focus();
   };
 
   const submit = async () => {
@@ -100,6 +102,7 @@ export function LoginView() {
               onChange={(e) => {
                 const next = sanitizeEmailCode(e.target.value);
                 setCode(next);
+                if (!isCompleteEmailCode(next)) lastSubmittedCode.current = "";
                 if (next !== lastSubmittedCode.current) void verifyCode(next);
               }}
             />
@@ -110,7 +113,15 @@ export function LoginView() {
             <button type="button" className={linkButton} disabled={isLoading} onClick={() => void resend()}>
               Resend Code
             </button>
-            <button type="button" className={linkButton} onClick={() => switchTo("link")}>
+            <button
+              type="button"
+              className={linkButton}
+              onClick={() => {
+                setCode("");
+                lastSubmittedCode.current = "";
+                switchTo("link");
+              }}
+            >
               Use a different email
             </button>
           </div>

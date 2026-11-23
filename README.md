@@ -119,7 +119,7 @@ select date_trunc('month', signed_up_at) as month, count(*) from admin.users gro
 
 **Supabase settings this relies on:**
 - Authentication → Sign In / Providers: **Allow new users to sign up** on (needed for sign-up by email code or link).
-- Authentication → Providers → Email: **Email OTP Length** = 6 (the app and templates assume 6 digits).
+- Authentication → Sign In / Providers → Email: **Email OTP Length** = 6 (the app and templates assume 6 digits).
 - Authentication → URL Configuration → Redirect URLs: `https://www.lifestyleos.homes/**` and `http://localhost:3000/**`. Otherwise Supabase swaps in the Site URL and links miss `/auth/confirm`.
 - Authentication → Emails → Templates: **Magic Link** and **Confirm signup** pasted from `supabase/templates/`. Re-paste both after any template change; the dashboard is the source of truth.
 - **Secure password change** off. Otherwise Set Password needs an emailed confirmation too.
