@@ -50,7 +50,8 @@ export function LoginView() {
   const resend = async () => {
     setCode("");
     lastSubmittedCode.current = "";
-    await sendMagicLink(email.trim());
+    // Keep the rate-limit message visible: it explains why the password field appeared.
+    if ((await sendMagicLink(email.trim())) === "rate_limited") setMode("password");
   };
 
   const submit = async () => {
