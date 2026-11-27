@@ -25,7 +25,7 @@ export function Hero() {
         <div className="mt-5">
           <SessionCta variant="hero" />
         </div>
-        <p className="mt-2.5 text-[13px] text-[#5f626b]">Free during beta · Email sign-in, no password</p>
+        <p className="mt-4 text-[13px] text-[#5f626b]">Free during beta · Email sign-in, no password</p>
       </div>
 
       {/* Phone + floating card. Below lg the card sits under the phone and overlaps its
