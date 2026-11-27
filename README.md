@@ -73,7 +73,7 @@ The landing page is light-only: its colors don't use the app's CSS variables and
 
 **Signed-in visitors see "Open app".** The page is static, so the server always renders "Log in" and "Get started". After load, `SessionCta` checks `localStorage` for `lifestyleos:lastUser` (written on sign-in, see [Offline data](#sign-in-and-accounts-while-offline)) and swaps in "Open app →". All the buttons go to `/expenses`, which shows the login screen when signed out.
 
-**Installed app.** `StandaloneRedirect` (rendered on `/` only) sends a visitor who opened the installed app (display mode `standalone`) from `/` to `/expenses`.
+**No redirects.** `/` is public and shows the same page to everyone, signed in or not and in the browser or the installed app. Only the CTAs change: after hydration a returning user sees "Open app →" (`SessionCta`). Launching the installed app still opens `/expenses` (the manifest `start_url`).
 
 **Images** in `public/landing/` (`scan-hero.png`, `scan-result.png`, `scan-added.png`, `expenses-month.png`, `shopping-location.png`, `pantry-expiry.png`, and `desktop.png` for the "Works offline, too" block) are the landing page's own light-theme shots with fake demo data (the README's dark-theme shots in `docs/screenshots/` are separate), made by `scripts/landing-screenshots.playwright.js` (mocks Supabase and the scan API with Playwright routes; run it through the Playwright MCP `browser_run_code_unsafe` tool against `npm run dev`).
 
