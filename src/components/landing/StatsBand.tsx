@@ -25,7 +25,7 @@ export function StatsBand() {
           {STATS.map((s) => (
             <div key={s.label} className="flex flex-col-reverse items-center gap-3">
               <dt className="text-sm text-[#6b6e78] md:text-base">{s.label}</dt>
-              <dd className="text-[40px] leading-none font-semibold tracking-[-0.03em] text-[#a8761f] md:text-[52px] lg:text-[48px] xl:text-[60px]">{s.value}+</dd>
+              <dd className="text-[40px] bg-linear-to-b from-[#f0b93f] via-[#d4961c] to-[#a06a0c] bg-clip-text pb-1 leading-none font-bold tracking-[-0.03em] text-transparent md:text-[52px] lg:text-[48px] xl:text-[60px]">{s.value}+</dd>
             </div>
           ))}
         </dl>
