@@ -22,6 +22,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useUser } from "@/components/AuthProvider";
 import { useLocalDb, useSync } from "@/components/OfflineProvider";
 import { ExpenseDetail, ExpenseInspector } from "@/components/expenses/ExpenseDetail";
+import { formatTotals, totalsByCurrency } from "@/lib/money";
 import { MonthSummary } from "@/components/expenses/MonthSummary";
 import { ExpenseForm } from "@/components/expenses/ExpenseForm";
 import { MonthPicker } from "@/components/expenses/MonthPicker";
@@ -170,14 +171,14 @@ export default function ExpensesPage() {
         header: (
           <span className="flex justify-between">
             <span>{nameOf(method) || NO_PAYMENT_METHOD}</span>
-            <span>{items.reduce((sum, e) => sum + e.amount, 0).toFixed(2)}</span>
+            <span>{formatTotals(totalsByCurrency(items))}</span>
           </span>
         ),
         items,
       }));
   }, [filtered, sort, paymentById]);
 
-  const total = filtered.reduce((sum, e) => sum + e.amount, 0).toFixed(2);
+  const total = formatTotals(totalsByCurrency(filtered));
   const isCurrentMonth = isSameMonth(month, new Date());
   const selected = filtered.find((e) => e.id === selectedId) ?? null;
   const editing = expenses.find((e) => e.id === editingId) ?? null;
@@ -525,7 +526,7 @@ export default function ExpensesPage() {
                 <span>
                   {filtered.length} {filtered.length === 1 ? "expense" : "expenses"}
                 </span>
-                <span className="text-[15px] font-semibold text-label tabular-nums">{total} EUR</span>
+                <span className="text-[15px] font-semibold text-label tabular-nums">{total}</span>
               </div>
             )}
             {list}
@@ -581,7 +582,7 @@ export default function ExpensesPage() {
       </Toolbar>
 
       {/* Summary card */}
-      <p className="py-0.5 text-center text-[22px] font-semibold">{total} EUR</p>
+      <p className="py-0.5 text-center text-[22px] font-semibold">{total}</p>
 
       {monthSwitcher}
       {list}
