@@ -8,10 +8,12 @@ Build trust on the landing page with a few usage figures, right after the "Reads
 
 ## Design
 
-- Four figures between the language pills and the "Works offline…" facts line, each a big number over a
-  short label: **1,100+** expenses logged · **€10,000+** tracked · **160+** pantry items · **160+**
+- Revised by the user: the figures get their own full-width gold band (`#e8c37a`, the landing's accent
+  gold) headed "So far *in beta*", between the language strip (now pills, then the "Works offline…"
+  facts line) and the dark "Made for people who just moved" band (`StatsBand.tsx`). Each figure is a big
+  number over a short label: **1,100+** expenses logged · **€10,000+** tracked · **160+** pantry items · **160+**
   shopping-list items. 2×2 on phones, one row of four from `sm` up.
-- Fixed numbers in `src/components/landing/ProofStrip.tsx`, rounded down so they stay true as usage
+- Fixed numbers in `src/components/landing/StatsBand.tsx`, rounded down so they stay true as usage
   grows, with an "as of" date and the read-only SQL used, so updating means re-running it and editing
   four numbers. Nothing reads the database at runtime.
 - Wording says what the app tracked, never who; no user count (too small to show in beta).

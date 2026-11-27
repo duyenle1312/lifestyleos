@@ -2,6 +2,7 @@ import type { Metadata, ResolvingMetadata } from "next";
 import { Nav } from "@/components/landing/Nav";
 import { Hero } from "@/components/landing/Hero";
 import { ProofStrip } from "@/components/landing/ProofStrip";
+import { StatsBand } from "@/components/landing/StatsBand";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { Features } from "@/components/landing/Features";
 import { Blocks } from "@/components/landing/Blocks";
@@ -35,6 +36,7 @@ export default function LandingPage() {
       <main>
         <Hero />
         <ProofStrip />
+        <StatsBand />
         <WhoFor />
         <Features />
         <Blocks />
