@@ -1,0 +1,200 @@
+<h2>The whole page, top to bottom (direction A)</h2>
+<p class="subtitle">Every section in order, with draft copy. The grey tags on the left map each section to the Origin section it replaces. React to the order, the copy, or anything that's missing or shouldn't be there.</p>
+
+<style>
+  .fp{max-width:940px;margin:0 auto;text-align:left;font-family:-apple-system,BlinkMacSystemFont,"Inter",sans-serif;color:#14161c;border-radius:14px;overflow:hidden;background:#fbf8f2}
+  .fp *{box-sizing:border-box}
+  .fp img{display:block}
+  .fp em,.fp .serif{font-family:"Instrument Serif","Iowan Old Style",Georgia,serif;font-style:italic;font-weight:400}
+  .fp section{position:relative;padding:40px 44px}
+  .fp .tag{position:absolute;top:10px;left:10px;font-size:10px;letter-spacing:.04em;text-transform:uppercase;background:rgba(120,120,120,.16);color:#666;padding:3px 7px;border-radius:5px}
+  .fp .dark .tag{background:rgba(255,255,255,.12);color:#bbb}
+  .fp h1{font-size:50px;line-height:1.04;letter-spacing:-.025em;font-weight:600;margin:0 0 14px}
+  .fp h2s{display:block}
+  .fp .h2{font-size:32px;line-height:1.08;letter-spacing:-.02em;font-weight:600;margin:0 0 10px}
+  .fp .h3{font-size:17px;font-weight:600;margin:10px 0 4px}
+  .fp p{margin:0}
+  .fp .lead{font-size:15px;line-height:1.5;color:#4a4d57;max-width:440px}
+  .fp .mut{color:#6b6e78;font-size:13px;line-height:1.45}
+  .fp .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:9px 16px;font-weight:600;font-size:13px;background:#14161c;color:#fbf8f2}
+  .fp .pill.big{padding:13px 22px;font-size:14px}
+  .fp .pill.light{background:#fbf8f2;color:#14161c}
+  .fp .link{font-size:13px;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+  .fp .nav{display:flex;justify-content:space-between;align-items:center;padding:18px 44px;font-size:13px}
+  .fp .nav .links{display:flex;gap:22px;opacity:.75}
+  .fp .logo{font-weight:700;font-size:15px}
+  .fp .hero{display:grid;grid-template-columns:1.15fr .85fr;gap:24px;align-items:center;padding-top:20px}
+  .fp .phone{position:relative;justify-self:center}
+  .fp .phone img{width:200px;border-radius:30px;border:7px solid #111;box-shadow:0 30px 60px rgba(0,0,0,.18)}
+  .fp .float{position:absolute;left:-118px;bottom:50px;width:230px;border-radius:16px;padding:12px 14px;font-size:12px;background:#fff;box-shadow:0 18px 40px rgba(0,0,0,.16)}
+  .fp .float .row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(0,0,0,.06)}
+  .fp .float .row:last-child{border:0}
+  .fp .src{opacity:.5;font-size:10.5px;display:block}
+  .fp .fine{font-size:12px;opacity:.6;margin-top:10px}
+  .fp .strip{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;font-size:13px}
+  .fp .strip span{background:#efe9dd;padding:6px 12px;border-radius:999px}
+  .fp .facts{display:flex;justify-content:center;gap:34px;margin-top:22px;font-size:13px;color:#4a4d57}
+  .fp .dark{background:#14161c;color:#f3efe6}
+  .fp .dark .serif{color:#e8c37a}
+  .fp .dark .mut{color:#a9abb3}
+  .fp .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:20px}
+  .fp .grid5{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:22px}
+  .fp .card2{border-radius:18px;padding:18px;background:#fff;border:1px solid rgba(20,22,28,.06)}
+  .fp .dark .card2{background:#1f222b;border:0}
+  .fp .num{font-size:12px;font-weight:700;opacity:.5}
+  .fp .ico{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;background:#efe9dd}
+  .fp .alt{display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:center;padding:28px 0}
+  .fp .alt + .alt{border-top:1px solid rgba(20,22,28,.08)}
+  .fp .shot{border-radius:18px;box-shadow:0 18px 40px rgba(0,0,0,.12);width:100%}
+  .fp .shot.ph{width:170px;border-radius:24px;border:6px solid #111;justify-self:center}
+  .fp .stack{display:flex;flex-direction:column;gap:8px}
+  .fp .note{display:flex;gap:10px;align-items:center;background:#fff;border-radius:14px;padding:10px 12px;font-size:13px;box-shadow:0 6px 16px rgba(0,0,0,.06)}
+  .fp .dot{width:10px;height:10px;border-radius:50%;flex:none}
+  .fp .note .t{margin-left:auto;font-size:11px;opacity:.5}
+  .fp .check{list-style:none;padding:0;margin:12px 0 0;font-size:13px;color:#4a4d57}
+  .fp .check li{padding:4px 0}
+  .fp .check li:before{content:"✓  ";color:#14161c;font-weight:700}
+  .fp .persona .who{font-size:12px;font-weight:600;opacity:.6;margin-top:10px}
+  .fp .faq div{padding:12px 0;border-bottom:1px solid rgba(20,22,28,.1);font-size:14px;display:flex;justify-content:space-between}
+  .fp .foot{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:20px;font-size:12px;color:#6b6e78}
+  .fp .foot b{color:#14161c;display:block;margin-bottom:6px}
+  .fp .foot span{display:block;padding:2px 0}
+</style>
+
+<div class="fp">
+
+  <!-- 1 nav -->
+  <div class="nav">
+    <div class="logo">◐ Lifestyle OS</div>
+    <div class="links"><span>How it works</span><span>Features</span><span>FAQ</span></div>
+    <div style="display:flex;gap:14px;align-items:center"><span style="opacity:.7">Log in</span><span class="pill">Get started →</span></div>
+  </div>
+
+  <!-- 2 hero -->
+  <section class="hero" style="padding-top:12px">
+    <span class="tag">1 · Hero ← Origin hero</span>
+    <div>
+      <h1>Read every receipt.<br>Even the ones you <em>can't.</em></h1>
+      <p class="lead">Just moved abroad? Snap a supermarket receipt in any language. Lifestyle OS translates every line into English and adds it to your budget, sorted and totalled.</p>
+      <div style="margin-top:20px"><span class="pill big">Get started free →</span></div>
+      <div class="fine">Free during beta · Email sign-in, no password</div>
+    </div>
+    <div class="phone">
+      <img src="/files/scan.png" alt="">
+      <div class="float">
+        <div class="row"><span><span class="src">Кисело мляко</span><b>Yogurt</b></span><span>€1.29</span></div>
+        <div class="row"><span><span class="src">ข้าวหอมมะลิ</span><b>Jasmine rice</b></span><span>฿89</span></div>
+        <div class="row"><span><span class="src">Hafermilch</span><b>Oat milk</b></span><span>€1.95</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 language strip -->
+  <section style="padding-top:20px;text-align:center">
+    <span class="tag">2 · Proof strip ← press + logo wall</span>
+    <p class="mut" style="margin-bottom:14px">Reads receipts in</p>
+    <div class="strip"><span>Български</span><span>Deutsch</span><span>ไทย</span><span>Tiếng Việt</span><span>日本語</span><span>Español</span><span>Polski</span><span>Türkçe</span><span>Português</span><span>한국어</span><span>+ any language</span></div>
+    <div class="facts"><span>◎ Works offline</span><span>⌂ Installs to your home screen</span><span>✉ No password needed</span><span>¤ 20+ currencies</span></div>
+  </section>
+
+  <!-- 4 how it works -->
+  <section class="dark">
+    <span class="tag">3 · How it works ← "You shouldn't have to think…"</span>
+    <p class="h2">Settling in is hard. <span class="serif">Budgeting shouldn't be.</span></p>
+    <div class="grid3">
+      <div class="card2"><span class="num">01</span><p class="h3">Snap</p><p class="mut">Photograph any receipt from any shop, in any country.</p></div>
+      <div class="card2"><span class="num">02</span><p class="h3">Translated</p><p class="mut">Every item comes back in plain English with a category. Fix anything before you save.</p></div>
+      <div class="card2"><span class="num">03</span><p class="h3">Budgeted</p><p class="mut">One tap adds it all to your expenses, in the shop's own currency.</p></div>
+    </div>
+  </section>
+
+  <!-- 5 feature grid -->
+  <section>
+    <span class="tag">4 · Feature grid ← "Track your entire financial life"</span>
+    <p class="h2">Your whole new life, <em>in one place.</em></p>
+    <p class="lead">Receipts are where it starts. Everything else you need for a new home is here too.</p>
+    <div class="grid5">
+      <div class="card2"><div class="ico">€</div><p class="h3">Expenses</p><p class="mut">By category and payment method, month by month.</p></div>
+      <div class="card2"><div class="ico">¤</div><p class="h3">Any currency</p><p class="mut">Euros, baht, dong, pesos. Log each expense in the currency you paid in.</p></div>
+      <div class="card2"><div class="ico">✓</div><p class="h3">Shopping list</p><p class="mut">Tick things off in the shop, even with no signal.</p></div>
+      <div class="card2"><div class="ico">⏱</div><p class="h3">Pantry</p><p class="mut">Track what's at home and when it expires.</p></div>
+      <div class="card2"><div class="ico">▭</div><p class="h3">Cards &amp; cash</p><p class="mut">Your home bank card, the new local one, and cash, kept apart.</p></div>
+      <div class="card2"><div class="ico">⌘</div><p class="h3">Phone or laptop</p><p class="mut">Same data everywhere. A split view on bigger screens.</p></div>
+    </div>
+  </section>
+
+  <!-- 6 alternating blocks -->
+  <section style="padding-top:10px">
+    <span class="tag">5 · Alternating blocks ← "We analyze / save / guide"</span>
+    <div class="alt">
+      <div>
+        <p class="h2" style="font-size:26px">Check it before <em>it counts.</em></p>
+        <p class="lead">See every translated line next to its price. Rename it, change the category or fix the amount, then add the whole receipt at once.</p>
+        <ul class="check"><li>Store, date and total picked up automatically</li><li>Categories you choose, not ours</li><li>Edit any line before saving</li></ul>
+      </div>
+      <img class="shot ph" src="/files/scan.png" alt="">
+    </div>
+    <div class="alt">
+      <div class="stack">
+        <div class="note"><span class="dot" style="background:#ff3b30"></span><span><b>Milk</b> expired yesterday</span><span class="t">Pantry</span></div>
+        <div class="note"><span class="dot" style="background:#ff9500"></span><span><b>Yogurt</b> expires in 2 days</span><span class="t">Pantry</span></div>
+        <div class="note"><span class="dot" style="background:#ff9500"></span><span><b>Bread</b> expires in 3 days</span><span class="t">Pantry</span></div>
+        <div class="note"><span class="dot" style="background:#34c759"></span><span><b>Rice</b> good until March</span><span class="t">Pantry</span></div>
+      </div>
+      <div>
+        <p class="h2" style="font-size:26px">Stop throwing food <em>away.</em></p>
+        <p class="lead">Unfamiliar labels and unfamiliar date formats make it easy to lose track. Filter the pantry to what's expiring soon and use it first.</p>
+      </div>
+    </div>
+    <div class="alt">
+      <div>
+        <p class="h2" style="font-size:26px">Works on the <em>metro,</em> too.</p>
+        <p class="lead">No local SIM yet? Lifestyle OS keeps working offline and syncs when you're back online. Add it to your home screen and it opens like an app.</p>
+      </div>
+      <img class="shot" src="/files/desktop.png" alt="">
+    </div>
+  </section>
+
+  <!-- 7 personas -->
+  <section class="dark">
+    <span class="tag">6 · Who it's for ← testimonials (none yet, no fake ones)</span>
+    <p class="h2">Made for people <span class="serif">who just moved.</span></p>
+    <div class="grid3">
+      <div class="card2 persona"><p class="h3">Digital nomads</p><p class="mut">New country every few months, new currency every time. One budget that keeps up.</p><p class="who">Lisbon → Chiang Mai → Mexico City</p></div>
+      <div class="card2 persona"><p class="h3">International students</p><p class="mut">A tight budget, a language you're still learning, and a weekly shop to get right.</p><p class="who">Sofia · Berlin · Seoul</p></div>
+      <div class="card2 persona"><p class="h3">Expats &amp; new arrivals</p><p class="mut">Work out what a normal month costs here, from the very first receipt.</p><p class="who">Moved for work, love, or the weather</p></div>
+    </div>
+  </section>
+
+  <!-- 8 FAQ -->
+  <section>
+    <span class="tag">7 · FAQ (new; Origin has none)</span>
+    <p class="h2" style="font-size:26px">Questions</p>
+    <div class="faq" style="margin-top:10px">
+      <div><span>Is it free?</span><span>+</span></div>
+      <div><span>Which languages and countries does it work with?</span><span>+</span></div>
+      <div><span>Do I need to download anything from an app store?</span><span>+</span></div>
+      <div><span>What happens to my receipt photos?</span><span>+</span></div>
+      <div><span>Can I use it without internet?</span><span>+</span></div>
+    </div>
+  </section>
+
+  <!-- 9 final CTA -->
+  <section class="dark" style="text-align:center;padding:52px 44px">
+    <span class="tag">8 · Final CTA ← "Download Origin"</span>
+    <p class="h2" style="font-size:36px">Your first receipt <span class="serif">is waiting.</span></p>
+    <p class="mut" style="margin:10px auto 22px;max-width:420px">Free during beta. Sign in with just your email. No app store, no password, no card.</p>
+    <span class="pill big light">Get started free →</span>
+  </section>
+
+  <!-- 10 footer -->
+  <section style="padding-top:30px">
+    <span class="tag">9 · Footer</span>
+    <div class="foot">
+      <div><b>◐ Lifestyle OS</b><span>Budgeting for people who just moved.</span><span style="margin-top:8px">© 2026</span></div>
+      <div><b>Product</b><span>How it works</span><span>Features</span><span>FAQ</span></div>
+      <div><b>Account</b><span>Get started</span><span>Log in</span></div>
+      <div><b>Legal</b><span>Privacy policy</span><span>Terms</span></div>
+    </div>
+  </section>
+</div>
