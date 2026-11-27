@@ -4,8 +4,8 @@
 // account or data is involved. Needs `npm run dev` on :3000.
 //
 // Run it with the Playwright MCP tool `browser_run_code_unsafe`, passing this file as `filename`
-// (the file must sit inside the repo or .playwright-mcp/). It writes expenses-month.png, scan-hero.png and
-// shopping-location.png to `out` (below); copy them to public/landing/ (not docs/screenshots/, which holds the README's dark-theme shots).
+// (the file must sit inside the repo or .playwright-mcp/). It writes scan-hero.png, scan-result.png, scan-added.png,
+// expenses-month.png, shopping-location.png and pantry-expiry.png to `out` (below); copy them to public/landing/ (not docs/screenshots/, which holds the README's dark-theme shots).
 // REF is the public Supabase project ref from NEXT_PUBLIC_SUPABASE_URL (it names the auth storage key).
 async (page0) => {
 const REF = "ywmygkzatdvuliiwjpuh";
@@ -54,7 +54,23 @@ const expenses = [
   ex(40, "Groceries", 52.3, "EUR", "c-groc", "pm-revolut", "Kaufland"),
   ex(44, "Museum", 12, "EUR", "c-fun", "pm-cash", "National Gallery"),
 ];
-const inventory = [];
+// Pantry expiry is judged against the real clock (lib/inventory.ts), so these dates are relative to today, not `now`.
+const inDays = (d) => { const t = new Date(); t.setDate(t.getDate() + d); return t.toISOString().slice(0, 10); };
+let m = 0;
+const inv = (name, quantity, unit, expiresIn) => ({
+  id: `i-${++m}`, account_id: UID, created_by_user_id: UID, name, quantity, unit, description: null, metadata: {},
+  expiration_date: expiresIn == null ? null : inDays(expiresIn), deleted_at: null, created_at: day(m), updated_at: day(m),
+});
+const inventory = [
+  inv("Milk", 1, "l", -1),
+  inv("Yogurt", 2, null, 2),
+  inv("Sourdough bread", 1, null, 3),
+  inv("Eggs", 6, null, 9),
+  inv("Jasmine rice", 1, "kg", 120),
+  inv("Pasta", 2, null, 200),
+  inv("Olive oil", 1, "l", 300),
+  inv("Sea salt", 1, null, null),
+];
 let k = 0;
 const sh = (item, location, quantity, unit_price, extra = {}) => ({
   id: `s-${++k}`, account_id: UID, created_by_user_id: UID, item, description: null, metadata: {}, deleted_at: null,
@@ -136,6 +152,18 @@ const TABLES = { expenses, categories: cats, payment_methods: pms, inventory_ite
     await page.waitForTimeout(2500);
     await page.screenshot({ path: out + '/scan-hero.png' });
     shots.push('scan');
+    // Scan result: any image will do, /api/scan-receipt is mocked. A path, since the runner has no Buffer.
+    await page.locator('input[type=file]:not([capture])').setInputFiles('public/landing/scan-hero.png');
+    const add = page.getByRole('button', { name: /^Add 5/ });
+    await add.waitFor();
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: out + '/scan-result.png' });
+    shots.push('scan-result');
+    await add.click();
+    await page.getByText('Expenses have been added successfully!').waitFor();
+    await page.waitForTimeout(600);
+    await page.screenshot({ path: out + '/scan-added.png' });
+    shots.push('scan-added');
     await ctx.close();
   }
   // Mobile shopping list, grouped by location
@@ -149,6 +177,15 @@ const TABLES = { expenses, categories: cats, payment_methods: pms, inventory_ite
     await page.waitForTimeout(800);
     await page.screenshot({ path: out + '/shopping-location.png' });
     shots.push('shopping');
+    // Pantry, soonest expiry first
+    await page.goto('http://localhost:3000/inventory', { waitUntil: 'networkidle' });
+    await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+    await page.waitForTimeout(2500);
+    await page.getByRole('button', { name: 'Sort' }).click();
+    await page.getByText('Expiration', { exact: true }).click();
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: out + '/pantry-expiry.png' });
+    shots.push('pantry');
     await ctx.close();
   }
   return shots;
