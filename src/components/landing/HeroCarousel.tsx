@@ -99,7 +99,7 @@ export function HeroCarousel() {
       }}
     >
       {/* The front phone sits in the flow and sets the size; the others are stacked on it. */}
-      <div className={`hero-stage w-[clamp(150px,46vw,200px)] md:w-[clamp(140px,15vw,220px)]`} data-ready={ready || undefined}>
+      <div className={`hero-stage w-[clamp(150px,46vw,200px)] md:w-[clamp(150px,16.5vw,240px)]`} data-ready={ready || undefined}>
         <div ref={fan} className="hero-parallax">
           {SLIDES.map((slide, i) => {
             const slot = slotOf(i, state.index, SLIDES.length);
@@ -119,7 +119,7 @@ export function HeroCarousel() {
                     alt={front ? slide.alt : ""}
                     width={780}
                     height={1520}
-                    sizes="(min-width: 768px) 15vw, 46vw"
+                    sizes="(min-width: 768px) 16.5vw, 46vw"
                     // Slide 0 is the hero image. The others are transparent but on screen, so their
                     // lazy images still load straight away and are ready before they come round.
                     preload={i === 0}
