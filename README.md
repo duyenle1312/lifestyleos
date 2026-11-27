@@ -75,7 +75,9 @@ The landing page is light-only: its colors don't use the app's CSS variables and
 
 **Installed app.** `StandaloneRedirect` (rendered on `/` only) sends a visitor who opened the installed app (display mode `standalone`) from `/` to `/expenses`.
 
-**Images** in `public/landing/` (`scan-hero.png`, `expenses-month.png`, `shopping-location.png`) are the landing page's own light-theme shots with fake demo data (the README's dark-theme shots in `docs/screenshots/` are separate), made by `scripts/landing-screenshots.playwright.js` (mocks Supabase and the scan API with Playwright routes; run it through the Playwright MCP `browser_run_code_unsafe` tool against `npm run dev`).
+**Images** in `public/landing/` (`scan-hero.png`, `scan-result.png`, `scan-added.png`, `expenses-month.png`, `shopping-location.png`, `pantry-expiry.png`, plus `desktop.png`, kept but not used on the page) are the landing page's own light-theme shots with fake demo data (the README's dark-theme shots in `docs/screenshots/` are separate), made by `scripts/landing-screenshots.playwright.js` (mocks Supabase and the scan API with Playwright routes; run it through the Playwright MCP `browser_run_code_unsafe` tool against `npm run dev`).
+
+**Hero carousel.** The hero phone slides through the six phone shots in the app's order: scan, translated result, added, expenses, shopping, pantry (`HeroCarousel.tsx`; state in `carousel.ts`, unit-tested). Every 3.5 s the next one slides in from the right; it wraps forward via a clone of the first slide. It pauses on hover, while focused and in a hidden tab, and doesn't move on its own under reduced motion (the dots still work). Slide 1 is preloaded; the rest load eagerly at low priority so none slides in blank.
 
 **Copy** comes from the approved mockup, `docs/superpowers/mockups/2026-11-27-landing-full-page.html`, and the spec, `docs/superpowers/specs/2026-11-27-landing-page-design.md`. Edit those together with the components.
 
@@ -484,7 +486,7 @@ bash scripts/test-migrations.sh   # applies the migrations to a throwaway local 
 | Sign-in / sign-up (merged, see [Sign-in](#sign-in)) | `components/LoginView.tsx` |
 | Expenses: list, add, edit, detail, month picker | `app/(app)/expenses`, `components/expenses/*` |
 | Shopping lists | `app/(app)/shopping`, `components/shopping/*` |
-| Inventory: list, add, detail | `app/(app)/inventory`, `app/(app)/inventory/[id]` |
+| Pantry (the Inventory tab, renamed; URL stays `/inventory`): list, add, detail | `app/(app)/inventory`, `app/(app)/inventory/[id]` |
 | Receipt scanner | `app/(app)/scan` + `app/api/scan-receipt` |
 | Settings | `app/(app)/settings` |
 
