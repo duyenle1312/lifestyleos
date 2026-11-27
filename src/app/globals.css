@@ -196,3 +196,143 @@ input[type="search"]::-webkit-search-cancel-button {
 :root:has([data-marketing]) body {
   background: #fbf8f2;
 }
+
+/* ==== Landing hero phones (HeroCarousel.tsx) ==== */
+/* Hero phones: three fanned in 3D, the rest waiting out of sight behind the front one.
+   Offsets are % of a phone's own width, so the fan scales with the phone size. */
+
+.hero-stage {
+  perspective: 1800px;
+}
+
+/* Tilts the whole fan a little towards the mouse (set from JS). */
+.hero-parallax {
+  position: relative;
+  transform-style: preserve-3d;
+}
+
+.hero-slot {
+  position: absolute;
+  inset: 0 0 auto 0;
+  transform-style: preserve-3d;
+  transition:
+    transform 0.95s cubic-bezier(0.22, 1.25, 0.36, 1),
+    opacity 0.7s ease,
+    filter 0.6s ease;
+  will-change: transform, opacity;
+}
+
+/* Front: in the flow (it sets the stage's size), nearest to the viewer. */
+.hero-slot[data-slot="0"] {
+  position: relative;
+  z-index: 30;
+  transform: translate3d(0, -2%, 50px) rotateX(2deg);
+}
+
+.hero-slot[data-slot="-1"],
+.hero-slot[data-slot="1"] {
+  z-index: 20;
+  opacity: 0.95;
+  filter: brightness(0.9);
+  cursor: pointer;
+}
+.hero-slot[data-slot="-1"] {
+  transform: translate3d(-64%, 5%, -65px) scale(0.88) rotateY(22deg) rotateX(4deg) rotateZ(-7deg);
+}
+.hero-slot[data-slot="1"] {
+  transform: translate3d(64%, 5%, -65px) scale(0.88) rotateY(-22deg) rotateX(4deg) rotateZ(7deg);
+}
+
+/* Side phones lift towards the viewer on hover. */
+.hero-slot[data-slot="-1"]:hover {
+  filter: brightness(1);
+  transform: translate3d(-68%, 2%, -30px) scale(0.91) rotateY(16deg) rotateX(2deg) rotateZ(-5deg);
+}
+.hero-slot[data-slot="1"]:hover {
+  filter: brightness(1);
+  transform: translate3d(68%, 2%, -30px) scale(0.91) rotateY(-16deg) rotateX(2deg) rotateZ(5deg);
+}
+
+/* Narrow screens: bring the side phones in so they stay on screen. */
+@media (max-width: 639px) {
+  .hero-slot[data-slot="-1"] {
+    transform: translate3d(-52%, 5%, -65px) scale(0.84) rotateY(22deg) rotateX(4deg) rotateZ(-6deg);
+  }
+  .hero-slot[data-slot="1"] {
+    transform: translate3d(52%, 5%, -65px) scale(0.84) rotateY(-22deg) rotateX(4deg) rotateZ(6deg);
+  }
+}
+
+/* Everything else waits behind the front phone, so it can come round from there. */
+.hero-slot:not([data-slot="0"]):not([data-slot="1"]):not([data-slot="-1"]) {
+  z-index: 10;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(0, 6%, -220px) scale(0.7);
+}
+
+/* Entrance: until the page is ready the phones sit lower; they rise into place. The front phone
+   stays opaque so the hero image is visible (and counted as painted) straight away. */
+.hero-stage:not([data-ready]) .hero-slot[data-slot="0"] {
+  transform: translate3d(0, 22%, 0) scale(0.9);
+}
+.hero-stage:not([data-ready]) .hero-slot[data-slot="-1"],
+.hero-stage:not([data-ready]) .hero-slot[data-slot="1"] {
+  opacity: 0;
+}
+.hero-stage:not([data-ready]) .hero-slot[data-slot="-1"] {
+  transform: translate3d(-14%, 28%, -120px) scale(0.8);
+}
+.hero-stage:not([data-ready]) .hero-slot[data-slot="1"] {
+  transform: translate3d(14%, 28%, -120px) scale(0.8);
+}
+
+/* Each phone floats gently on its own rhythm. */
+.hero-float {
+  transform-style: preserve-3d;
+}
+.hero-float[data-float="0"] {
+  animation: hero-float-a 6.2s ease-in-out infinite;
+}
+.hero-float[data-float="1"] {
+  animation: hero-float-b 7.1s ease-in-out infinite;
+}
+.hero-float[data-float="2"] {
+  animation: hero-float-c 6.7s ease-in-out infinite;
+}
+@keyframes hero-float-a {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2%);
+  }
+}
+@keyframes hero-float-b {
+  0%,
+  100% {
+    transform: translateY(-0.8%);
+  }
+  50% {
+    transform: translateY(1.6%);
+  }
+}
+@keyframes hero-float-c {
+  0%,
+  100% {
+    transform: translateY(0.6%);
+  }
+  50% {
+    transform: translateY(-1.8%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-slot {
+    transition: none;
+  }
+  .hero-float {
+    animation: none;
+  }
+}

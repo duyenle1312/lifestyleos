@@ -52,7 +52,7 @@ User picked A with a slide transition, then changed it to three rotating phones 
 in front, the previous and next ones smaller and angled in on either side, the rest out of sight behind.
 Every ~3.5 s they rotate one step, so the right-hand phone comes to the front, endlessly. Clicking a side
 phone brings it to the front. (A slider inside one phone, and a single phone flipping edge-on, were tried
-and rejected.)
+and rejected.) Then styled after the user's reference (`public/aether_three_phones_hero_animation.html`): side phones also tilted outward and pushed back, springy easing, gentle float, a slight tilt towards the mouse, and an entrance where the phones rise into place. The "Added" success screen was dropped, leaving five slides.
 Under the phone: a short label for the current slide ("Scan", "Translated", "Added", "Expenses",
 "Shopping", "Pantry") and six dots; clicking a dot jumps there.
 
