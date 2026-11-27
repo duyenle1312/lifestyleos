@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "./Logo";
+import { BackToTop } from "./BackToTop";
 
 const link = "block py-0.5 hover:text-[#14161c]";
 
@@ -32,6 +33,9 @@ export function Footer() {
         <Link href="/privacy" className={link}>Privacy policy</Link>
         <Link href="/terms" className={link}>Terms</Link>
       </nav>
+      <div className="col-span-2 mt-4 flex justify-center border-t border-[#14161c]/10 pt-6 md:col-span-4">
+        <BackToTop />
+      </div>
     </footer>
   );
 }

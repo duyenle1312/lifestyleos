@@ -1,5 +1,6 @@
 import { Serif } from "./Serif";
 import { revealDelay } from "./revealDelay";
+import { CountUp } from "./CountUp";
 
 // Usage figures, exact as of 2026-11-27 (€ total rounded to the euro). Fixed by hand, so they go
 // stale as usage grows. To update, run read-only in Supabase and edit the numbers:
@@ -7,10 +8,10 @@ import { revealDelay } from "./revealDelay";
 //          (select sum(amount) from expenses where deleted_at is null and upper(currency) = 'EUR'),
 //          (select count(*) from inventory_items), (select count(*) from shopping_lists);
 const STATS = [
-  { value: "€10,777", label: "Tracked" },
-  { value: "1,172", label: "Expenses Logged" },
-  { value: "164", label: "Shopping List Items" },
-  { value: "163", label: "Pantry Items" },
+  { value: 10777, prefix: "€", label: "Tracked" },
+  { value: 1172, label: "Expenses Logged" },
+  { value: 164, label: "Shopping List Items" },
+  { value: 163, label: "Pantry Items" },
 ];
 
 // Gold figures on the page's cream background (like the hero), between the language strip and the dark
@@ -26,7 +27,7 @@ export function StatsBand() {
           {STATS.map((s, i) => (
             <div key={s.label} data-reveal style={revealDelay(i)} className="flex flex-col-reverse items-center gap-3">
               <dt className="text-[13px] font-semibold text-[#7a7d86] md:text-sm">{s.label}</dt>
-              <dd className="text-[clamp(26px,8.5vw,40px)] bg-linear-to-b from-[#f2bf4a] via-[#e2a52c] to-[#cf9019] bg-clip-text pb-1 leading-none font-bold tracking-[-0.03em] text-transparent md:text-[52px] lg:text-[48px] xl:text-[60px]">{s.value}+</dd>
+              <dd className="text-[clamp(26px,8.5vw,40px)] bg-linear-to-b from-[#f2bf4a] via-[#e2a52c] to-[#cf9019] bg-clip-text pb-1 leading-none font-bold tracking-[-0.03em] text-transparent tabular-nums md:text-[52px] lg:text-[48px] xl:text-[60px]"><CountUp value={s.value} prefix={s.prefix} suffix="+" /></dd>
             </div>
           ))}
         </dl>
