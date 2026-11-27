@@ -17,15 +17,15 @@ const STATS = [
 export function StatsBand() {
   return (
     <section aria-labelledby="stats-heading" className="border-b border-white/10 bg-[#14161c] text-[#f3efe6]">
-      <div className="mx-auto max-w-7xl px-4 py-12 text-center sm:px-6 md:px-11 md:py-14">
-        <h2 id="stats-heading" className="mb-10 text-[22px] font-semibold tracking-[-0.01em] md:text-[24px]">
+      <div className="mx-auto max-w-7xl px-4 py-16 text-center sm:px-6 md:px-11 md:py-20">
+        <h2 id="stats-heading" className="mb-12 text-[30px] leading-[1.08] font-semibold tracking-[-0.02em] md:mb-14 md:text-[38px]">
           Our <Serif gold>achievements</Serif>
         </h2>
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-4">
+        <dl className="grid grid-cols-2 gap-x-8 gap-y-12 lg:grid-cols-4 xl:gap-x-12">
           {STATS.map((s) => (
-            <div key={s.label} className="flex flex-col-reverse items-center gap-1.5">
-              <dt className="text-sm text-[#a9abb3]">{s.label}</dt>
-              <dd className="text-[32px] leading-none font-semibold tracking-[-0.02em] text-[#e8c37a] md:text-[44px]">{s.value}</dd>
+            <div key={s.label} className="flex flex-col-reverse items-center gap-3">
+              <dt className="text-sm text-[#a9abb3] md:text-base">{s.label}</dt>
+              <dd className="text-[40px] leading-none font-semibold tracking-[-0.03em] text-[#e8c37a] md:text-[52px] lg:text-[48px] xl:text-[60px]">{s.value}+</dd>
             </div>
           ))}
         </dl>
