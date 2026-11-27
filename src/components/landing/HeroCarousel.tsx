@@ -14,7 +14,7 @@ const SLIDES = [
   },
   { src: "/landing/scan-added.png", label: "Added", alt: "A popup saying the expenses were added successfully" },
   { src: "/landing/expenses-month.png", label: "Expenses", alt: "The month's expenses, grouped by day" },
-  { src: "/landing/shopping-location.png", label: "Shopping", alt: "The shopping list, grouped by shop" },
+  { src: "/landing/shopping-location.png", label: "Shopping List", alt: "The shopping list, grouped by shop" },
   { src: "/landing/pantry-expiry.png", label: "Pantry", alt: "The pantry sorted by expiry: expired, expiring soon, fresh" },
 ];
 

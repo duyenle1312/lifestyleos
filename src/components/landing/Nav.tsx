@@ -11,7 +11,7 @@ export function Nav() {
       <nav aria-label="Page sections" className="hidden gap-[22px] text-sm text-[#14161c]/75 md:flex">
         <a href="#scan" className="hover:text-[#14161c]">Scan receipts</a>
         <a href="#expenses" className="hover:text-[#14161c]">Expenses</a>
-        <a href="#shopping" className="hover:text-[#14161c]">Shopping</a>
+        <a href="#shopping" className="hover:text-[#14161c]">Shopping List</a>
         <a href="#pantry" className="hover:text-[#14161c]">Pantry</a>
       </nav>
       <SessionCta variant="nav" />
