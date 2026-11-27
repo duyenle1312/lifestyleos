@@ -35,10 +35,10 @@ export default function LandingPage() {
       <main>
         <Hero />
         <ProofStrip />
-        <HowItWorks />
+        <WhoFor />
         <Features />
         <Blocks />
-        <WhoFor />
+        <HowItWorks />
         <Faq />
         <FinalCta />
       </main>

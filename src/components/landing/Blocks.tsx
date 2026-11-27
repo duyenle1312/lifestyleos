@@ -4,7 +4,8 @@ import { Serif } from "./Serif";
 
 const h2 = "mb-2.5 text-[26px] leading-[1.08] font-semibold tracking-[-0.02em] md:text-[30px]";
 const lead = "max-w-[460px] text-base leading-normal text-[#4a4d57]";
-const row = "grid items-center gap-9 py-8 md:grid-cols-2 [&+&]:border-t [&+&]:border-[#14161c]/[0.08]";
+const rowBase = "grid items-center gap-9 md:grid-cols-2 [&+&]:border-t [&+&]:border-[#14161c]/[0.08]";
+const row = `${rowBase} py-8`;
 
 const CHECKS = [
   "Filter by category, sort by date or payment method",
@@ -53,7 +54,7 @@ export function Blocks() {
         />
       </div>
 
-      <div id="pantry" className={`${row} scroll-mt-4`}>
+      <div id="pantry" className={`${rowBase} scroll-mt-4 py-12 md:py-16`}>
         <ul
           aria-label="Example pantry items"
           className="order-2 divide-y divide-[#14161c]/[0.08] rounded-[18px] border border-[#14161c]/[0.06] bg-white px-4 md:order-1"
