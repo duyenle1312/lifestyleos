@@ -4,7 +4,7 @@ import { SessionCta } from "./SessionCta";
 
 export function Nav() {
   return (
-    <header className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-[18px] sm:px-6 md:px-11">
+    <header className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-[18px] sm:px-6 md:px-11">
       <Link href="/" className="flex items-center gap-2 text-base font-bold whitespace-nowrap">
         <Logo size={26} /> Lifestyle OS
       </Link>

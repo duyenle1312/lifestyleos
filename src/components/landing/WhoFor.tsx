@@ -21,7 +21,7 @@ const PERSONAS = [
 export function WhoFor() {
   return (
     <section className="bg-[#14161c] text-[#f3efe6]">
-      <div className="mx-auto max-w-6xl px-4 py-18 sm:px-6 md:px-11 md:py-20">
+      <div className="mx-auto max-w-7xl px-4 py-18 sm:px-6 md:px-11 md:py-20">
         <h2 className="mb-2.5 text-[30px] leading-[1.08] font-semibold tracking-[-0.02em] md:text-[38px]">
           Made for people <Serif gold>who just moved.</Serif>
         </h2>

@@ -21,7 +21,7 @@ const FAQS = [
 // Native <details>: no JavaScript needed.
 export function Faq() {
   return (
-    <section id="faq" className="mx-auto max-w-6xl scroll-mt-4 px-4 py-14 sm:px-6 md:px-11 md:py-16">
+    <section id="faq" className="mx-auto max-w-7xl scroll-mt-4 px-4 py-14 sm:px-6 md:px-11 md:py-16">
       <h2 className="text-[26px] leading-[1.08] font-semibold tracking-[-0.02em] md:text-[30px]">Questions</h2>
       <div className="mt-2.5">
         {FAQS.map((f) => (

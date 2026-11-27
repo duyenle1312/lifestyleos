@@ -22,7 +22,7 @@ const PANTRY = [
 
 export function Blocks() {
   return (
-    <section className="mx-auto max-w-6xl px-4 pb-6 sm:px-6 md:px-11">
+    <section className="mx-auto max-w-7xl px-4 pb-6 sm:px-6 md:px-11">
       <div id="expenses" className={`${row} scroll-mt-4`}>
         <div>
           <h2 className={h2}>
