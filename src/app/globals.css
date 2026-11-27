@@ -187,3 +187,12 @@ textarea::placeholder {
 input[type="search"]::-webkit-search-cancel-button {
   display: none;
 }
+
+/* Public pages (the (marketing) layout sets data-marketing) are light-only, even when the app theme is dark. */
+:root:has([data-marketing]) {
+  color-scheme: light;
+}
+:root:has([data-marketing]),
+:root:has([data-marketing]) body {
+  background: #fbf8f2;
+}

@@ -4,7 +4,7 @@
 
 A personal household app for tracking monthly expenses by category and payment method, keeping a shopping list, and managing a home inventory with expiry dates. Photograph a supermarket receipt and AI translates to English and automatically add the items to your expense list in one go.
 
-Next.js + Tailwind app backed by Supabase.
+Next.js + Tailwind app backed by Supabase. A public [landing page](#landing-page) at `/` introduces it; the app itself starts at `/expenses`.
 Built mobile-first (iOS look); on tablets/desktop the tab bar becomes a sidebar and sheets become centered dialogs.
 On wide screens, Expenses becomes an iPadOS-style split view (see [Desktop](#desktop)).
 
@@ -12,6 +12,7 @@ On wide screens, Expenses becomes an iPadOS-style split view (see [Desktop](#des
 
 - [Screenshots](#screenshots)
 - [Run](#run)
+- [Landing page](#landing-page)
 - [Desktop](#desktop)
   - [Keyboard shortcuts (Expenses)](#keyboard-shortcuts-expenses)
 - [Sign-in](#sign-in)
@@ -56,6 +57,29 @@ npm run dev                  # http://localhost:3000
 | `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Your Supabase project URL + publishable key |
 | `GEMINI_API_KEY` | Server-only, for receipt scanning ([get one](https://aistudio.google.com/apikey)) |
 | `GEMINI_MODEL` | Defaults to `gemini-3.5-flash-lite` |
+
+## Landing page
+
+`/` is a public marketing page (no sign-in). It used to redirect to `/expenses`; that redirect is gone from `next.config.ts`.
+
+**Route groups.** `src/app/` has one root layout (`layout.tsx`: metadata, theme script, service worker registration) and two groups, which add no URL segment:
+
+| Group | Routes | Layout adds |
+|---|---|---|
+| `(app)` | `/expenses`, `/shopping`, `/inventory`, `/scan`, `/settings`, `/auth/confirm` | `AuthProvider` + `AppShell` (login gate, tab bar / sidebar) |
+| `(marketing)` | `/`, `/privacy`, `/terms` | A plain wrapper with the serif font and a hard-coded light palette |
+
+The landing page is light-only: its colors don't use the app's CSS variables and `color-scheme` is `light`, so the app's dark theme can't leak in. Its components are in `src/components/landing/`. `/robots.txt` and `/sitemap.xml` (`robots.ts`, `sitemap.ts`) list `/`, `/privacy` and `/terms`; absolute URLs come from `NEXT_PUBLIC_SITE_URL`, else Vercel's production domain, else localhost (`lib/siteUrl.ts`).
+
+**Signed-in visitors see "Open app".** The page is static, so the server always renders "Log in" and "Get started". After load, `SessionCta` checks `localStorage` for `lifestyleos:lastUser` (written on sign-in, see [Offline data](#sign-in-and-accounts-while-offline)) and swaps in "Open app →". All the buttons go to `/expenses`, which shows the login screen when signed out.
+
+**Installed app.** `StandaloneRedirect` (rendered on `/` only) sends a visitor who opened the installed app (display mode `standalone`) from `/` to `/expenses`.
+
+**Images** in `public/landing/` (`scan-hero.png`, `expenses-month.png`, `desktop.png`) are the landing page's own light-theme shots with fake demo data (the README's dark-theme shots in `docs/screenshots/` are separate), made by `scripts/landing-screenshots.playwright.js` (mocks Supabase and the scan API with Playwright routes; run it through the Playwright MCP `browser_run_code_unsafe` tool against `npm run dev`).
+
+**Copy** comes from the approved mockup, `docs/superpowers/mockups/2026-11-27-landing-full-page.html`, and the spec, `docs/superpowers/specs/2026-11-27-landing-page-design.md`. Edit those together with the components.
+
+**Legal pages.** `/privacy` and `/terms` (rendered by `LegalPage.tsx`). Contact is `team@lifestyleos.homes`. Account deletion is by email, done within 30 days; there is no in-app deletion yet.
 
 ## Desktop
 
@@ -184,8 +208,8 @@ Two migrations support the offline sync (see [Offline data](#offline-data)):
 
 The app can be installed ("Add to Home Screen") and opens offline.
 
-- **Manifest:** `src/app/manifest.ts`. Standalone display, `start_url` `/expenses`, shortcuts for Shopping List and Scan Receipt. Icons are in `public/icons/` (`icon-192.png`, `icon-512.png`, `maskable-512.png`).
-- **Service worker:** `public/sw.js`, registered by `components/ServiceWorkerRegister.tsx` in **production only**, so cached chunks never fight dev HMR.
+- **Manifest:** `src/app/manifest.ts`. Standalone display, `start_url` `/expenses` (the installed app skips the landing page), shortcuts for Shopping List and Scan Receipt. Icons are in `public/icons/` (`icon-192.png`, `icon-512.png`, `maskable-512.png`).
+- **Service worker:** `public/sw.js`, registered by `components/ServiceWorkerRegister.tsx` in **production only**, so cached chunks never fight dev HMR. It is registered from the root layout, so visiting the landing page `/` also installs it and precaches the app tabs.
   - *Install:* precaches the HTML of every tab (`/expenses`, `/shopping`, `/inventory`, `/scan`, `/settings`) plus the JS/CSS chunks, favicon and icons each page references, so a tab never opened online still works offline. One failing route doesn't abort the install.
   - *Page navigations (and other same-origin GETs):* network-first, falling back to the cache offline (and to `/expenses` for an unknown page), so deploys show up immediately.
   - *Static assets* (`/_next/static/`, icons): cache-first. Their URLs are hashed.
@@ -458,15 +482,17 @@ bash scripts/test-migrations.sh   # applies the migrations to a throwaway local 
 | Screen | Code |
 |---|---|
 | Sign-in / sign-up (merged, see [Sign-in](#sign-in)) | `components/LoginView.tsx` |
-| Expenses: list, add, edit, detail, month picker | `app/expenses`, `components/expenses/*` |
-| Shopping lists | `app/shopping`, `components/shopping/*` |
-| Inventory: list, add, detail | `app/inventory`, `app/inventory/[id]` |
-| Receipt scanner | `app/scan` + `app/api/scan-receipt` |
-| Settings | `app/settings` |
+| Expenses: list, add, edit, detail, month picker | `app/(app)/expenses`, `components/expenses/*` |
+| Shopping lists | `app/(app)/shopping`, `components/shopping/*` |
+| Inventory: list, add, detail | `app/(app)/inventory`, `app/(app)/inventory/[id]` |
+| Receipt scanner | `app/(app)/scan` + `app/api/scan-receipt` |
+| Settings | `app/(app)/settings` |
 
 ## Notes
 
 - Data access is client-side with supabase-js so Row Level Security does the work. `account_id` and `created_by_user_id` are the signed-in user's id.
 - Dates are saved at local noon (`noonISO`).
 - Receipt scanning sends the photo (downscaled to 1600px) to `/api/scan-receipt`. The route checks the Supabase session, then calls Gemini with a fixed prompt. Gemini reads the image directly, so there is no separate OCR step.
+- Receipts can be in any language. The prompt asks for each line's original name and an English translation; the review screen shows the original name, but only the English name is saved. The currency is read from the receipt (`CURRENCY:` line, normalized by `normalizeCurrency` in `lib/receipt.ts`), falling back to EUR when missing or invalid. The currency list (`CURRENCIES` in `lib/constants.ts`) has 29 currencies; an unknown one on an existing expense is kept in the form. The scan review screen has a currency picker, so a wrong detected currency can be fixed before saving. The sign-in screen links the Terms and Privacy policy.
+- Currencies are never added together (`lib/money.ts`). Expense totals list one amount per currency, main currency first. The main currency is the one with the most entries in the month; ties go to EUR, then alphabetical. The Expenses summary (total, daily average, average per entry, change vs last month, category breakdown) uses the main currency only and shows other currencies' totals as an extra line under the total.
 - Swipe left on a row to delete it. With a mouse, hover over the row for a delete button.

@@ -3,7 +3,7 @@
 // Expense form (one form, two modes: add and edit).
 import { useState } from "react";
 import { Copy } from "lucide-react";
-import { CURRENCIES } from "@/lib/constants";
+import { currencyOptions } from "@/lib/currency";
 import { useCategories } from "../CategoriesProvider";
 import { CategoryEditorSheet } from "../categories/CategoryEditorSheet";
 import { PaymentMethodEditorSheet } from "../payment-methods/PaymentMethodEditorSheet";
@@ -153,7 +153,7 @@ export function ExpenseForm({
           <span className="flex-1">Total Amount</span>
           <span className="text-[16px] font-semibold text-label-2">{calculatedAmount}</span>
         </Row>
-        <SelectRow label="Currency" value={currency} onChange={setCurrency} options={opts(CURRENCIES)} />
+        <SelectRow label="Currency" value={currency} onChange={setCurrency} options={opts(currencyOptions(currency))} />
         <DateRow label="Date" value={expenseDate} onChange={setExpenseDate} />
         <SelectRow
           label="Category"

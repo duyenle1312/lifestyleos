@@ -1,19 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { AuthProvider } from "@/components/AuthProvider";
-import { AppShell } from "@/components/AppShell";
 import { THEME_SCRIPT } from "@/lib/theme";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { siteUrl } from "@/lib/siteUrl";
 
 const description = "Expense tracking, shopping list, kitchen inventory and receipt scanning.";
-
-// Social crawlers need an absolute og:image URL. NEXT_PUBLIC_SITE_URL wins;
-// otherwise fall back to Vercel's production domain, then localhost.
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ??
-  (process.env.VERCEL_PROJECT_PRODUCTION_URL
-    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-    : "http://localhost:3000");
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -57,9 +48,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
       <body className="min-h-full font-sans antialiased">
-        <AuthProvider>
-          <AppShell>{children}</AppShell>
-        </AuthProvider>
+        {children}
         <ServiceWorkerRegister />
       </body>
     </html>

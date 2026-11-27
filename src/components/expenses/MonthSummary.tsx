@@ -5,6 +5,7 @@ import { TrendingDown, TrendingUp } from "lucide-react";
 import { IconBubble } from "@/components/glyphs";
 import { categoryVisual } from "@/lib/categoryStyle";
 import { addMonths, formatMonthDay, isSameMonth } from "@/lib/helpers";
+import { currencyOf, formatMoney, formatTotals, mainCurrency, totalsByCurrency } from "@/lib/money";
 import type { Category, Expense } from "@/lib/types";
 import { Section } from "../ui";
 
@@ -30,14 +31,11 @@ function comparison(month: Date, total: number, previous: Expense[] | null) {
 }
 
 /** Bare stat (no card): sits on the grouped background so it informs without competing with the breakdown. */
-function Stat({ title, value, unit, footer }: { title: string; value: string; unit?: string; footer: React.ReactNode }) {
+function Stat({ title, value, footer }: { title: string; value: string; footer: React.ReactNode }) {
   return (
     <div className="min-w-0">
       <p className="truncate text-[13px] text-label-2">{title}</p>
-      <p className="mt-0.5 truncate text-[18px] font-semibold tabular-nums @md:text-[22px]">
-        {value}
-        {unit && <span className="ml-1 text-[13px] font-medium text-label-2 @md:text-[15px]">{unit}</span>}
-      </p>
+      <p className="mt-0.5 truncate text-[18px] font-semibold tabular-nums @md:text-[22px]">{value}</p>
       <div className="mt-0.5 text-[12px] text-label-2 @md:text-[13px]">{footer}</div>
     </div>
   );
@@ -59,18 +57,26 @@ export function MonthSummary({
   /** Clicking a breakdown row filters the list by that category. */
   onSelectCategory: (categoryId: string) => void;
 }) {
-  const total = sum(expenses);
+  // Currencies are never added together: stats use the main currency, the rest is listed separately.
+  const main = mainCurrency(expenses);
+  const inMain = expenses.filter((e) => currencyOf(e) === main);
+  const others = totalsByCurrency(expenses).filter((t) => t.currency !== main);
+  const total = sum(inMain);
   const isCurrentMonth = isSameMonth(month, new Date());
   const days = isCurrentMonth
     ? new Date().getDate()
     : new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
-  const delta = comparison(month, total, previous);
+  const delta = comparison(
+    month,
+    total,
+    previous && previous.filter((e) => currencyOf(e) === main),
+  );
   // Spending less is good news: down = green, up = orange.
   const DeltaIcon = delta && delta.change > 0 ? TrendingUp : TrendingDown;
 
   // Group by category id; expenses without a (known) category share one "Uncategorized" group.
   const groups = new Map<string, { id?: string; name: string; category?: Category; amount: number; count: number }>();
-  for (const e of expenses) {
+  for (const e of inMain) {
     const category = e.category_id ? byId.get(e.category_id) : undefined;
     const key = category?.id ?? "none";
     const g = groups.get(key) ?? { id: category?.id, name: category?.name ?? "Uncategorized", category, amount: 0, count: 0 };
@@ -87,26 +93,27 @@ export function MonthSummary({
         <div className="grid grid-cols-3 gap-4">
           <Stat
             title={`Total (${month.toLocaleDateString("en-US", { month: "short" })})`}
-            value={total.toFixed(2)}
-            unit="EUR"
+            value={formatMoney(total, main)}
             footer={
-              delta ? (
-                <span title="Same filters, compared with the previous month">
-                  <span className={delta.change > 0 ? "text-ios-orange" : "text-ios-green"}>
-                    <DeltaIcon size={13} className="mr-0.5 inline align-[-2px]" />
-                    {Math.abs(delta.change * 100).toFixed(1)}%
-                  </span>{" "}
-                  <span className="whitespace-nowrap">{delta.label}</span>
-                </span>
-              ) : (
-                "No data for last month"
-              )
+              <>
+                {delta ? (
+                  <span title="Same filters, compared with the previous month">
+                    <span className={delta.change > 0 ? "text-ios-orange" : "text-ios-green"}>
+                      <DeltaIcon size={13} className="mr-0.5 inline align-[-2px]" />
+                      {Math.abs(delta.change * 100).toFixed(1)}%
+                    </span>{" "}
+                    <span className="whitespace-nowrap">{delta.label}</span>
+                  </span>
+                ) : (
+                  "No data for last month"
+                )}
+                {others.length > 0 && <div className="truncate">+ {formatTotals(others)}</div>}
+              </>
             }
           />
           <Stat
             title="Daily Average"
-            value={(total / days).toFixed(2)}
-            unit="EUR"
+            value={formatMoney(total / days, main)}
             footer={isCurrentMonth ? `${days} ${days === 1 ? "day" : "days"} elapsed` : `${days} days`}
           />
           <Stat
@@ -114,10 +121,7 @@ export function MonthSummary({
             value={String(expenses.length)}
             footer={
               expenses.length ? (
-                <>
-                  avg {(total / expenses.length).toFixed(2)}
-                  <span className="hidden @md:inline"> EUR each</span>
-                </>
+                `avg ${formatMoney(total / inMain.length, main)}${others.length > 0 ? ` · ${inMain.length} in ${main}` : ""}`
               ) : (
                 "None yet"
               )
@@ -136,7 +140,7 @@ export function MonthSummary({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between gap-3">
                     <span className="truncate text-[16px] font-medium">{r.name}</span>
-                    <span className="text-[15px] font-semibold tabular-nums">{r.amount.toFixed(2)}</span>
+                    <span className="text-[15px] font-semibold tabular-nums">{formatMoney(r.amount, main)}</span>
                   </div>
                   <div className="mt-1.5 flex items-center gap-2">
                     <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-fill">

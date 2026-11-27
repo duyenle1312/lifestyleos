@@ -1,5 +1,5 @@
 // Option lists shared by the expense form and list.
-export const CURRENCIES = ["EUR", "USD", "GBP", "JPY", "BGN", "CNY", "INR"];
+export const CURRENCIES = ["EUR", "USD", "GBP", "JPY", "BGN", "CNY", "INR", "THB", "MXN", "VND", "IDR", "TRY", "CAD", "AUD", "CHF", "PLN", "CZK", "HUF", "KRW", "BRL", "SGD", "MYR", "PHP", "AED", "ZAR", "SEK", "NOK", "DKK", "RON"];
 
 // Expense categories are per user now: see the `categories` table and CategoriesProvider.
 

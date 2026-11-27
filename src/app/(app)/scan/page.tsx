@@ -10,6 +10,8 @@ import { usePaymentMethods } from "@/components/PaymentMethodsProvider";
 import { Alert, LoadingOverlay, Spinner, Toolbar, useAutoFocus } from "@/components/ui";
 import { errorMessage, formatQuantity, parseDecimal, todayInput } from "@/lib/helpers";
 import { saveReceipt } from "@/lib/offline/mutations";
+import { currencyOptions } from "@/lib/currency";
+import { formatMoney } from "@/lib/money";
 import { receiptToExpenseInputs } from "@/lib/receipt";
 import { useOnline } from "@/lib/useOnline";
 import { type ReceiptItem, receiptItemDisplayName, type ScannedReceipt } from "@/lib/types";
@@ -173,7 +175,7 @@ export default function ScanPage() {
 
           <div className="flex flex-col gap-3 rounded-xl bg-gray6 p-4 dark:bg-cell">
             <p className="text-[17px] font-semibold">Tips for best results:</p>
-            {["Ensure receipt is flat and well-lit", "Hold camera steady", "Works with Bulgarian store receipts"].map(
+            {["Ensure receipt is flat and well-lit", "Hold camera steady", "Works with receipts in any language"].map(
               (tip) => (
                 <p key={tip} className="flex items-start gap-3 text-[15px] text-label-2">
                   <CircleCheck size={20} className="shrink-0 fill-ios-green text-cell" />
@@ -191,6 +193,7 @@ export default function ScanPage() {
           isSaving={isSaving}
           onChangeStore={(storeName) => setReceipt((r) => (r ? { ...r, storeName } : r))}
           onChangeDate={(date) => setReceipt((r) => (r ? { ...r, date } : r))}
+          onChangeCurrency={(currency) => setReceipt((r) => (r ? { ...r, currency } : r))}
           onChangePayment={(paymentMethod) => setReceipt((r) => (r ? { ...r, paymentMethod } : r))}
           onUpdateItem={(id, patch) => updateItems((items) => items.map((i) => (i.id === id ? { ...i, ...patch } : i)))}
           onRemoveItem={(id) => updateItems((items) => items.filter((i) => i.id !== id))}
@@ -213,9 +216,6 @@ export default function ScanPage() {
   );
 }
 
-const formatCurrency = (amount: number, currency: string) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount);
-
 function ReceiptReview({
   receipt,
   categories,
@@ -223,6 +223,7 @@ function ReceiptReview({
   isSaving,
   onChangeStore,
   onChangeDate,
+  onChangeCurrency,
   onChangePayment,
   onUpdateItem,
   onRemoveItem,
@@ -235,6 +236,7 @@ function ReceiptReview({
   isSaving: boolean;
   onChangeStore: (name: string | null) => void;
   onChangeDate: (date: string) => void;
+  onChangeCurrency: (currency: string) => void;
   onChangePayment: (method: string | null) => void;
   onUpdateItem: (id: string, patch: Partial<ReceiptItem>) => void;
   onRemoveItem: (id: string) => void;
@@ -256,7 +258,7 @@ function ReceiptReview({
             <Pencil size={14} className="shrink-0 text-label-3" />
           </label>
           <span className="shrink-0 text-[20px] font-bold text-ios-blue">
-            {formatCurrency(receipt.total, receipt.currency)}
+            {formatMoney(receipt.total, receipt.currency)}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -268,6 +270,16 @@ function ReceiptReview({
             max={todayInput()}
             onChange={(e) => e.target.value && onChangeDate(e.target.value)}
           />
+          <select
+            aria-label="Currency"
+            className="rounded-md bg-fill px-2 py-1 text-[15px] text-label outline-none"
+            value={receipt.currency}
+            onChange={(e) => onChangeCurrency(e.target.value)}
+          >
+            {currencyOptions(receipt.currency).map((c) => (
+              <option key={c}>{c}</option>
+            ))}
+          </select>
           <select
             aria-label="Payment method"
             className="min-w-0 rounded-md bg-fill px-2 py-1 text-[15px] text-label outline-none"
@@ -316,7 +328,7 @@ function ReceiptReview({
             <>
               <CirclePlus size={16} className="shrink-0" />
               <span className="truncate">
-                Add {receipt.items.length} · {formatCurrency(receipt.total, receipt.currency)}
+                Add {receipt.items.length} · {formatMoney(receipt.total, receipt.currency)}
               </span>
             </>
           )}
@@ -422,8 +434,8 @@ function ReceiptItemRow({
     <li className="flex flex-col gap-3 border-b border-separator px-4 py-4">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-[17px] font-semibold">{receiptItemDisplayName(item)}</p>
           {item.name !== receiptItemDisplayName(item) && <p className="text-xs text-label-2">{item.name}</p>}
+          <p className="text-[17px] font-semibold">{receiptItemDisplayName(item)}</p>
           <p className="mt-0.5 text-[13px] text-label-2">Qty: {formatQuantity(item.quantity ?? 1)}</p>
         </div>
         <span className="text-[17px] font-semibold text-ios-blue">{item.amount.toFixed(2)}</span>

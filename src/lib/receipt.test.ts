@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { receiptToExpenseInputs } from "./receipt";
+import { parseReceiptResponse, receiptToExpenseInputs } from "./receipt";
 import type { ScannedReceipt } from "./types";
 
 const resolve = {
@@ -27,7 +27,35 @@ describe("receiptToExpenseInputs", () => {
     const [b] = receiptToExpenseInputs({ ...base, date: "garbage" }, [item({})], resolve);
     expect(new Date(b.expense_date).getTime()).toBeGreaterThanOrEqual(before - 1000);
   });
+  it("uses the receipt's currency", () => {
+    const [r] = receiptToExpenseInputs({ ...base, currency: "THB" }, [item({})], resolve);
+    expect(r.currency).toBe("THB");
+  });
   it("returns nothing for no items", () => {
     expect(receiptToExpenseInputs(base, [], resolve)).toEqual([]);
+  });
+});
+
+const reply = (cur: string, lines: string[]) =>
+  ["STORE: Tops", "DATE: 2026-11-01", `CURRENCY: ${cur}`, "TOTAL: 129", "ITEMS_START", ...lines, "ITEMS_END"].join("\n");
+
+describe("parseReceiptResponse", () => {
+  it("keeps a valid currency, uppercases, falls back to EUR", () => {
+    expect(parseReceiptResponse(reply("THB", [])).currency).toBe("THB");
+    expect(parseReceiptResponse(reply("thb", [])).currency).toBe("THB");
+    expect(parseReceiptResponse(reply("€", [])).currency).toBe("EUR");
+    expect(parseReceiptResponse(reply("", [])).currency).toBe("EUR");
+  });
+  it("reads original and English names from 5-field lines", () => {
+    const [i] = parseReceiptResponse(reply("THB", ["ข้าวหอมมะลิ|Jasmine rice|89|1|Food"])).items;
+    expect(i).toMatchObject({ name: "ข้าวหอมมะลิ", translatedName: "Jasmine rice", amount: 89, quantity: 1, category: "Food" });
+  });
+  it("accepts old 4-field lines with original = English", () => {
+    const [i] = parseReceiptResponse(reply("EUR", ["Milk|2.3|1|Food"])).items;
+    expect(i).toMatchObject({ name: "Milk", translatedName: "Milk", amount: 2.3 });
+  });
+  it("skips malformed lines but keeps the rest", () => {
+    const items = parseReceiptResponse(reply("EUR", ["bad|line|1", "a|b|c|d|e|f", "Mleko|Milk|1|1|Food"])).items;
+    expect(items.map((i) => i.translatedName)).toEqual(["Milk"]);
   });
 });
