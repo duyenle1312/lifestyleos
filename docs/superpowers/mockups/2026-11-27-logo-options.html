@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Logo options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+<style>
+  :root { --ink:#14161c; --cream:#fbf8f2; --paper:#f3efe6; --gold:#e8c37a; --mute:#6b6e78; --line:#e6dfd1; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--cream); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif; }
+  .wrap { max-width:1100px; margin:0 auto; padding:40px 20px 80px; }
+  h1 { font-size:30px; margin:0 0 6px; letter-spacing:-.01em; }
+  h1 em, .serif { font-family:"Instrument Serif",serif; font-style:italic; font-weight:400; }
+  .lede { color:var(--mute); margin:0 0 32px; font-size:15px; }
+  .opt { border:1px solid var(--line); border-radius:20px; background:#fff; margin-bottom:22px; overflow:hidden; }
+  .head { padding:18px 22px 4px; display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; }
+  .tag { font-weight:700; font-size:13px; background:var(--ink); color:var(--cream); border-radius:999px; padding:3px 10px; }
+  .head h2 { margin:0; font-size:19px; }
+  .head p { margin:0; color:var(--mute); font-size:14px; flex-basis:100%; }
+  .row { display:grid; grid-template-columns:1.6fr 1fr 1fr; gap:0; border-top:1px solid var(--line); margin-top:14px; }
+  .cell { padding:22px; display:flex; flex-direction:column; gap:10px; justify-content:center; }
+  .cell + .cell { border-left:1px solid var(--line); }
+  .cell small { color:var(--mute); font-size:11px; text-transform:uppercase; letter-spacing:.08em; }
+  .navbar { display:flex; align-items:center; justify-content:space-between; background:var(--cream); border-radius:12px; padding:12px 16px; border:1px solid var(--line); }
+  .brand { display:flex; align-items:center; gap:8px; font-weight:700; font-size:16px; white-space:nowrap; }
+  .brand svg { width:26px; height:26px; flex:none; }
+  .pill { background:var(--ink); color:var(--cream); border-radius:999px; font-size:12px; font-weight:600; padding:7px 12px; }
+  .dark { background:var(--ink); border-radius:12px; padding:14px 16px; }
+  .dark .brand { color:var(--cream); }
+  .icons { display:flex; align-items:flex-end; gap:14px; }
+  .icons svg.big { width:76px; height:76px; border-radius:18px; box-shadow:0 6px 18px rgba(20,22,28,.12); }
+  .icons svg.mid { width:32px; height:32px; }
+  .icons svg.fav { width:16px; height:16px; }
+  @media (max-width:760px){ .row{grid-template-columns:1fr} .cell+.cell{border-left:0;border-top:1px solid var(--line)} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Lifestyle OS — <em>logo options</em></h1>
+  <p class="lede">Each option shown as the landing nav, on a dark band (final CTA / footer), and as the app icon at 76 / 32 / 16 px.</p>
+
+  <!-- SVG symbols -->
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b9bff"/><stop offset="1" stop-color="#0a5fd6"/></linearGradient>
+
+      <!-- 0: current app logo -->
+      <symbol id="m0" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="32" fill="url(#blue)"/>
+        <g fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 31 32 17l17 14"/><path d="M20 28v17h24V28"/></g>
+        <rect x="29" y="37" width="6" height="8" rx="1.5" fill="#fff"/>
+      </symbol>
+
+      <!-- A: ink circle, cream house -->
+      <symbol id="mA" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="32" fill="#14161c"/>
+        <g fill="none" stroke="#fbf8f2" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 31 32 17l17 14"/><path d="M20 28v17h24V28"/></g>
+        <rect x="29" y="37" width="6" height="8" rx="1.5" fill="#fbf8f2"/>
+      </symbol>
+      <symbol id="mA-inv" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="32" fill="#fbf8f2"/>
+        <g fill="none" stroke="#14161c" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 31 32 17l17 14"/><path d="M20 28v17h24V28"/></g>
+        <rect x="29" y="37" width="6" height="8" rx="1.5" fill="#14161c"/>
+      </symbol>
+
+      <!-- B: ink circle, cream house, gold lit door -->
+      <symbol id="mB" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="32" fill="#14161c"/>
+        <g fill="none" stroke="#fbf8f2" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 31 32 17l17 14"/><path d="M20 28v17h24V28"/></g>
+        <path d="M27 45V37.5a5 5 0 0 1 10 0V45Z" fill="#e8c37a"/>
+      </symbol>
+      <symbol id="mB-inv" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="32" fill="#fbf8f2"/>
+        <g fill="none" stroke="#14161c" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 31 32 17l17 14"/><path d="M20 28v17h24V28"/></g>
+        <path d="M27 45V37.5a5 5 0 0 1 10 0V45Z" fill="#d9a94e"/>
+      </symbol>
+
+      <!-- C: receipt-house — house whose base is a torn receipt edge -->
+      <symbol id="mC" viewBox="0 0 64 64">
+        <rect width="64" height="64" rx="15" fill="#14161c"/>
+        <path d="M18 29 32 17.5 46 29v19l-3.5-2.5-3.5 2.5-3.5-2.5-3.5 2.5-3.5-2.5-3.5 2.5-3.5-2.5L18 48Z" fill="#fbf8f2"/>
+        <g stroke="#14161c" stroke-width="2.6" stroke-linecap="round"><path d="M25 33h14"/><path d="M25 38.5h9"/></g>
+        <circle cx="38.5" cy="38.5" r="1.6" fill="#e8c37a"/>
+      </symbol>
+      <symbol id="mC-inv" viewBox="0 0 64 64">
+        <rect width="64" height="64" rx="15" fill="#fbf8f2"/>
+        <path d="M18 29 32 17.5 46 29v19l-3.5-2.5-3.5 2.5-3.5-2.5-3.5 2.5-3.5-2.5-3.5 2.5-3.5-2.5L18 48Z" fill="#14161c"/>
+        <g stroke="#fbf8f2" stroke-width="2.6" stroke-linecap="round"><path d="M25 33h14"/><path d="M25 38.5h9"/></g>
+        <circle cx="38.5" cy="38.5" r="1.6" fill="#e8c37a"/>
+      </symbol>
+
+      <!-- D: cream tile, ink house, serif italic L as the door -->
+      <symbol id="mD" viewBox="0 0 64 64">
+        <rect width="64" height="64" rx="15" fill="#f3efe6"/>
+        <path d="M13 31 32 15l19 16" fill="none" stroke="#14161c" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="32.5" y="50" text-anchor="middle" font-family="Instrument Serif, serif" font-style="italic" font-size="34" fill="#14161c">L</text>
+      </symbol>
+      <symbol id="mD-dark" viewBox="0 0 64 64">
+        <rect width="64" height="64" rx="15" fill="#1f222b"/>
+        <path d="M13 31 32 15l19 16" fill="none" stroke="#e8c37a" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="32.5" y="50" text-anchor="middle" font-family="Instrument Serif, serif" font-style="italic" font-size="34" fill="#fbf8f2">L</text>
+      </symbol>
+
+      <!-- E: half-disc nod to the ◐ placeholder, roofline cut out -->
+      <symbol id="mE" viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="30" fill="#fbf8f2" stroke="#14161c" stroke-width="4"/>
+        <path d="M32 2a30 30 0 0 1 0 60Z" fill="#14161c"/>
+        <path d="M14 36 32 21l18 15" fill="none" stroke="#e8c37a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <!-- Option 0 -->
+  <section class="opt">
+    <div class="head"><span class="tag">0</span><h2>Current app logo, as is</h2>
+      <p>What “similar to ours” means literally: same blue icon. Fast, but the iOS blue fights the cream/ink/gold landing palette.</p></div>
+    <div class="row">
+      <div class="cell"><small>Nav</small><div class="navbar"><span class="brand"><svg><use href="#m0"/></svg>Lifestyle OS</span><span class="pill">Get started</span></div></div>
+      <div class="cell"><small>Dark band</small><div class="dark"><span class="brand"><svg><use href="#m0"/></svg>Lifestyle OS</span></div></div>
+      <div class="cell"><small>Icon</small><div class="icons"><svg class="big"><use href="#m0"/></svg><svg class="mid"><use href="#m0"/></svg><svg class="fav"><use href="#m0"/></svg></div></div>
+    </div>
+  </section>
+
+  <!-- A -->
+  <section class="opt">
+    <div class="head"><span class="tag">A</span><h2>Ink house</h2>
+      <p>Same exact mark, recoloured: ink circle, cream house. Zero relearning for existing users; matches the black pill buttons. Inverts to a cream disc on dark bands.</p></div>
+    <div class="row">
+      <div class="cell"><small>Nav</small><div class="navbar"><span class="brand"><svg><use href="#mA"/></svg>Lifestyle OS</span><span class="pill">Get started</span></div></div>
+      <div class="cell"><small>Dark band</small><div class="dark"><span class="brand"><svg><use href="#mA-inv"/></svg>Lifestyle OS</span></div></div>
+      <div class="cell"><small>Icon</small><div class="icons"><svg class="big"><use href="#mA"/></svg><svg class="mid"><use href="#mA"/></svg><svg class="fav"><use href="#mA"/></svg></div></div>
+    </div>
+  </section>
+
+  <!-- B -->
+  <section class="opt">
+    <div class="head"><span class="tag">B</span><h2>Lit doorway <span class="serif">— my pick</span></h2>
+      <p>Option A plus a gold, arched door — “someone’s home”. Picks up the gold serif accent from the dark bands and gives the wordmark a <span class="serif">OS</span> in Instrument Serif italic, echoing the headline style.</p></div>
+    <div class="row">
+      <div class="cell"><small>Nav</small><div class="navbar"><span class="brand"><svg><use href="#mB"/></svg>Lifestyle <span class="serif" style="font-size:19px">OS</span></span><span class="pill">Get started</span></div></div>
+      <div class="cell"><small>Dark band</small><div class="dark"><span class="brand"><svg><use href="#mB-inv"/></svg>Lifestyle <span class="serif" style="font-size:19px;color:#e8c37a">OS</span></span></div></div>
+      <div class="cell"><small>Icon</small><div class="icons"><svg class="big"><use href="#mB"/></svg><svg class="mid"><use href="#mB"/></svg><svg class="fav"><use href="#mB"/></svg></div></div>
+    </div>
+  </section>
+
+  <!-- C -->
+  <section class="opt">
+    <div class="head"><span class="tag">C</span><h2>Receipt house</h2>
+      <p>The house is a receipt — torn zigzag base, two printed lines. Tells the “scan receipts” story the hero leads with. Rounded-square tile like an iOS icon. Busier at 16 px.</p></div>
+    <div class="row">
+      <div class="cell"><small>Nav</small><div class="navbar"><span class="brand"><svg><use href="#mC"/></svg>Lifestyle OS</span><span class="pill">Get started</span></div></div>
+      <div class="cell"><small>Dark band</small><div class="dark"><span class="brand"><svg><use href="#mC-inv"/></svg>Lifestyle OS</span></div></div>
+      <div class="cell"><small>Icon</small><div class="icons"><svg class="big"><use href="#mC"/></svg><svg class="mid"><use href="#mC"/></svg><svg class="fav"><use href="#mC"/></svg></div></div>
+    </div>
+  </section>
+
+  <!-- D -->
+  <section class="opt">
+    <div class="head"><span class="tag">D</span><h2>Serif monogram</h2>
+      <p>Roofline over an Instrument Serif italic <span class="serif">L</span>. Most “editorial”, closest to the landing’s typographic voice; moves furthest from the current app icon.</p></div>
+    <div class="row">
+      <div class="cell"><small>Nav</small><div class="navbar"><span class="brand"><svg><use href="#mD"/></svg>Lifestyle OS</span><span class="pill">Get started</span></div></div>
+      <div class="cell"><small>Dark band</small><div class="dark"><span class="brand"><svg><use href="#mD-dark"/></svg>Lifestyle OS</span></div></div>
+      <div class="cell"><small>Icon</small><div class="icons"><svg class="big"><use href="#mD"/></svg><svg class="mid"><use href="#mD"/></svg><svg class="fav"><use href="#mD"/></svg></div></div>
+    </div>
+  </section>
+
+  <!-- E -->
+  <section class="opt">
+    <div class="head"><span class="tag">E</span><h2>Half-moon roof</h2>
+      <p>Keeps the ◐ half-disc the landing uses today, with a gold roofline across it. Abstract and distinctive, but the house reads less clearly.</p></div>
+    <div class="row">
+      <div class="cell"><small>Nav</small><div class="navbar"><span class="brand"><svg><use href="#mE"/></svg>Lifestyle OS</span><span class="pill">Get started</span></div></div>
+      <div class="cell"><small>Dark band</small><div class="dark"><span class="brand"><svg><use href="#mE"/></svg>Lifestyle OS</span></div></div>
+      <div class="cell"><small>Icon</small><div class="icons"><svg class="big"><use href="#mE"/></svg><svg class="mid"><use href="#mE"/></svg><svg class="fav"><use href="#mE"/></svg></div></div>
+    </div>
+  </section>
+</div>
+</body>
+</html>

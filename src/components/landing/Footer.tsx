@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "./Logo";
 
 const link = "block py-0.5 hover:text-[#14161c]";
 
@@ -6,8 +7,8 @@ export function Footer() {
   return (
     <footer className="mx-auto grid max-w-6xl grid-cols-2 gap-5 px-4 pt-8 pb-12 text-[13px] text-[#6b6e78] sm:px-6 md:grid-cols-[1.4fr_1fr_1fr_1fr] md:px-11">
       <div className="col-span-2 md:col-span-1">
-        <p className="mb-1.5 font-bold text-[#14161c]">
-          <span aria-hidden="true">◐</span> Lifestyle OS
+        <p className="mb-1.5 flex items-center gap-2 font-bold text-[#14161c]">
+          <Logo size={20} /> Lifestyle OS
         </p>
         <p className="py-0.5">Budgeting for people who just moved.</p>
         <a href="mailto:team@lifestyleos.homes" className={link}>

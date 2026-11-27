@@ -21,11 +21,11 @@ const PERSONAS = [
 export function WhoFor() {
   return (
     <section className="bg-[#14161c] text-[#f3efe6]">
-      <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 md:px-11 md:py-16">
+      <div className="mx-auto max-w-6xl px-4 py-18 sm:px-6 md:px-11 md:py-20">
         <h2 className="mb-2.5 text-[30px] leading-[1.08] font-semibold tracking-[-0.02em] md:text-[38px]">
           Made for people <Serif gold>who just moved.</Serif>
         </h2>
-        <ul className="mt-6 grid gap-3.5 md:grid-cols-3">
+        <ul className="mt-10 grid gap-3.5 md:grid-cols-3 md:mt-12">
           {PERSONAS.map((p) => (
             <li key={p.title} className="rounded-[18px] bg-[#1f222b] p-5">
               <h3 className="mb-1 text-lg font-semibold">{p.title}</h3>
