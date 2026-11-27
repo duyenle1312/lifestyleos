@@ -13,11 +13,11 @@ const STATS = [
 ];
 
 // Gold figures on the page's cream background (like the hero), between the language strip and the dark
-// "Made for people who just moved" band; a hairline on top sets it apart from the language strip.
+// "Made for people who just moved" band.
 export function StatsBand() {
   return (
     <section aria-labelledby="stats-heading" className="text-[#14161c]">
-      <div className="mx-auto max-w-7xl border-t border-[#14161c]/10 px-4 py-16 text-center sm:px-6 md:px-11 md:py-20">
+      <div className="mx-auto max-w-7xl px-4 py-16 text-center sm:px-6 md:px-11 md:py-20">
         <h2 id="stats-heading" className="mb-12 text-[30px] leading-[1.08] font-semibold tracking-[-0.02em] md:mb-14 md:text-[38px]">
           Our <Serif>achievements</Serif>
         </h2>
