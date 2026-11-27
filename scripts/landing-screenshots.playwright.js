@@ -5,7 +5,7 @@
 //
 // Run it with the Playwright MCP tool `browser_run_code_unsafe`, passing this file as `filename`
 // (the file must sit inside the repo or .playwright-mcp/). It writes scan-hero.png, scan-result.png, scan-added.png,
-// expenses-month.png, shopping-location.png and pantry-expiry.png to `out` (below); copy them to public/landing/ (not docs/screenshots/, which holds the README's dark-theme shots).
+// expenses-month.png, shopping-location.png, pantry-expiry.png and desktop.png to `out` (below); copy them to public/landing/ (not docs/screenshots/, which holds the README's dark-theme shots).
 // REF is the public Supabase project ref from NEXT_PUBLIC_SUPABASE_URL (it names the auth storage key).
 async (page0) => {
 const REF = "ywmygkzatdvuliiwjpuh";
@@ -186,6 +186,17 @@ const TABLES = { expenses, categories: cats, payment_methods: pms, inventory_ite
     await page.waitForTimeout(800);
     await page.screenshot({ path: out + '/pantry-expiry.png' });
     shots.push('pantry');
+    await ctx.close();
+  }
+  // Desktop (mixed EUR + THB month), for the "Works offline, too" block
+  eurOnly = false;
+  {
+    const { ctx, page } = await newPage({ width: 1280, height: 800 });
+    await page.goto('http://localhost:3000/expenses', { waitUntil: 'networkidle' });
+    await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+    await page.waitForTimeout(2500);
+    await page.screenshot({ path: out + '/desktop.png' });
+    shots.push('desktop');
     await ctx.close();
   }
   return shots;
