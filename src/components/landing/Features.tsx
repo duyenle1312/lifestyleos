@@ -8,7 +8,7 @@ const FEATURES = [
     title: "Any currency",
     body: "Euros, baht, dong, pesos. Log each expense in the currency you paid in.",
   },
-  { icon: ListChecks, title: "Shopping list", body: "Tick things off in the shop, even with no signal." },
+  { icon: ListChecks, id: "shopping", title: "Shopping list", body: "Tick things off in the shop, even with no signal." },
   { icon: Timer, title: "Pantry", body: "Track what's at home and when it expires." },
   {
     icon: CreditCard,
@@ -28,8 +28,8 @@ export function Features() {
         Receipts are where it starts. Everything else you need for a new home is here too.
       </p>
       <ul className="mt-6 grid gap-3.5 sm:grid-cols-2 md:grid-cols-3">
-        {FEATURES.map(({ icon: Icon, title, body }) => (
-          <li key={title} className="rounded-[18px] border border-[#14161c]/[0.06] bg-white p-5">
+        {FEATURES.map(({ icon: Icon, id, title, body }) => (
+          <li key={title} id={id} className="scroll-mt-4 rounded-[18px] border border-[#14161c]/[0.06] bg-white p-5">
             <div className="flex size-[34px] items-center justify-center rounded-[10px] bg-[#efe9dd]">
               <Icon aria-hidden="true" size={17} strokeWidth={2} />
             </div>

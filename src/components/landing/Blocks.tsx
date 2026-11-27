@@ -6,7 +6,7 @@ const lead = "max-w-[460px] text-base leading-normal text-[#4a4d57]";
 const row = "grid items-center gap-9 py-8 md:grid-cols-2 [&+&]:border-t [&+&]:border-[#14161c]/[0.08]";
 
 const CHECKS = [
-  "Grouped by day or by payment method",
+  "Filter by category, sort by date or payment method",
   "Totals per currency, never mixed together",
   "Search any item, in English",
 ];
@@ -22,7 +22,7 @@ const PANTRY = [
 export function Blocks() {
   return (
     <section className="mx-auto max-w-6xl px-4 pb-6 sm:px-6 md:px-11">
-      <div className={row}>
+      <div id="expenses" className={`${row} scroll-mt-4`}>
         <div>
           <h2 className={h2}>
             See where it all <Serif>went.</Serif>
@@ -43,16 +43,16 @@ export function Blocks() {
           </ul>
         </div>
         <Image
-          src="/landing/expenses.png"
+          src="/landing/expenses-eur.png"
           alt="The expenses screen, grouped by day"
           width={780}
-          height={1370}
+          height={1688}
           sizes="190px"
           className="h-auto w-[170px] justify-self-center rounded-3xl border-[6px] border-[#111] shadow-[0_18px_40px_rgba(0,0,0,0.12)] lg:w-[190px]"
         />
       </div>
 
-      <div className={row}>
+      <div id="pantry" className={`${row} scroll-mt-4`}>
         <ul
           aria-label="Example pantry items"
           className="order-2 divide-y divide-[#14161c]/[0.08] rounded-[18px] border border-[#14161c]/[0.06] bg-white px-4 md:order-1"
@@ -80,7 +80,7 @@ export function Blocks() {
       <div className={row}>
         <div>
           <h2 className={h2}>
-            Works on the <Serif>metro,</Serif> too.
+            Works <Serif>offline,</Serif> too.
           </h2>
           <p className={lead}>
             No local SIM yet? Lifestyle OS keeps working offline and syncs when you&apos;re back online. Add it to

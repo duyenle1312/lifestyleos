@@ -8,9 +8,10 @@ export function Nav() {
         <span aria-hidden="true">◐</span> Lifestyle OS
       </Link>
       <nav aria-label="Page sections" className="hidden gap-[22px] text-sm text-[#14161c]/75 md:flex">
-        <a href="#how" className="hover:text-[#14161c]">How it works</a>
-        <a href="#features" className="hover:text-[#14161c]">Features</a>
-        <a href="#faq" className="hover:text-[#14161c]">FAQ</a>
+        <a href="#scan" className="hover:text-[#14161c]">Scan receipts</a>
+        <a href="#expenses" className="hover:text-[#14161c]">Expenses</a>
+        <a href="#shopping" className="hover:text-[#14161c]">Shopping</a>
+        <a href="#pantry" className="hover:text-[#14161c]">Pantry</a>
       </nav>
       <SessionCta variant="nav" />
     </header>

@@ -4,7 +4,7 @@
 // account or data is involved. Needs `npm run dev` on :3000.
 //
 // Run it with the Playwright MCP tool `browser_run_code_unsafe`, passing this file as `filename`
-// (the file must sit inside the repo or .playwright-mcp/). It writes expenses.png, scan.png and
+// (the file must sit inside the repo or .playwright-mcp/). It writes expenses-eur.png, scan-screen.png and
 // desktop.png to `out` (below); copy them to public/landing/ (not docs/screenshots/, which holds the README's dark-theme shots).
 // REF is the public Supabase project ref from NEXT_PUBLIC_SUPABASE_URL (it names the auth storage key).
 async (page0) => {
@@ -80,6 +80,7 @@ const TABLES = { expenses, categories: cats, payment_methods: pms, inventory_ite
   const browser = page0.context().browser();
   const out = process.cwd() + '/.playwright-mcp/shots';
   const shots = [];
+  let eurOnly = false;
   async function newPage(viewport) {
     const ctx = await browser.newContext({ viewport, deviceScaleFactor: 2, colorScheme: 'light' });
     const page = await ctx.newPage();
@@ -95,7 +96,8 @@ const TABLES = { expenses, categories: cats, payment_methods: pms, inventory_ite
     const t = r.request().url().match(/rest\/v1\/([a-z_]+)/)[1];
     const m = r.request().method();
     if (m !== "GET" && m !== "HEAD") return r.fulfill({ json: [] });
-    const rows = TABLES[t] ?? [];
+    let rows = TABLES[t] ?? [];
+    if (t === 'expenses' && eurOnly) rows = rows.filter((e) => e.currency === 'EUR');
     return r.fulfill({ json: rows, headers: { "content-range": `0-${Math.max(rows.length - 1, 0)}/${rows.length}` } });
   });
   await page.context().route("**/api/scan-receipt", (r) => r.fulfill({ json: receipt }));
@@ -104,26 +106,25 @@ const TABLES = { expenses, categories: cats, payment_methods: pms, inventory_ite
   }
   // Mobile expenses
   {
-    const { ctx, page } = await newPage({ width: 390, height: 685 });
+    // Phone shots: 390x844 (iPhone 14 screen). The landing's expenses shot shows a EUR-only month.
+    eurOnly = true;
+    const { ctx, page } = await newPage({ width: 390, height: 844 });
     await page.goto('http://localhost:3000/expenses', { waitUntil: 'networkidle' });
     await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
     await page.waitForTimeout(2500);
-    await page.screenshot({ path: out + '/expenses.png' });
+    await page.screenshot({ path: out + '/expenses-eur.png' });
     shots.push('expenses');
-    // Mobile scan review
+    // Mobile scan screen, before scanning
     await page.goto('http://localhost:3000/scan', { waitUntil: 'networkidle' });
     await page.waitForTimeout(1500);
-    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
-    const inputs = page.locator('input[type=file]');
-    await inputs.nth(1).setInputFiles({ name: 'receipt.png', mimeType: 'image/png', buffer: png });
-    await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
     await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
     await page.waitForTimeout(2500);
-    await page.screenshot({ path: out + '/scan.png' });
+    await page.screenshot({ path: out + '/scan-screen.png' });
     shots.push('scan');
     await ctx.close();
   }
-  // Desktop
+  // Desktop (mixed EUR + THB month)
+  eurOnly = false;
   {
     const { ctx, page } = await newPage({ width: 1280, height: 800 });
     await page.goto('http://localhost:3000/expenses', { waitUntil: 'networkidle' });

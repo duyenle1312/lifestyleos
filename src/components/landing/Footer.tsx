@@ -17,7 +17,7 @@ export function Footer() {
       </div>
       <nav aria-label="Product">
         <p className="mb-1.5 font-bold text-[#14161c]">Product</p>
-        <a href="#how" className={link}>How it works</a>
+        <a href="#scan" className={link}>How it works</a>
         <a href="#features" className={link}>Features</a>
         <a href="#faq" className={link}>FAQ</a>
       </nav>
