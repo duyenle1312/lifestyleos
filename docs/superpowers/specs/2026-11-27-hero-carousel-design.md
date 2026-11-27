@@ -33,7 +33,7 @@ visible label in the app so the two match.
   Mode can block autoplay.
 - C. Rebuilt HTML screens with animated taps. Most flexible, but a second copy of the app UI that drifts.
 
-User picked A with a slide transition.
+User picked A with a slide transition, then changed it to three rotating phones (see Motion).
 
 ## Design
 
@@ -48,8 +48,11 @@ User picked A with a slide transition.
 6. Pantry: the pantry sorted by expiration, with a mix of expired / expiring soon / fine items (new demo
    inventory data).
 
-**Motion.** Each slide shows for about 3.5 s, then the next one slides in from the right (the screen
-contents move inside the fixed phone frame; the frame itself doesn't move). After slide 6 it wraps to 1.
+**Motion (revised by the user after seeing the slider).** Three phones show at a time: the current slide
+in front, the previous and next ones smaller and angled in on either side, the rest out of sight behind.
+Every ~3.5 s they rotate one step, so the right-hand phone comes to the front, endlessly. Clicking a side
+phone brings it to the front. (A slider inside one phone, and a single phone flipping edge-on, were tried
+and rejected.)
 Under the phone: a short label for the current slide ("Scan", "Translated", "Added", "Expenses",
 "Shopping", "Pantry") and six dots; clicking a dot jumps there.
 

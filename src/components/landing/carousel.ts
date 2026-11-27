@@ -1,41 +1,33 @@
-// State for the hero's phone carousel, kept pure so it can be unit-tested without a DOM.
+// State for the hero's rotating phones, kept pure so it can be unit-tested without a DOM.
 //
-// The track holds the slides plus a clone of slide 0 at the end. Wrapping from the last slide
-// slides forward onto the clone, then snaps (no transition) back to the real slide 0, so the
-// motion is always right-to-left and never rewinds across every slide.
+// Three phones show at a time: the active slide in front, the previous one on the left and the
+// next one on the right. Each tick rotates them, so the right-hand phone comes to the front.
 
 export const SLIDE_MS = 3500;
 
 export type PauseReason = "hover" | "focus" | "hidden";
 
 export interface CarouselState {
-  /** 0..count; `count` means the clone of slide 0 at the end of the track. */
+  /** The slide on the front phone. */
   index: number;
-  /** false for the one render that snaps from the clone back to 0 without a transition. */
-  animate: boolean;
   paused: PauseReason[];
 }
 
 export type CarouselAction =
   | { type: "tick" }
   | { type: "goto"; index: number }
-  | { type: "transitionEnd" }
   | { type: "pause"; reason: PauseReason }
   | { type: "resume"; reason: PauseReason };
 
-export const initialCarousel: CarouselState = { index: 0, animate: true, paused: [] };
+export const initialCarousel: CarouselState = { index: 0, paused: [] };
 
 export function carouselReducer(count: number) {
   return (s: CarouselState, a: CarouselAction): CarouselState => {
     switch (a.type) {
       case "tick":
-        if (s.paused.length > 0 || s.index === count) return s;
-        return { ...s, index: s.index + 1, animate: true };
+        return s.paused.length > 0 ? s : { ...s, index: (s.index + 1) % count };
       case "goto":
-        if (a.index < 0 || a.index >= count) return s;
-        return { ...s, index: a.index, animate: true };
-      case "transitionEnd":
-        return s.index === count ? { ...s, index: 0, animate: false } : { ...s, animate: true };
+        return a.index < 0 || a.index >= count ? s : { ...s, index: a.index };
       case "pause":
         return s.paused.includes(a.reason) ? s : { ...s, paused: [...s.paused, a.reason] };
       case "resume":
@@ -44,5 +36,11 @@ export function carouselReducer(count: number) {
   };
 }
 
-/** The real slide being shown: the clone counts as slide 0. */
-export const activeSlide = (s: CarouselState, count: number) => s.index % count;
+/**
+ * Where slide `i` sits when `active` is in front, going round the ring: 0 front, 1 right, -1 left,
+ * anything further (±2, 3) is tucked out of sight behind the front phone.
+ */
+export function slotOf(i: number, active: number, count: number): number {
+  const d = (i - active + count) % count;
+  return d > count / 2 ? d - count : d;
+}

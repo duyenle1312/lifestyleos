@@ -1,9 +1,4 @@
-import type { ReactNode } from "react";
 import Image from "next/image";
-
-type ImageScreen = { src: string; alt: string; width: number; height: number; sizes: string; preload?: boolean; children?: never };
-/** Anything else as the screen, e.g. the hero's sliding carousel track. */
-type CustomScreen = { children: ReactNode; src?: never };
 
 /**
  * A phone-shaped frame around an app screenshot, built in three layers like a real handset:
@@ -15,10 +10,24 @@ type CustomScreen = { children: ReactNode; src?: never };
  * `cqw` (1% of the phone's width) and the whole frame keeps its proportions at any size.
  */
 export function PhoneFrame({
+  src,
+  alt,
+  width,
+  height,
+  sizes,
+  preload,
   className = "",
   shadow = "shadow-[0_18px_40px_rgba(0,0,0,0.12)]",
-  ...screen
-}: (ImageScreen | CustomScreen) & { className?: string; shadow?: string }) {
+}: {
+  src: string;
+  alt: string;
+  width: number;
+  height: number;
+  sizes: string;
+  preload?: boolean;
+  className?: string;
+  shadow?: string;
+}) {
   // Side buttons: same metal as the rim, just outside it. Positions are a share of the height.
   const metal = "bg-[linear-gradient(90deg,#3c3c40,#6e6e74_50%,#3c3c40)]";
   const button = `absolute w-[1.1cqw] ${metal}`;
@@ -47,19 +56,7 @@ export function PhoneFrame({
                 <span className="aspect-square h-[44%] rounded-full bg-[radial-gradient(circle_at_35%_35%,#3b4a6b_0%,#1c2333_45%,#0a0c12_100%)] ring-1 ring-[#23272f]" />
               </span>
             </div>
-            {screen.src !== undefined ? (
-              <Image
-                src={screen.src}
-                alt={screen.alt}
-                width={screen.width}
-                height={screen.height}
-                sizes={screen.sizes}
-                preload={screen.preload}
-                className="block h-auto w-full"
-              />
-            ) : (
-              screen.children
-            )}
+            <Image src={src} alt={alt} width={width} height={height} sizes={sizes} preload={preload} className="block h-auto w-full" />
             {/* Home-indicator strip in the tab bar's colour; keeps the corners from clipping its labels. */}
             <div className="relative h-[7cqw] bg-[#f9f8f6]">
               <span aria-hidden="true" className="absolute inset-x-0 top-1/2 mx-auto h-[1.3cqw] w-[34%] -translate-y-1/2 rounded-full bg-[#111]" />

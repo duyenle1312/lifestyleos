@@ -1,44 +1,24 @@
 import { describe, expect, test } from "vitest";
-import { activeSlide, carouselReducer, initialCarousel } from "./carousel";
+import { carouselReducer, initialCarousel, slotOf } from "./carousel";
 
 const r = carouselReducer(6);
 
 describe("carouselReducer", () => {
-  test("tick advances one", () => expect(r(initialCarousel, { type: "tick" }).index).toBe(1));
+  test("starts on slide 0", () => expect(initialCarousel.index).toBe(0));
+
+  test("tick brings the next slide to the front", () => expect(r(initialCarousel, { type: "tick" }).index).toBe(1));
+
+  test("tick wraps from the last slide to the first", () =>
+    expect(r({ ...initialCarousel, index: 5 }, { type: "tick" }).index).toBe(0));
 
   test("tick does nothing while paused", () =>
     expect(r({ ...initialCarousel, paused: ["hover"] }, { type: "tick" }).index).toBe(0));
 
-  test("wraps forward via the clone", () => {
-    const onClone = r({ ...initialCarousel, index: 5 }, { type: "tick" });
-    expect(onClone).toMatchObject({ index: 6, animate: true });
-    expect(activeSlide(onClone, 6)).toBe(0);
-    expect(r(onClone, { type: "transitionEnd" })).toMatchObject({ index: 0, animate: false });
-  });
-
-  test("tick on the clone waits for the transition to end", () =>
-    expect(r({ ...initialCarousel, index: 6 }, { type: "tick" }).index).toBe(6));
-
-  test("transitionEnd elsewhere changes nothing but re-enables animation", () =>
-    expect(r({ ...initialCarousel, index: 2, animate: false }, { type: "transitionEnd" })).toMatchObject({
-      index: 2,
-      animate: true,
-    }));
-
-  test("next tick after the snap animates again", () =>
-    expect(r({ ...initialCarousel, index: 0, animate: false }, { type: "tick" })).toMatchObject({
-      index: 1,
-      animate: true,
-    }));
-
-  test("goto jumps", () => expect(r(initialCarousel, { type: "goto", index: 4 }).index).toBe(4));
-
-  test("goto from the clone lands on the slide", () =>
-    expect(r({ ...initialCarousel, index: 6 }, { type: "goto", index: 3 })).toMatchObject({ index: 3, animate: true }));
+  test("goto brings that slide to the front", () => expect(r(initialCarousel, { type: "goto", index: 4 }).index).toBe(4));
 
   test("goto ignores out-of-range", () => {
-    expect(r(initialCarousel, { type: "goto", index: 9 }).index).toBe(0);
-    expect(r(initialCarousel, { type: "goto", index: -1 }).index).toBe(0);
+    expect(r(initialCarousel, { type: "goto", index: 9 })).toBe(initialCarousel);
+    expect(r(initialCarousel, { type: "goto", index: -1 })).toBe(initialCarousel);
   });
 
   test("stays paused until every reason clears", () => {
@@ -58,6 +38,15 @@ describe("carouselReducer", () => {
   });
 });
 
-describe("activeSlide", () => {
-  test("is the index on a real slide", () => expect(activeSlide({ ...initialCarousel, index: 3 }, 6)).toBe(3));
+describe("slotOf", () => {
+  test("the active slide is in front", () => expect(slotOf(2, 2, 6)).toBe(0));
+  test("the next slide is on the right", () => expect(slotOf(3, 2, 6)).toBe(1));
+  test("the previous slide is on the left", () => expect(slotOf(1, 2, 6)).toBe(-1));
+  test("wraps: slide 0 is right of the last slide", () => expect(slotOf(0, 5, 6)).toBe(1));
+  test("wraps: the last slide is left of slide 0", () => expect(slotOf(5, 0, 6)).toBe(-1));
+  test("slides further away are behind the front phone", () => {
+    expect(slotOf(4, 1, 6)).toBe(3);
+    expect(slotOf(3, 1, 6)).toBe(2);
+    expect(slotOf(5, 1, 6)).toBe(-2);
+  });
 });
