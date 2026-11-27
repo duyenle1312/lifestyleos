@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { PhoneFrame } from "./PhoneFrame";
 import { Serif } from "./Serif";
+import { revealDelay } from "./revealDelay";
 
 const h2 = "mb-2.5 text-[26px] leading-[1.08] font-semibold tracking-[-0.02em] md:text-[30px]";
 const lead = "max-w-[460px] text-base leading-normal text-[#4a4d57]";
@@ -25,7 +26,7 @@ export function Blocks() {
   return (
     <section className="mx-auto max-w-7xl px-4 pb-6 sm:px-6 md:px-11">
       <div id="expenses" className={`${row} scroll-mt-4`}>
-        <div>
+        <div data-reveal>
           <h2 className={h2}>
             See where it all <Serif>went.</Serif>
           </h2>
@@ -44,18 +45,21 @@ export function Blocks() {
             ))}
           </ul>
         </div>
-        <PhoneFrame
-          src="/landing/expenses-month.png"
-          alt="The expenses screen, grouped by day"
-          width={780}
-          height={1520}
-          sizes="190px"
-          className="w-[170px] justify-self-center lg:w-[190px]"
-        />
+        <div data-reveal style={revealDelay(1)} className="justify-self-center">
+          <PhoneFrame
+            src="/landing/expenses-month.png"
+            alt="The expenses screen, grouped by day"
+            width={780}
+            height={1520}
+            sizes="190px"
+            className="landing-bob w-[170px] lg:w-[190px]"
+          />
+        </div>
       </div>
 
       <div id="pantry" className={`${rowBase} scroll-mt-4 py-12 md:py-16`}>
         <ul
+          data-reveal
           aria-label="Example pantry items"
           className="order-2 divide-y divide-[#14161c]/[0.08] rounded-[18px] border border-[#14161c]/[0.06] bg-white px-4 md:order-1"
         >
@@ -68,7 +72,7 @@ export function Blocks() {
             </li>
           ))}
         </ul>
-        <div className="order-1 md:order-2">
+        <div data-reveal className="order-1 md:order-2">
           <h2 className={h2}>
             Stop throwing food <Serif>away.</Serif>
           </h2>
@@ -80,7 +84,7 @@ export function Blocks() {
       </div>
 
       <div className={row}>
-        <div>
+        <div data-reveal>
           <h2 className={h2}>
             Works <Serif>offline,</Serif> too.
           </h2>
@@ -89,14 +93,16 @@ export function Blocks() {
             your home screen and it opens like an app.
           </p>
         </div>
-        <Image
-          src="/landing/desktop.png"
-          alt="Lifestyle OS on a laptop, with the split view"
-          width={2560}
-          height={1600}
-          sizes="(min-width: 1280px) 580px, (min-width: 768px) 45vw, 100vw"
-          className="h-auto w-full rounded-[18px] shadow-[0_18px_40px_rgba(0,0,0,0.12)]"
-        />
+        <div data-reveal style={revealDelay(1)}>
+          <Image
+            src="/landing/desktop.png"
+            alt="Lifestyle OS on a laptop, with the split view"
+            width={2560}
+            height={1600}
+            sizes="(min-width: 1280px) 580px, (min-width: 768px) 45vw, 100vw"
+            className="landing-bob h-auto w-full rounded-[18px] shadow-[0_18px_40px_rgba(0,0,0,0.12)]"
+          />
+        </div>
       </div>
     </section>
   );

@@ -22,7 +22,7 @@ const FACTS = [
 
 export function ProofStrip() {
   return (
-    <section className="mx-auto max-w-7xl px-4 pt-5 pb-12 text-center sm:px-6 md:px-11">
+    <section data-reveal className="mx-auto max-w-7xl px-4 pt-5 pb-12 text-center sm:px-6 md:px-11">
       <p className="mb-3.5 text-sm text-[#6b6e78]">Reads receipts in</p>
       <ul className="flex flex-wrap justify-center gap-2 text-sm">
         {LANGUAGES.map((l) => (
