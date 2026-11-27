@@ -4,7 +4,7 @@
 // account or data is involved. Needs `npm run dev` on :3000.
 //
 // Run it with the Playwright MCP tool `browser_run_code_unsafe`, passing this file as `filename`
-// (the file must sit inside the repo or .playwright-mcp/). It writes expenses-eur.png, scan-screen.png and
+// (the file must sit inside the repo or .playwright-mcp/). It writes expenses-month.png, scan-hero.png and
 // desktop.png to `out` (below); copy them to public/landing/ (not docs/screenshots/, which holds the README's dark-theme shots).
 // REF is the public Supabase project ref from NEXT_PUBLIC_SUPABASE_URL (it names the auth storage key).
 async (page0) => {
@@ -106,20 +106,20 @@ const TABLES = { expenses, categories: cats, payment_methods: pms, inventory_ite
   }
   // Mobile expenses
   {
-    // Phone shots: 390x844 (iPhone 14 screen). The landing's expenses shot shows a EUR-only month.
+    // Phone shots: 390x760. The landing's expenses shot shows a EUR-only month.
     eurOnly = true;
-    const { ctx, page } = await newPage({ width: 390, height: 844 });
+    const { ctx, page } = await newPage({ width: 390, height: 760 });
     await page.goto('http://localhost:3000/expenses', { waitUntil: 'networkidle' });
     await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
     await page.waitForTimeout(2500);
-    await page.screenshot({ path: out + '/expenses-eur.png' });
+    await page.screenshot({ path: out + '/expenses-month.png' });
     shots.push('expenses');
     // Mobile scan screen, before scanning
     await page.goto('http://localhost:3000/scan', { waitUntil: 'networkidle' });
     await page.waitForTimeout(1500);
     await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
     await page.waitForTimeout(2500);
-    await page.screenshot({ path: out + '/scan-screen.png' });
+    await page.screenshot({ path: out + '/scan-hero.png' });
     shots.push('scan');
     await ctx.close();
   }

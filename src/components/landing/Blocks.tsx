@@ -43,12 +43,12 @@ export function Blocks() {
           </ul>
         </div>
         <Image
-          src="/landing/expenses-eur.png"
+          src="/landing/expenses-month.png"
           alt="The expenses screen, grouped by day"
           width={780}
-          height={1688}
+          height={1520}
           sizes="190px"
-          className="h-auto w-[170px] justify-self-center rounded-3xl border-[6px] border-[#111] shadow-[0_18px_40px_rgba(0,0,0,0.12)] lg:w-[190px]"
+          className="h-auto w-[170px] justify-self-center rounded-3xl border-4 border-[#111] shadow-[0_18px_40px_rgba(0,0,0,0.12)] lg:w-[190px]"
         />
       </div>
 

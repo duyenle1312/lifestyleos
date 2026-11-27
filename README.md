@@ -75,7 +75,7 @@ The landing page is light-only: its colors don't use the app's CSS variables and
 
 **Installed app.** `StandaloneRedirect` (rendered on `/` only) sends a visitor who opened the installed app (display mode `standalone`) from `/` to `/expenses`.
 
-**Images** in `public/landing/` (`scan-screen.png`, `expenses-eur.png`, `desktop.png`) are the landing page's own light-theme shots with fake demo data (the README's dark-theme shots in `docs/screenshots/` are separate), made by `scripts/landing-screenshots.playwright.js` (mocks Supabase and the scan API with Playwright routes; run it through the Playwright MCP `browser_run_code_unsafe` tool against `npm run dev`).
+**Images** in `public/landing/` (`scan-hero.png`, `expenses-month.png`, `desktop.png`) are the landing page's own light-theme shots with fake demo data (the README's dark-theme shots in `docs/screenshots/` are separate), made by `scripts/landing-screenshots.playwright.js` (mocks Supabase and the scan API with Playwright routes; run it through the Playwright MCP `browser_run_code_unsafe` tool against `npm run dev`).
 
 **Copy** comes from the approved mockup, `docs/superpowers/mockups/2026-11-27-landing-full-page.html`, and the spec, `docs/superpowers/specs/2026-11-27-landing-page-design.md`. Edit those together with the components.
 

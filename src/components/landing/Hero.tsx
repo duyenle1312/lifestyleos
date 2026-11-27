@@ -32,13 +32,13 @@ export function Hero() {
           lower edge; from lg it floats out to the left as in the mockup. */}
       <div className="relative flex flex-col items-center justify-self-center">
         <Image
-          src="/landing/scan-screen.png"
+          src="/landing/scan-hero.png"
           alt="The Lifestyle OS scan screen on a phone"
           width={780}
-          height={1688}
+          height={1520}
           preload
           sizes="220px"
-          className="h-auto w-[200px] rounded-[30px] border-[7px] border-[#111] shadow-[0_30px_60px_rgba(0,0,0,0.18)] lg:w-[220px]"
+          className="h-auto w-[200px] rounded-[28px] border-4 border-[#111] shadow-[0_30px_60px_rgba(0,0,0,0.18)] lg:w-[220px]"
         />
         <ul
           aria-label="Example receipt lines, translated"
