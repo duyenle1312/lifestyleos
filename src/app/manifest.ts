@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Lifestyle OS",
     description: "Expense tracking, shopping list, kitchen inventory and receipt scanning.",
     id: "/",
-    // "/" redirects to /expenses (next.config.ts); start there directly to skip the hop.
+    // "/" is the public landing page; the installed app opens straight into Expenses.
     start_url: "/expenses",
     scope: "/",
     display: "standalone",
