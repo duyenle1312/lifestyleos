@@ -5,7 +5,7 @@ import { TrendingDown, TrendingUp } from "lucide-react";
 import { IconBubble } from "@/components/glyphs";
 import { categoryVisual } from "@/lib/categoryStyle";
 import { addMonths, formatMonthDay, isSameMonth } from "@/lib/helpers";
-import { formatMoney, formatTotals, mainCurrency, totalsByCurrency } from "@/lib/money";
+import { currencyOf, formatMoney, formatTotals, mainCurrency, totalsByCurrency } from "@/lib/money";
 import type { Category, Expense } from "@/lib/types";
 import { Section } from "../ui";
 
@@ -59,7 +59,7 @@ export function MonthSummary({
 }) {
   // Currencies are never added together: stats use the main currency, the rest is listed separately.
   const main = mainCurrency(expenses);
-  const inMain = expenses.filter((e) => (e.currency || "EUR") === main);
+  const inMain = expenses.filter((e) => currencyOf(e) === main);
   const others = totalsByCurrency(expenses).filter((t) => t.currency !== main);
   const total = sum(inMain);
   const isCurrentMonth = isSameMonth(month, new Date());
@@ -69,7 +69,7 @@ export function MonthSummary({
   const delta = comparison(
     month,
     total,
-    previous && previous.filter((e) => (e.currency || "EUR") === main),
+    previous && previous.filter((e) => currencyOf(e) === main),
   );
   // Spending less is good news: down = green, up = orange.
   const DeltaIcon = delta && delta.change > 0 ? TrendingUp : TrendingDown;
@@ -121,7 +121,7 @@ export function MonthSummary({
             value={String(expenses.length)}
             footer={
               expenses.length ? (
-                `avg ${formatMoney(total / inMain.length, main)}`
+                `avg ${formatMoney(total / inMain.length, main)}${others.length > 0 ? ` · ${inMain.length} in ${main}` : ""}`
               ) : (
                 "None yet"
               )

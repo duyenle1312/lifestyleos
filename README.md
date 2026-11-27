@@ -73,7 +73,9 @@ The landing page is light-only: its colors don't use the app's CSS variables and
 
 **Signed-in visitors see "Open app".** The page is static, so the server always renders "Log in" and "Get started". After load, `SessionCta` checks `localStorage` for `lifestyleos:lastUser` (written on sign-in, see [Offline data](#sign-in-and-accounts-while-offline)) and swaps in "Open app →". All the buttons go to `/expenses`, which shows the login screen when signed out.
 
-**Images** in `public/landing/` (`scan.png`, `desktop.png`) are copies of the files in `docs/screenshots/`. When a screenshot there changes, copy it over again.
+**Installed app.** `StandaloneRedirect` (rendered on `/` only) sends a visitor who opened the installed app (display mode `standalone`) from `/` to `/expenses`.
+
+**Images** in `public/landing/` (`scan.png`, `expenses.png`, `desktop.png`) are copies of the files in `docs/screenshots/`. When a screenshot there changes, copy it over again.
 
 **Copy** comes from the approved mockup, `docs/superpowers/mockups/2026-11-27-landing-full-page.html`, and the spec, `docs/superpowers/specs/2026-11-27-landing-page-design.md`. Edit those together with the components.
 
@@ -491,6 +493,6 @@ bash scripts/test-migrations.sh   # applies the migrations to a throwaway local 
 - Data access is client-side with supabase-js so Row Level Security does the work. `account_id` and `created_by_user_id` are the signed-in user's id.
 - Dates are saved at local noon (`noonISO`).
 - Receipt scanning sends the photo (downscaled to 1600px) to `/api/scan-receipt`. The route checks the Supabase session, then calls Gemini with a fixed prompt. Gemini reads the image directly, so there is no separate OCR step.
-- Receipts can be in any language. The prompt asks for each line's original name and an English translation; the review screen shows the original name, but only the English name is saved. The currency is read from the receipt (`CURRENCY:` line, normalized by `normalizeCurrency` in `lib/receipt.ts`), falling back to EUR when missing or invalid. The currency list (`CURRENCIES` in `lib/constants.ts`) has 29 currencies; an unknown one on an existing expense is kept in the form.
+- Receipts can be in any language. The prompt asks for each line's original name and an English translation; the review screen shows the original name, but only the English name is saved. The currency is read from the receipt (`CURRENCY:` line, normalized by `normalizeCurrency` in `lib/receipt.ts`), falling back to EUR when missing or invalid. The currency list (`CURRENCIES` in `lib/constants.ts`) has 29 currencies; an unknown one on an existing expense is kept in the form. The scan review screen has a currency picker, so a wrong detected currency can be fixed before saving. The sign-in screen links the Terms and Privacy policy.
 - Currencies are never added together (`lib/money.ts`). Expense totals list one amount per currency, main currency first. The main currency is the one with the most entries in the month; ties go to EUR, then alphabetical. The Expenses summary (total, daily average, average per entry, change vs last month, category breakdown) uses the main currency only and shows other currencies' totals as an extra line under the total.
 - Swipe left on a row to delete it. With a mouse, hover over the row for a delete button.

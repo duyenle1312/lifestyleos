@@ -1,14 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { formatMoney, formatTotals, mainCurrency, totalsByCurrency } from "./money";
+import { currencyOf, formatMoney, formatTotals, mainCurrency, totalsByCurrency } from "./money";
 
 const r = (amount: number, currency: string) => ({ amount, currency });
 
 describe("money", () => {
   it("groups and sorts", () => {
     expect(totalsByCurrency([r(1.29, "EUR"), r(89, "THB"), r(2, "EUR")])).toEqual([
-      { currency: "THB", amount: 89, count: 1 },
       { currency: "EUR", amount: 3.29, count: 2 },
+      { currency: "THB", amount: 89, count: 1 },
     ]);
+  });
+  it("orders totals by entry count, EUR wins ties", () => {
+    expect(totalsByCurrency([r(1, "EUR"), r(500, "THB")]).map((t) => t.currency)).toEqual(["EUR", "THB"]);
+    expect(totalsByCurrency([r(5, "THB"), r(6, "THB"), r(1, "EUR")]).map((t) => t.currency)).toEqual(["THB", "EUR"]);
+  });
+  it("currencyOf falls back to EUR", () => {
+    expect(currencyOf({ currency: "" })).toBe("EUR");
+    expect(currencyOf({ currency: "THB" })).toBe("THB");
   });
   it("treats a missing currency as EUR and rounds float sums", () => {
     expect(totalsByCurrency([r(0.1, ""), r(0.2, "EUR")])).toEqual([{ currency: "EUR", amount: 0.3, count: 2 }]);

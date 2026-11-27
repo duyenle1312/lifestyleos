@@ -4,6 +4,7 @@
 // magic link and a 6-digit code; the code is typed here, so it works in the iOS home-screen app
 // where the link would open Safari instead. Password sign-in and sign-up stay as the backup for when
 // the email quota is used up: a rate-limited magic link switches the screen to the password form.
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { AppLogo } from "./AppLogo";
 import { EMAIL_CODE_LENGTH, isCompleteEmailCode, sanitizeEmailCode } from "@/lib/emailCode";
@@ -204,6 +205,17 @@ export function LoginView() {
             )}
           </div>
         )}
+        <p className="text-center text-[12px] text-label-2">
+          By continuing you agree to the{" "}
+          <Link href="/terms" className="text-ios-blue">
+            Terms
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" className="text-ios-blue">
+            Privacy policy
+          </Link>
+          .
+        </p>
       </form>
 
       {showSignUp && (

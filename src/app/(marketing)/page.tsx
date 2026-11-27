@@ -8,6 +8,7 @@ import { Blocks } from "@/components/landing/Blocks";
 import { WhoFor } from "@/components/landing/WhoFor";
 import { Faq } from "@/components/landing/Faq";
 import { FinalCta } from "@/components/landing/FinalCta";
+import { StandaloneRedirect } from "@/components/landing/StandaloneRedirect";
 import { Footer } from "@/components/landing/Footer";
 
 const title = "Lifestyle OS — budget in any language";
@@ -29,6 +30,7 @@ export async function generateMetadata(_props: PageProps<"/">, parent: Resolving
 export default function LandingPage() {
   return (
     <>
+      <StandaloneRedirect />
       <Nav />
       <main>
         <Hero />

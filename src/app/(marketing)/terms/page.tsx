@@ -23,7 +23,7 @@ export default function TermsPage() {
 
       <h2>Receipt scanning</h2>
       <p>
-        Scan results are machine translations and readings, and they can be wrong. Check the amounts and items
+        Scan results are machine readings, and they can be wrong. Check the amounts and items
         before you rely on them.
       </p>
 

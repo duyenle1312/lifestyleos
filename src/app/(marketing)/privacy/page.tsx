@@ -26,6 +26,10 @@ export default function PrivacyPage() {
           <strong>Resend</strong> sends the sign-in emails (your code and link).
         </li>
         <li>
+          <strong>Vercel</strong> hosts the website and app, and handles every request (including receipt photos on
+          their way to Gemini).
+        </li>
+        <li>
           <strong>Google Gemini</strong> reads receipt photos so we can turn them into items.
         </li>
       </ul>
@@ -39,7 +43,7 @@ export default function PrivacyPage() {
 
       <h2>On your device</h2>
       <p>
-        To work offline, the app keeps a copy of your data in your browser&apos;s local storage (IndexedDB) on your
+        To work offline, the app keeps a copy of your data in browser storage (IndexedDB) on your
         own device.
       </p>
 

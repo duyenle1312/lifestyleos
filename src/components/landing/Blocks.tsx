@@ -6,9 +6,9 @@ const lead = "max-w-[460px] text-base leading-normal text-[#4a4d57]";
 const row = "grid items-center gap-9 py-8 md:grid-cols-2 [&+&]:border-t [&+&]:border-[#14161c]/[0.08]";
 
 const CHECKS = [
-  "Store, date and total picked up automatically",
-  "Categories you choose, not ours",
-  "Edit any line before saving",
+  "Grouped by day or by payment method",
+  "Totals per currency, never mixed together",
+  "Search any item, in English",
 ];
 
 // Shown as plain list rows (status in the app's pantry), never as notifications.
@@ -25,11 +25,11 @@ export function Blocks() {
       <div className={row}>
         <div>
           <h2 className={h2}>
-            Check it before <Serif>it counts.</Serif>
+            See where it all <Serif>went.</Serif>
           </h2>
           <p className={lead}>
-            See every translated line next to its price. Rename it, change the category or fix the amount, then
-            add the whole receipt at once.
+            Every scanned item lands in your expenses with its shop, date and category. Browse the month by day or
+            by card, and see what you spent in each currency.
           </p>
           <ul className="mt-3 space-y-2 text-sm text-[#4a4d57]">
             {CHECKS.map((c) => (
@@ -43,8 +43,8 @@ export function Blocks() {
           </ul>
         </div>
         <Image
-          src="/landing/scan.png"
-          alt="Reviewing a scanned receipt before saving"
+          src="/landing/expenses.png"
+          alt="The expenses screen, grouped by day"
           width={780}
           height={1370}
           sizes="190px"
