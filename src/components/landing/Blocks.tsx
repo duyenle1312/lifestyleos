@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { PhoneFrame } from "./PhoneFrame";
 import { Serif } from "./Serif";
 
 const h2 = "mb-2.5 text-[26px] leading-[1.08] font-semibold tracking-[-0.02em] md:text-[30px]";
@@ -42,13 +43,13 @@ export function Blocks() {
             ))}
           </ul>
         </div>
-        <Image
+        <PhoneFrame
           src="/landing/expenses-month.png"
           alt="The expenses screen, grouped by day"
           width={780}
           height={1520}
           sizes="190px"
-          className="h-auto w-[170px] justify-self-center rounded-3xl border-4 border-[#111] shadow-[0_18px_40px_rgba(0,0,0,0.12)] lg:w-[190px]"
+          className="w-[170px] justify-self-center lg:w-[190px]"
         />
       </div>
 
