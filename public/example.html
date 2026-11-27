@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aether — Autonomous Wealth & Lifestyle</title>
+  
+  <!-- Google Fonts: Plus Jakarta Sans & Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Plus Jakarta Sans', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            obsidian: '#06070A',
+            surface: '#0E1117',
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    /* ==========================================================================
+       CSS VARIABLES & THEME TOKENS
+       ========================================================================== */
+    :root {
+      --accent-primary: #6366f1;     /* Indigo */
+      --accent-secondary: #22d3ee;   /* Cyan */
+      --accent-glow: rgba(99, 102, 241, 0.35);
+      --accent-glow-alt: rgba(34, 211, 238, 0.25);
+      --spring-easing: cubic-bezier(0.22, 1.25, 0.36, 1);
+      --smooth-easing: cubic-bezier(0.16, 1, 0.3, 1);
+      
+      /* Stage scaling variable for responsive devices */
+      --phone-scale: 1;
+    }
+
+    [data-theme="emerald"] {
+      --accent-primary: #10b981;
+      --accent-secondary: #a3e635;
+      --accent-glow: rgba(16, 185, 129, 0.35);
+      --accent-glow-alt: rgba(163, 230, 53, 0.22);
+    }
+
+    [data-theme="amber"] {
+      --accent-primary: #f59e0b;
+      --accent-secondary: #fb7185;
+      --accent-glow: rgba(245, 158, 11, 0.35);
+      --accent-glow-alt: rgba(251, 113, 133, 0.24);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      background-color: #06070A;
+      color: #F8FAFC;
+      overflow-x: hidden;
+      min-height: 100vh;
+      selection-background-color: var(--accent-primary);
+    }
+
+    /* ==========================================================================
+       BACKGROUND AMBIENT EFFECTS & SUBTLE GRID
+       ========================================================================== */
+    .bg-grid-pattern {
+      background-size: 48px 48px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+      mask-image: radial-gradient(ellipse 80% 70% at 50% 45%, #000 35%, transparent 100%);
+      -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 45%, #000 35%, transparent 100%);
+    }
+
+    .ambient-orb {
+      position: absolute;
+      border-radius: 9999px;
+      filter: blur(110px);
+      pointer-events: none;
+      transition: background 0.8s ease;
+      animation: orbDrift 14s ease-in-out infinite alternate;
+    }
+
+    @keyframes orbDrift {
+      0% { transform: translate(0px, 0px) scale(1); }
+      50% { transform: translate(24px, -18px) scale(1.06); }
+      100% { transform: translate(-18px, 14px) scale(0.97); }
+    }
+
+    /* ==========================================================================
+       HERO COPY ENTRANCE CHOREOGRAPHY
+       ========================================================================== */
+    .hero-reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.85s var(--smooth-easing), transform 0.85s var(--smooth-easing);
+    }
+
+    .hero-loaded .hero-reveal {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .delay-1 { transition-delay: 80ms; }
+    .delay-2 { transition-delay: 160ms; }
+    .delay-3 { transition-delay: 240ms; }
+    .delay-4 { transition-delay: 320ms; }
+
+    /* ==========================================================================
+       3D PHONE STAGE & HARDWARE ARCHITECTURE
+       ========================================================================== */
+    .stage-perspective {
+      perspective: 1800px;
+      transform-style: preserve-3d;
+    }
+
+    .stage-parallax-wrapper {
+      transform-style: preserve-3d;
+      will-change: transform;
+      position: relative;
+      width: 100%;
+      height: 580px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    @media (max-width: 1280px) {
+      :root { --phone-scale: 0.9; }
+      .stage-parallax-wrapper { height: 530px; }
+    }
+
+    @media (max-width: 640px) {
+      :root { --phone-scale: 0.74; }
+      .stage-parallax-wrapper { height: 450px; }
+    }
+
+    /* Phone Outer Slot (Handles 3D Fanned Positioning, Entrance & Carousel Swap) */
+    .phone-slot {
+      position: absolute;
+      width: 286px;
+      height: 584px;
+      transform-style: preserve-3d;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      transition:
+        transform 0.95s var(--spring-easing),
+        opacity 0.7s ease,
+        filter 0.6s ease;
+      will-change: transform, opacity;
+    }
+
+    /* Initial Pre-Entrance States (Before .stage-ready is applied) */
+    .stage-initializing .phone-slot[data-pos="center"] {
+      opacity: 0;
+      transform: translate3d(0px, 140px, 0px) scale(calc(0.86 * var(--phone-scale))) rotateY(0deg) rotateZ(0deg);
+    }
+    .stage-initializing .phone-slot[data-pos="left"] {
+      opacity: 0;
+      transform: translate3d(-40px, 160px, -120px) scale(calc(0.8 * var(--phone-scale))) rotateY(0deg) rotateZ(0deg);
+    }
+    .stage-initializing .phone-slot[data-pos="right"] {
+      opacity: 0;
+      transform: translate3d(40px, 160px, -120px) scale(calc(0.8 * var(--phone-scale))) rotateY(0deg) rotateZ(0deg);
+    }
+
+    /* Active Fanned 3D Stage Positions */
+    .phone-slot[data-pos="center"] {
+      z-index: 30;
+      opacity: 1;
+      transform:
+        translate3d(0px, -10px, 50px)
+        scale(var(--phone-scale))
+        rotateY(0deg)
+        rotateX(2deg)
+        rotateZ(0deg);
+      filter: brightness(1);
+    }
+
+    .phone-slot[data-pos="left"] {
+      z-index: 20;
+      opacity: 0.95;
+      transform:
+        translate3d(calc(-185px * var(--phone-scale)), 26px, -65px)
+        scale(calc(0.88 * var(--phone-scale)))
+        rotateY(22deg)
+        rotateX(4deg)
+        rotateZ(-7deg);
+      filter: brightness(0.84);
+    }
+
+    .phone-slot[data-pos="right"] {
+      z-index: 20;
+      opacity: 0.95;
+      transform:
+        translate3d(calc(185px * var(--phone-scale)), 26px, -65px)
+        scale(calc(0.88 * var(--phone-scale)))
+        rotateY(-22deg)
+        rotateX(4deg)
+        rotateZ(7deg);
+      filter: brightness(0.84);
+    }
+
+    /* Interactive Hover Micro-Lift on Side Phones */
+    .phone-slot[data-pos="left"]:hover {
+      filter: brightness(0.98);
+      transform:
+        translate3d(calc(-198px * var(--phone-scale)), 12px, -30px)
+        scale(calc(0.91 * var(--phone-scale)))
+        rotateY(16deg)
+        rotateX(2deg)
+        rotateZ(-5deg);
+    }
+
+    .phone-slot[data-pos="right"]:hover {
+      filter: brightness(0.98);
+      transform:
+        translate3d(calc(198px * var(--phone-scale)), 12px, -30px)
+        scale(calc(0.91 * var(--phone-scale)))
+        rotateY(-16deg)
+        rotateX(2deg)
+        rotateZ(5deg);
+    }
+
+    .phone-slot[data-pos="center"]:hover {
+      transform:
+        translate3d(0px, -18px, 65px)
+        scale(calc(1.015 * var(--phone-scale)))
+        rotateY(0deg)
+        rotateX(0deg)
+        rotateZ(0deg);
+    }
+
+    /* Inner Continuous Levitation Wrapper (Asynchronous Floating) */
+    .phone-levitate {
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+    }
+
+    .levitate-1 { animation: floatPhone1 6.2s ease-in-out infinite; }
+    .levitate-2 { animation: floatPhone2 7.1s ease-in-out infinite; }
+    .levitate-3 { animation: floatPhone3 6.7s ease-in-out infinite; }
+
+    @keyframes floatPhone1 {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-11px); }
+    }
+    @keyframes floatPhone2 {
+      0%, 100% { transform: translateY(-4px); }
+      50% { transform: translateY(9px); }
+    }
+    @keyframes floatPhone3 {
+      0%, 100% { transform: translateY(3px); }
+      50% { transform: translateY(-10px); }
+    }
+
+    /* ==========================================================================
+       REALISTIC TITANIUM SMARTPHONE CHASSIS
+       ========================================================================== */
+    .phone-chassis {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 48px;
+      padding: 11px;
+      background: linear-gradient(145deg, #383e4e 0%, #171a23 30%, #0d0f14 70%, #2b303d 100%);
+      box-shadow:
+        0 35px 70px -15px rgba(0, 0, 0, 0.85),
+        0 0 0 1px rgba(255, 255, 255, 0.14),
+        inset 0 0 3px 1px rgba(255, 255, 255, 0.18);
+      transition: box-shadow 0.6s ease;
+    }
+
+    .phone-slot[data-pos="center"] .phone-chassis {
+      box-shadow:
+        0 45px 90px -18px rgba(0, 0, 0, 0.92),
+        0 0 55px -12px var(--accent-glow),
+        0 0 0 1px rgba(255, 255, 255, 0.22),
+        inset 0 0 4px 1px rgba(255, 255, 255, 0.25);
+    }
+
+    /* Hardware Side Buttons */
+    .hw-btn-left-1, .hw-btn-left-2, .hw-btn-left-3, .hw-btn-right {
+      position: absolute;
+      background: linear-gradient(180deg, #4b5264, #1e222d);
+      border-radius: 3px;
+    }
+    .hw-btn-left-1 { left: -3px; top: 96px; width: 3px; height: 24px; }
+    .hw-btn-left-2 { left: -3px; top: 138px; width: 3px; height: 42px; }
+    .hw-btn-left-3 { left: -3px; top: 190px; width: 3px; height: 42px; }
+    .hw-btn-right  { right: -3px; top: 152px; width: 3px; height: 64px; }
+
+    /* Inner OLED Screen */
+    .phone-screen {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 38px;
+      background: #090b10;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+    }
+
+    /* Diagonal Glass Reflection Sheen */
+    .screen-glare {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        118deg,
+        rgba(255, 255, 255, 0.11) 0%,
+        rgba(255, 255, 255, 0.03) 34%,
+        rgba(255, 255, 255, 0) 48%
+      );
+      pointer-events: none;
+      z-index: 40;
+    }
+
+    /* Dynamic Island */
+    .dynamic-island {
+      width: 84px;
+      height: 23px;
+      background: #000000;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 8px;
+      box-shadow: 0 1px 2px rgba(255, 255, 255, 0.08);
+    }
+
+    .island-lens {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #2e4c7d, #090d16 70%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    /* ==========================================================================
+       IN-APP UI MICRO-ANIMATIONS & SPARKLINES
+       ========================================================================== */
+    .sparkline-path {
+      stroke-dasharray: 340;
+      stroke-dashoffset: 340;
+      animation: drawSparkline 2.2s var(--smooth-easing) 0.4s forwards;
+    }
+
+    @keyframes drawSparkline {
+      to { stroke-dashoffset: 0; }
+    }
+
+    .ring-progress {
+      transition: stroke-dashoffset 1.4s var(--smooth-easing);
+    }
+
+    /* Holographic Virtual Card Shimmer */
+    .holo-card {
+      background: linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.03) 50%, rgba(255,255,255,0.1) 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .holo-card::after {
+      content: "";
+      position: absolute;
+      top: -50%;
+      left: -60%;
+      width: 45%;
+      height: 200%;
+      background: linear-gradient(
+        to right,
+        transparent,
+        rgba(255, 255, 255, 0.22),
+        transparent
+      );
+      transform: rotate(25deg);
+      animation: cardSweep 5.5s ease-in-out infinite;
+    }
+
+    @keyframes cardSweep {
+      0%, 55% { left: -60%; }
+      100% { left: 135%; }
+    }
+
+    /* Accent utility bindings */
+    .accent-bg { background-color: var(--accent-primary); }
+    .accent-text { color: var(--accent-primary); }
+    .accent-secondary-text { color: var(--accent-secondary); }
+    .accent-gradient-text {
+      background: linear-gradient(135deg, #ffffff 15%, var(--accent-secondary) 60%, var(--accent-primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .accent-btn-primary {
+      background: linear-gradient(135deg, var(--accent-primary), color-mix(in srgb, var(--accent-primary) 75%, #000));
+      box-shadow: 0 10px 30px -6px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.28);
+    }
+    .accent-btn-primary:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+  </style>
+</head>
+
+<body class="relative selection:text-white">
+  <!-- Ambient Background Layers -->
+  <div class="fixed inset-0 bg-grid-pattern pointer-events-none z-0"></div>
+  <div class="ambient-orb w-[520px] h-[520px] -top-32 -left-24 opacity-45 z-0" style="background: var(--accent-glow);"></div>
+  <div class="ambient-orb w-[560px] h-[560px] top-1/3 right-[-120px] opacity-40 z-0" style="background: var(--accent-glow-alt); animation-delay: -5s;"></div>
+
+  <!-- ========================================================================
+       NAVIGATION BAR
+       ======================================================================== -->
+  <header class="relative z-40 max-w-7xl mx-auto px-5 sm:px-8 pt-6 pb-4 flex items-center justify-between">
+    <!-- Brand Mark -->
+    <a href="#" class="flex items-center gap-2.5 group">
+      <div class="w-9 h-9 rounded-xl accent-btn-primary flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+        <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 3L4 9v6l8 6 8-6V9l-8-6z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 12l8-3M12 12v9M12 12L4 9" />
+        </svg>
+      </div>
+      <span class="font-display font-bold text-xl tracking-tight text-white">Aether</span>
+      <span class="hidden sm:inline-block text-[10px] font-mono uppercase tracking-widest px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-400">v2.4</span>
+    </a>
+
+    <!-- Nav Links -->
+    <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
+      <a href="#features" class="hover:text-white transition-colors">Autonomous Vaults</a>
+      <a href="#cards" class="hover:text-white transition-colors">Titanium Cards</a>
+      <a href="#insights" class="hover:text-white transition-colors">AI Pulse</a>
+      <a href="#security" class="hover:text-white transition-colors">Security</a>
+    </nav>
+
+    <!-- Nav Actions -->
+    <div class="flex items-center gap-3">
+      <button onclick="openAccessModal()" class="hidden sm:inline-flex text-sm font-medium text-slate-300 hover:text-white px-3 py-2 transition-colors">
+        Sign in
+      </button>
+      <button onclick="openAccessModal()" class="accent-btn-primary text-white text-sm font-semibold px-4 py-2.5 rounded-full transition-all duration-200 cursor-pointer">
+        Get Early Access
+      </button>
+    </div>
+  </header>
+
+  <!-- ========================================================================
+       MAIN HERO SECTION (ASYMMETRIC SPLIT + 3D THREE-PHONES SHOWCASE)
+       ======================================================================== -->
+  <main id="heroContainer" class="relative z-20 max-w-7xl mx-auto px-5 sm:px-8 pt-6 pb-16 lg:pt-10 lg:pb-20">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-6 items-center">
+      
+      <!-- LEFT COLUMN: HERO COPY & INTERACTIVE CONTROLS -->
+      <div class="lg:col-span-5 text-center lg:text-left flex flex-col items-center lg:items-start z-30">
+        <!-- Announcement Pill -->
+        <div class="hero-reveal delay-1 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/10 backdrop-blur-md mb-6">
+          <span class="w-2 h-2 rounded-full accent-bg animate-pulse"></span>
+          <span class="text-xs font-medium text-slate-300 tracking-wide">Introducing Aether Intelligence 2.0</span>
+          <svg class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+
+        <!-- Headline -->
+        <h1 class="hero-reveal delay-2 font-display font-extrabold text-4xl sm:text-5xl xl:text-[3.5rem] leading-[1.08] tracking-tight text-white mb-5">
+          Wealth that moves at the <span class="accent-gradient-text">speed of thought.</span>
+        </h1>
+
+        <!-- Subheadline -->
+        <p class="hero-reveal delay-3 text-base sm:text-lg text-slate-400 leading-relaxed max-w-xl mb-8">
+          Unify multi-currency treasury, automated yield routing, and zero-FX titanium cards inside one living interface engineered for modern life.
+        </p>
+
+        <!-- Primary & Secondary CTAs -->
+        <div class="hero-reveal delay-4 flex flex-wrap items-center justify-center lg:justify-start gap-3.5 w-full sm:w-auto mb-10">
+          <button onclick="openAccessModal()" class="accent-btn-primary text-white font-semibold text-sm sm:text-base px-6 py-3.5 rounded-full inline-flex items-center gap-2.5 transition-all duration-200 cursor-pointer">
+            <span>Start Free Membership</span>
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </button>
+
+          <button onclick="replayEntrance()" class="group px-5 py-3.5 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-slate-200 font-medium text-sm sm:text-base inline-flex items-center gap-2 transition-all duration-200 cursor-pointer">
+            <svg id="replayIcon" class="w-4 h-4 text-slate-400 group-hover:text-white transition-transform duration-500 group-hover:-rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span>Replay Animation</span>
+          </button>
+        </div>
+
+        <!-- Interactive Stage Controls (Device Focus Switcher + Accent Theme) -->
+        <div class="hero-reveal delay-4 w-full max-w-md p-3.5 rounded-2xl bg-white/[0.025] border border-white/[0.08] backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-3">
+          <!-- Device Focus Pills -->
+          <div class="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/5 w-full sm:w-auto justify-between sm:justify-start">
+            <button data-focus-btn="insights" onclick="focusPhone('insights')" class="focus-pill px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition-all cursor-pointer">
+              Analytics
+            </button>
+            <button data-focus-btn="portfolio" onclick="focusPhone('portfolio')" class="focus-pill px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 text-white shadow-sm transition-all cursor-pointer">
+              Overview
+            </button>
+            <button data-focus-btn="cards" onclick="focusPhone('cards')" class="focus-pill px-3 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition-all cursor-pointer">
+              Cards
+            </button>
+          </div>
+
+          <!-- Accent Theme Swatches -->
+          <div class="flex items-center gap-2 pr-1">
+            <span class="text-[11px] font-mono text-slate-500 uppercase tracking-wider">Aura</span>
+            <button onclick="setTheme('indigo')" aria-label="Indigo Aura" class="w-5 h-5 rounded-full bg-indigo-500 ring-2 ring-offset-2 ring-offset-[#06070A] ring-indigo-400 transition-transform hover:scale-110 cursor-pointer" data-theme-dot="indigo"></button>
+            <button onclick="setTheme('emerald')" aria-label="Emerald Aura" class="w-5 h-5 rounded-full bg-emerald-500 ring-0 ring-offset-2 ring-offset-[#06070A] ring-emerald-400 transition-transform hover:scale-110 cursor-pointer" data-theme-dot="emerald"></button>
+            <button onclick="setTheme('amber')" aria-label="Amber Aura" class="w-5 h-5 rounded-full bg-amber-500 ring-0 ring-offset-2 ring-offset-[#06070A] ring-amber-400 transition-transform hover:scale-110 cursor-pointer" data-theme-dot="amber"></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: 3D THREE-PHONES CHOREOGRAPHED STAGE -->
+      <div class="lg:col-span-7 relative flex items-center justify-center stage-perspective">
+        <!-- Soft Floor Glow Directly Under Phones -->
+        <div class="absolute bottom-4 w-[420px] h-[90px] rounded-full blur-3xl opacity-55 pointer-events-none transition-colors duration-700" style="background: var(--accent-glow);"></div>
+
+        <!-- Parallax Tilt Wrapper -->
+        <div id="parallaxStage" class="stage-parallax-wrapper stage-initializing">
+
+          <!-- ================================================================
+               PHONE 1: ANALYTICS & SMART INSIGHTS (Starts Left)
+               ================================================================ -->
+          <div id="phone-insights" class="phone-slot" data-pos="left" onclick="focusPhone('insights')" title="Click to focus Smart Insights">
+            <div class="phone-levitate levitate-2">
+              <div class="phone-chassis">
+                <div class="hw-btn-left-1"></div>
+                <div class="hw-btn-left-2"></div>
+                <div class="hw-btn-left-3"></div>
+                <div class="hw-btn-right"></div>
+
+                <div class="phone-screen">
+                  <div class="screen-glare"></div>
+
+                  <!-- Status Bar + Dynamic Island -->
+                  <div class="px-5 pt-3 pb-2 flex items-center justify-between text-[10px] font-semibold text-slate-300 z-20">
+                    <span>9:41</span>
+                    <div class="dynamic-island">
+                      <div class="w-2 h-2 rounded-full bg-emerald-400/80 animate-pulse"></div>
+                      <div class="island-lens"></div>
+                    </div>
+                    <div class="flex items-center gap-1">
+                      <span class="w-3.5 h-2 rounded-[2px] border border-slate-400 p-[1px] flex items-center">
+                        <span class="w-full h-full bg-white rounded-[1px]"></span>
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Screen Content: AI Pulse & Spending Breakdown -->
+                  <div class="px-4 pt-2 pb-5 flex-1 flex flex-col justify-between">
+                    <div>
+                      <div class="flex items-center justify-between mb-3">
+                        <div>
+                          <p class="text-[10px] uppercase tracking-wider text-slate-400 font-mono">AI Cashflow Pulse</p>
+                          <h3 class="text-base font-display font-bold text-white">Smart Insights</h3>
+                        </div>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+                          +18.4% Saved
+                        </span>
+                      </div>
+
+                      <!-- Circular Radial Gauge Card -->
+                      <div class="p-3.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] mb-3 flex items-center gap-3.5">
+                        <div class="relative w-16 h-16 flex-shrink-0 flex items-center justify-center">
+                          <svg class="w-16 h-16 -rotate-90" viewBox="0 0 64 64">
+                            <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="6" />
+                            <circle cx="32" cy="32" r="26" fill="none" stroke="var(--accent-secondary)" stroke-width="6" stroke-linecap="round" stroke-dasharray="163.36" stroke-dashoffset="36" class="ring-progress" />
+                          </svg>
+                          <span class="absolute text-xs font-mono font-bold text-white">78%</span>
+                        </div>
+                        <div>
+                          <p class="text-xs font-semibold text-white">Monthly Yield Goal</p>
+                          <p class="text-[11px] text-slate-400 mt-0.5 leading-snug">$4,680 of $6,000 auto-routed to Treasury.</p>
+                        </div>
+                      </div>
+
+                      <!-- Category Breakdown Bars -->
+                      <div class="space-y-2.5 p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+                        <div class="flex items-center justify-between text-[11px]">
+                          <span class="text-slate-300 font-medium">Auto-Invest ETFs</span>
+                          <span class="font-mono text-white">$2,450</span>
+                        </div>
+                        <div class="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                          <div class="h-full rounded-full accent-bg" style="width: 74%"></div>
+                        </div>
+
+                        <div class="flex items-center justify-between text-[11px] pt-1">
+                          <span class="text-slate-300 font-medium">Global Travel & Dining</span>
+                          <span class="font-mono text-white">$1,120</span>
+                        </div>
+                        <div class="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                          <div class="h-full rounded-full bg-cyan-400" style="width: 46%"></div>
+                        </div>
+
+                        <div class="flex items-center justify-between text-[11px] pt-1">
+                          <span class="text-slate-300 font-medium">Cloud & Subscriptions</span>
+                          <span class="font-mono text-white">$340</span>
+                        </div>
+                        <div class="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                          <div class="h-full rounded-full bg-purple-400" style="width: 24%"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Bottom AI Tip Pill -->
+                    <div class="p-3 rounded-xl bg-gradient-to-r from-white/[0.07] to-white/[0.02] border border-white/10 flex items-center gap-2.5">
+                      <div class="w-7 h-7 rounded-lg accent-bg/20 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4 accent-secondary-text" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                      </div>
+                      <p class="text-[10px] text-slate-300 leading-tight">
+                        <strong class="text-white">Aether AI:</strong> Idle checking cash swept into 5.15% APY vault.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ================================================================
+               PHONE 2: PORTFOLIO & LIVE BALANCE (Starts Center Spotlight)
+               ================================================================ -->
+          <div id="phone-portfolio" class="phone-slot" data-pos="center" onclick="focusPhone('portfolio')" title="Primary Portfolio View">
+            <div class="phone-levitate levitate-1">
+              <div class="phone-chassis">
+                <div class="hw-btn-left-1"></div>
+                <div class="hw-btn-left-2"></div>
+                <div class="hw-btn-left-3"></div>
+                <div class="hw-btn-right"></div>
+
+                <div class="phone-screen">
+                  <div class="screen-glare"></div>
+
+                  <!-- Status Bar + Dynamic Island -->
+                  <div class="px-5 pt-3 pb-2 flex items-center justify-between text-[10px] font-semibold text-slate-300 z-20">
+                    <span>9:41</span>
+                    <div class="dynamic-island">
+                      <span class="text-[9px] font-mono text-emerald-400 pl-0.5">LIVE</span>
+                      <div class="island-lens"></div>
+                    </div>
+                    <div class="flex items-center gap-1">
+                      <span class="w-3.5 h-2 rounded-[2px] border border-slate-400 p-[1px] flex items-center">
+                        <span class="w-full h-full bg-white rounded-[1px]"></span>
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Screen Content: Main Wealth Dashboard -->
+                  <div class="px-4 pt-1.5 pb-4 flex-1 flex flex-col justify-between">
+                    <!-- Top Header -->
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-full bg-gradient-to-tr from-indigo-500 to-cyan-400 p-[1.5px]">
+                          <div class="w-full h-full rounded-full bg-[#090b10] flex items-center justify-center text-[10px] font-bold text-white">
+                            AK
+                          </div>
+                        </div>
+                        <div>
+                          <p class="text-[10px] text-slate-400 leading-none">Total Net Liquidity</p>
+                          <p class="text-xs font-semibold text-white mt-0.5">Alex Mercer</p>
+                        </div>
+                      </div>
+                      <div class="w-7 h-7 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center">
+                        <svg class="w-3.5 h-3.5 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                      </div>
+                    </div>
+
+                    <!-- Live Balance & Animated Sparkline -->
+                    <div class="my-2 p-3.5 rounded-2xl bg-gradient-to-b from-white/[0.07] to-white/[0.02] border border-white/10 relative overflow-hidden">
+                      <div class="flex items-baseline justify-between">
+                        <div>
+                          <span class="text-[10px] font-mono uppercase tracking-wider text-slate-400">USD Treasury</span>
+                          <div id="liveBalanceText" class="text-2xl font-display font-extrabold text-white tracking-tight mt-0.5">
+                            $148,920.40
+                          </div>
+                        </div>
+                        <span class="px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold bg-emerald-500/15 text-emerald-400">
+                          +4.82%
+                        </span>
+                      </div>
+
+                      <!-- SVG Sparkline Chart -->
+                      <div class="mt-3 h-16 w-full">
+                        <svg class="w-full h-full overflow-visible" viewBox="0 0 220 60">
+                          <defs>
+                            <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stop-color="var(--accent-secondary)" stop-opacity="0.35" />
+                              <stop offset="100%" stop-color="var(--accent-secondary)" stop-opacity="0.0" />
+                            </linearGradient>
+                          </defs>
+                          <path d="M0,48 Q25,44 45,35 T90,32 T135,18 T180,22 T220,6 L220,60 L0,60 Z" fill="url(#sparkFill)" />
+                          <path d="M0,48 Q25,44 45,35 T90,32 T135,18 T180,22 T220,6" fill="none" stroke="var(--accent-secondary)" stroke-width="2.5" stroke-linecap="round" class="sparkline-path" />
+                          <circle cx="220" cy="6" r="3.5" fill="#ffffff" stroke="var(--accent-secondary)" stroke-width="2" />
+                        </svg>
+                      </div>
+                    </div>
+
+                    <!-- Quick Action Buttons -->
+                    <div class="grid grid-cols-3 gap-2 my-1">
+                      <button type="button" onclick="event.stopPropagation(); bumpBalance()" class="py-2 px-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 flex flex-col items-center gap-1 transition-colors cursor-pointer">
+                        <svg class="w-3.5 h-3.5 accent-secondary-text" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                        </svg>
+                        <span class="text-[10px] font-medium text-slate-200">Deposit</span>
+                      </button>
+                      <button type="button" onclick="event.stopPropagation(); focusPhone('cards')" class="py-2 px-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 flex flex-col items-center gap-1 transition-colors cursor-pointer">
+                        <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                        </svg>
+                        <span class="text-[10px] font-medium text-slate-200">Send</span>
+                      </button>
+                      <button type="button" onclick="event.stopPropagation(); focusPhone('insights')" class="py-2 px-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 flex flex-col items-center gap-1 transition-colors cursor-pointer">
+                        <svg class="w-3.5 h-3.5 text-purple-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                        <span class="text-[10px] font-medium text-slate-200">Swap</span>
+                      </button>
+                    </div>
+
+                    <!-- Recent Transactions -->
+                    <div class="space-y-1.5 mt-1">
+                      <div class="flex items-center justify-between px-1">
+                        <span class="text-[10px] font-mono uppercase tracking-wider text-slate-500">Live Activity</span>
+                        <span class="text-[10px] text-slate-400">Today</span>
+                      </div>
+
+                      <div class="p-2.5 rounded-xl bg-white/[0.035] border border-white/[0.06] flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                          <div class="w-7 h-7 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center font-mono text-xs font-bold">
+                            ↗
+                          </div>
+                          <div>
+                            <p class="text-[11px] font-semibold text-white leading-tight">Treasury Yield Payout</p>
+                            <p class="text-[9px] text-slate-400">5.15% APY • Auto-compounded</p>
+                          </div>
+                        </div>
+                        <span class="text-[11px] font-mono font-semibold text-emerald-400">+$612.80</span>
+                      </div>
+
+                      <div class="p-2.5 rounded-xl bg-white/[0.035] border border-white/[0.06] flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                          <div class="w-7 h-7 rounded-lg bg-sky-500/15 text-sky-400 flex items-center justify-center font-mono text-xs font-bold">
+                            ✦
+                          </div>
+                          <div>
+                            <p class="text-[11px] font-semibold text-white leading-tight">Swiss Air Zurich</p>
+                            <p class="text-[9px] text-slate-400">Zero-FX • 3x Points</p>
+                          </div>
+                        </div>
+                        <span class="text-[11px] font-mono font-medium text-slate-200">-$840.00</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ================================================================
+               PHONE 3: TITANIUM VIRTUAL CARD & INSTANT SEND (Starts Right)
+               ================================================================ -->
+          <div id="phone-cards" class="phone-slot" data-pos="right" onclick="focusPhone('cards')" title="Click to focus Virtual Cards">
+            <div class="phone-levitate levitate-3">
+              <div class="phone-chassis">
+                <div class="hw-btn-left-1"></div>
+                <div class="hw-btn-left-2"></div>
+                <div class="hw-btn-left-3"></div>
+                <div class="hw-btn-right"></div>
+
+                <div class="phone-screen">
+                  <div class="screen-glare"></div>
+
+                  <!-- Status Bar + Dynamic Island -->
+                  <div class="px-5 pt-3 pb-2 flex items-center justify-between text-[10px] font-semibold text-slate-300 z-20">
+                    <span>9:41</span>
+                    <div class="dynamic-island">
+                      <div class="w-2 h-2 rounded-full bg-cyan-400/80"></div>
+                      <div class="island-lens"></div>
+                    </div>
+                    <div class="flex items-center gap-1">
+                      <span class="w-3.5 h-2 rounded-[2px] border border-slate-400 p-[1px] flex items-center">
+                        <span class="w-full h-full bg-white rounded-[1px]"></span>
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Screen Content: Virtual Titanium Card & Instant Transfer -->
+                  <div class="px-4 pt-2 pb-5 flex-1 flex flex-col justify-between">
+                    <div>
+                      <div class="flex items-center justify-between mb-3">
+                        <div>
+                          <p class="text-[10px] uppercase tracking-wider text-slate-400 font-mono">Vault Cards</p>
+                          <h3 class="text-base font-display font-bold text-white">Obsidian Metal</h3>
+                        </div>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-white/10 text-slate-200">
+                          Active
+                        </span>
+                      </div>
+
+                      <!-- Holographic Virtual Credit Card -->
+                      <div class="holo-card rounded-2xl p-4 border border-white/20 shadow-xl mb-3.5 flex flex-col justify-between h-36">
+                        <div class="flex items-center justify-between">
+                          <span class="font-display font-bold text-sm tracking-wider text-white">AETHER</span>
+                          <svg class="w-5 h-5 text-white/80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
+                          </svg>
+                        </div>
+
+                        <div>
+                          <p class="font-mono text-xs tracking-[0.2em] text-white/90">•••• •••• •••• 8842</p>
+                          <div class="flex items-center justify-between mt-2 text-[10px] text-slate-300 font-mono">
+                            <span>ALEX MERCER</span>
+                            <span>09/29</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Instant Peer Transfer Avatars -->
+                      <div class="p-3 rounded-2xl bg-white/[0.035] border border-white/[0.07]">
+                        <p class="text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-2.5">Instant Zero-Fee Send</p>
+                        <div class="flex items-center justify-between">
+                          <div class="flex flex-col items-center gap-1">
+                            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-xs font-bold text-white shadow">EL</div>
+                            <span class="text-[9px] text-slate-300">Elena</span>
+                          </div>
+                          <div class="flex flex-col items-center gap-1">
+                            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-xs font-bold text-white shadow">MK</div>
+                            <span class="text-[9px] text-slate-300">Marcus</span>
+                          </div>
+                          <div class="flex flex-col items-center gap-1">
+                            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-xs font-bold text-white shadow">SR</div>
+                            <span class="text-[9px] text-slate-300">Sora</span>
+                          </div>
+                          <div class="flex flex-col items-center gap-1">
+                            <div class="w-9 h-9 rounded-full bg-white/10 border border-dashed border-white/30 flex items-center justify-center text-xs text-slate-300">+</div>
+                            <span class="text-[9px] text-slate-400">New</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Security Status Footer -->
+                    <div class="p-2.5 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        <span class="text-[10px] font-medium text-slate-200">Dynamic CVV Rotating</span>
+                      </div>
+                      <span class="font-mono text-[10px] text-slate-400">492</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================================
+         TRUST METRICS STRIP BELOW HERO
+         ====================================================================== -->
+    <div class="hero-reveal delay-4 mt-8 pt-8 border-t border-white/[0.07] grid grid-cols-2 md:grid-cols-4 gap-6 text-center lg:text-left">
+      <div>
+        <p class="font-display font-bold text-2xl sm:text-3xl text-white">5.15% <span class="text-sm font-mono accent-secondary-text">APY</span></p>
+        <p class="text-xs sm:text-sm text-slate-400 mt-1">Automated Treasury Yield</p>
+      </div>
+      <div>
+        <p class="font-display font-bold text-2xl sm:text-3xl text-white">0.00%</p>
+        <p class="text-xs sm:text-sm text-slate-400 mt-1">Interbank FX Fees in 140+ Currencies</p>
+      </div>
+      <div>
+        <p class="font-display font-bold text-2xl sm:text-3xl text-white">&lt; 120ms</p>
+        <p class="text-xs sm:text-sm text-slate-400 mt-1">Instant Global Settlement</p>
+      </div>
+      <div>
+        <p class="font-display font-bold text-2xl sm:text-3xl text-white">$2.5M</p>
+        <p class="text-xs sm:text-sm text-slate-400 mt-1">Sweep FDIC Coverage</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- ========================================================================
+       EARLY ACCESS MODAL (NO ALERT() USED)
+       ======================================================================== -->
+  <div id="accessModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+    <div class="relative w-full max-w-md rounded-3xl bg-[#0E1117] border border-white/15 p-6 sm:p-8 shadow-2xl transform transition-all">
+      <button onclick="closeAccessModal()" class="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer" aria-label="Close modal">
+        ✕
+      </button>
+
+      <div class="w-11 h-11 rounded-2xl accent-btn-primary flex items-center justify-center mb-4">
+        <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 3L4 9v6l8 6 8-6V9l-8-6z" />
+        </svg>
+      </div>
+
+      <h2 class="font-display font-bold text-2xl text-white">Reserve your Aether Metal card</h2>
+      <p class="text-sm text-slate-400 mt-1.5 mb-5">
+        Enter your email to claim priority onboarding and 3 months of complimentary Aether Black membership.
+      </p>
+
+      <form id="waitlistForm" onsubmit="handleWaitlistSubmit(event)" class="space-y-3">
+        <input
+          type="email"
+          required
+          placeholder="alex@company.com"
+          class="w-full px-4 py-3 rounded-xl bg-black/50 border border-white/15 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-400 transition-colors"
+        />
+        <button type="submit" class="w-full accent-btn-primary text-white font-semibold text-sm py-3.5 rounded-xl transition-all cursor-pointer">
+          Request Priority Invite
+        </button>
+      </form>
+
+      <div id="waitlistSuccess" class="hidden p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-center">
+        <p class="text-sm font-semibold text-emerald-300">You're on the priority list!</p>
+        <p class="text-xs text-slate-300 mt-1">We've dispatched your private invite token to your inbox.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================
+       INTERACTIVE CHOREOGRAPHY, PARALLAX & CAROUSEL LOGIC
+       ======================================================================== -->
+  <script>
+    // DOM References
+    const parallaxStage = document.getElementById('parallaxStage');
+    const heroContainer = document.getElementById('heroContainer');
+    const phones = {
+      insights: document.getElementById('phone-insights'),
+      portfolio: document.getElementById('phone-portfolio'),
+      cards: document.getElementById('phone-cards')
+    };
+
+    // Current active spotlight phone
+    let currentCenter = 'portfolio';
+
+    // Mouse / Pointer Parallax State (Smooth 60fps Lerp)
+    let targetRotateX = 0;
+    let targetRotateY = 0;
+    let currentRotateX = 0;
+    let currentRotateY = 0;
+
+    /**
+     * Triggers the choreographed spring entrance on load or replay
+     */
+    function triggerEntranceChoreography() {
+      // Reset to initializing state
+      document.body.classList.remove('hero-loaded');
+      parallaxStage.classList.add('stage-initializing');
+
+      // Force browser reflow so transitions restart cleanly
+      void parallaxStage.offsetWidth;
+
+      // Staggered reveal: Hero copy first, then center phone, then side phones
+      requestAnimationFrame(() => {
+        document.body.classList.add('hero-loaded');
+
+        // Center phone rises first
+        setTimeout(() => {
+          phones[currentCenter].style.transitionDelay = '0ms';
+          parallaxStage.classList.remove('stage-initializing');
+        }, 140);
+      });
+    }
+
+    /**
+     * Replay button handler with subtle icon spin
+     */
+    function replayEntrance() {
+      focusPhone('portfolio');
+      triggerEntranceChoreography();
+    }
+
+    /**
+     * Smoothly swaps any clicked/selected phone into the center 3D spotlight
+     * while fanning the remaining two phones to the left and right wings.
+     */
+    function focusPhone(selectedKey) {
+      if (!phones[selectedKey]) return;
+      currentCenter = selectedKey;
+
+      // Determine left, center, right arrangement
+      const arrangement = {
+        portfolio: { left: 'insights', center: 'portfolio', right: 'cards' },
+        insights:  { left: 'cards',    center: 'insights',  right: 'portfolio' },
+        cards:     { left: 'portfolio', center: 'cards',    right: 'insights' }
+      }[selectedKey];
+
+      phones[arrangement.left].setAttribute('data-pos', 'left');
+      phones[arrangement.center].setAttribute('data-pos', 'center');
+      phones[arrangement.right].setAttribute('data-pos', 'right');
+
+      // Update active pill indicator
+      document.querySelectorAll('.focus-pill').forEach(btn => {
+        const isMatch = btn.getAttribute('data-focus-btn') === selectedKey;
+        if (isMatch) {
+          btn.classList.add('bg-white/10', 'text-white', 'font-semibold', 'shadow-sm');
+          btn.classList.remove('text-slate-400', 'font-medium');
+        } else {
+          btn.classList.remove('bg-white/10', 'text-white', 'font-semibold', 'shadow-sm');
+          btn.classList.add('text-slate-400', 'font-medium');
+        }
+      });
+    }
+
+    /**
+     * Theme / Aura Accent Switcher
+     */
+    function setTheme(themeName) {
+      if (themeName === 'indigo') {
+        document.documentElement.removeAttribute('data-theme');
+      } else {
+        document.documentElement.setAttribute('data-theme', themeName);
+      }
+
+      document.querySelectorAll('[data-theme-dot]').forEach(dot => {
+        if (dot.getAttribute('data-theme-dot') === themeName) {
+          dot.classList.add('ring-2');
+          dot.classList.remove('ring-0');
+        } else {
+          dot.classList.remove('ring-2');
+          dot.classList.add('ring-0');
+        }
+      });
+    }
+
+    /**
+     * Interactive demo micro-interaction inside center phone
+     */
+    let currentBalance = 148920.40;
+    function bumpBalance() {
+      currentBalance += 2500.00;
+      const el = document.getElementById('liveBalanceText');
+      if (el) {
+        el.textContent = '$' + currentBalance.toLocaleString('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+        el.classList.add('text-emerald-300');
+        setTimeout(() => el.classList.remove('text-emerald-300'), 450);
+      }
+    }
+
+    /**
+     * Smooth 3D Cursor Parallax Engine
+     */
+    window.addEventListener('mousemove', (e) => {
+      const rect = heroContainer.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+
+      // Normalized coordinates (-1 to 1)
+      const normX = Math.max(-1, Math.min(1, (e.clientX - centerX) / (rect.width / 2)));
+      const normY = Math.max(-1, Math.min(1, (e.clientY - centerY) / (rect.height / 2)));
+
+      // Subtle, refined tilt angles
+      targetRotateY = normX * 7.5;
+      targetRotateX = -normY * 5.5;
+    });
+
+    // Reset gently when cursor leaves window
+    document.addEventListener('mouseleave', () => {
+      targetRotateX = 0;
+      targetRotateY = 0;
+    });
+
+    // 60fps Animation Loop for Damped Parallax
+    function animateParallax() {
+      currentRotateX += (targetRotateX - currentRotateX) * 0.075;
+      currentRotateY += (targetRotateY - currentRotateY) * 0.075;
+
+      parallaxStage.style.transform = `rotateX(${currentRotateX.toFixed(3)}deg) rotateY(${currentRotateY.toFixed(3)}deg)`;
+      requestAnimationFrame(animateParallax);
+    }
+
+    /**
+     * Modal Controls
+     */
+    function openAccessModal() {
+      const modal = document.getElementById('accessModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeAccessModal() {
+      const modal = document.getElementById('accessModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function handleWaitlistSubmit(e) {
+      e.preventDefault();
+      document.getElementById('waitlistForm').classList.add('hidden');
+      document.getElementById('waitlistSuccess').classList.remove('hidden');
+    }
+
+    // Start animations once page loads
+    window.addEventListener('DOMContentLoaded', () => {
+      triggerEntranceChoreography();
+      animateParallax();
+    });
+  </script>
+</body>
+</html>
