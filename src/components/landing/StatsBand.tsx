@@ -19,7 +19,7 @@ export function StatsBand() {
     <section aria-labelledby="stats-heading" className="bg-[#e8c37a] text-[#14161c]">
       <div className="mx-auto max-w-7xl px-4 py-12 text-center sm:px-6 md:px-11 md:py-14">
         <h2 id="stats-heading" className="mb-8 text-[22px] font-semibold tracking-[-0.01em] md:text-[24px]">
-          So far <Serif>in beta</Serif>
+          Our <Serif>achievements</Serif>
         </h2>
         <dl className="mx-auto grid max-w-4xl grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-4">
           {STATS.map((s) => (
