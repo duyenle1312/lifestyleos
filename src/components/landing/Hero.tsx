@@ -1,13 +1,6 @@
-import { PhoneFrame } from "./PhoneFrame";
+import { HeroCarousel } from "./HeroCarousel";
 import { Serif } from "./Serif";
 import { SessionCta } from "./SessionCta";
-
-// Illustrative lines for the floating card: original (as printed) above the English name.
-const LINES = [
-  { original: "Кисело мляко", lang: "bg", english: "Yogurt", price: "€1.29" },
-  { original: "ข้าวหอมมะลิ", lang: "th", english: "Jasmine rice", price: "฿89" },
-  { original: "Hafermilch", lang: "de", english: "Oat milk", price: "€1.95" },
-];
 
 export function Hero() {
   return (
@@ -28,38 +21,8 @@ export function Hero() {
         <p className="mt-4 text-[13px] text-[#5f626b]">Free during beta · Email sign-in, no password</p>
       </div>
 
-      {/* Phone + floating card. Below lg the card sits under the phone and overlaps its
-          lower edge; from lg it floats out to the left as in the mockup. */}
-      <div className="relative flex flex-col items-center justify-self-center">
-        <PhoneFrame
-          src="/landing/scan-hero.png"
-          alt="The Lifestyle OS scan screen on a phone"
-          width={780}
-          height={1520}
-          preload
-          sizes="220px"
-          className="w-[200px] lg:w-[220px]"
-          shadow="shadow-[0_30px_60px_rgba(0,0,0,0.18)]"
-        />
-        <ul
-          aria-label="Example receipt lines, translated"
-          className="relative -mt-20 w-[240px] rounded-2xl bg-white px-3.5 py-3 text-[13px] shadow-[0_18px_40px_rgba(0,0,0,0.16)] lg:absolute lg:bottom-[50px] lg:-left-[118px] lg:mt-0"
-        >
-          {LINES.map((line) => (
-            <li
-              key={line.english}
-              className="flex items-end justify-between gap-3 border-b border-black/[0.06] py-[5px] last:border-0"
-            >
-              <span>
-                <span lang={line.lang} className="block text-[11px] text-[#6b6e78]">
-                  {line.original}
-                </span>
-                <b className="font-semibold">{line.english}</b>
-              </span>
-              <span>{line.price}</span>
-            </li>
-          ))}
-        </ul>
+      <div className="justify-self-center">
+        <HeroCarousel />
       </div>
     </section>
   );
