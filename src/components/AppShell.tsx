@@ -16,7 +16,7 @@ import { Alert, Spinner } from "./ui";
 const TABS = [
   { href: "/expenses", label: "Expenses", icon: CircleDollarSign },
   { href: "/shopping", label: "Shopping", icon: ShoppingCart },
-  { href: "/inventory", label: "Inventory", icon: Layers },
+  { href: "/inventory", label: "Pantry", icon: Layers },
   { href: "/scan", label: "Scan Receipt", icon: ScanText },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
