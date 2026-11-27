@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { PhoneFrame } from "./PhoneFrame";
 import { Serif } from "./Serif";
 
@@ -22,7 +23,7 @@ const PANTRY = [
 
 export function Blocks() {
   return (
-    <section className="mx-auto max-w-6xl px-4 pb-6 sm:px-6 md:px-11">
+    <section className="mx-auto max-w-7xl px-4 pb-6 sm:px-6 md:px-11">
       <div id="expenses" className={`${row} scroll-mt-4`}>
         <div>
           <h2 className={h2}>
@@ -88,13 +89,13 @@ export function Blocks() {
             your home screen and it opens like an app.
           </p>
         </div>
-        <PhoneFrame
-          src="/landing/shopping-location.png"
-          alt="The shopping list, grouped by shop"
-          width={780}
-          height={1520}
-          sizes="190px"
-          className="w-[170px] justify-self-center lg:w-[190px]"
+        <Image
+          src="/landing/desktop.png"
+          alt="Lifestyle OS on a laptop, with the split view"
+          width={2560}
+          height={1600}
+          sizes="(min-width: 1280px) 580px, (min-width: 768px) 45vw, 100vw"
+          className="h-auto w-full rounded-[18px] shadow-[0_18px_40px_rgba(0,0,0,0.12)]"
         />
       </div>
     </section>

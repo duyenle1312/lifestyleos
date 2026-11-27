@@ -95,7 +95,7 @@ export default function InventoryDetailPage() {
         left={
           <Link href="/inventory" className="-ml-2 flex items-center text-[17px] text-ios-blue">
             <ChevronLeft size={28} strokeWidth={2.2} />
-            Inventory
+            Pantry
           </Link>
         }
         right={

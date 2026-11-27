@@ -25,7 +25,7 @@ export const contentType = "image/png";
 const FEATURES = [
   { label: "Expenses", color: "#34c759" },
   { label: "Shopping", color: "#ff9500" },
-  { label: "Inventory", color: "#007aff" },
+  { label: "Pantry", color: "#007aff" },
   { label: "Receipt scan", color: "#af52de" },
 ];
 

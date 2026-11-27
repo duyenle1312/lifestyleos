@@ -20,7 +20,7 @@ const FEATURES = [
 
 export function Features() {
   return (
-    <section id="features" className="mx-auto max-w-6xl scroll-mt-4 px-4 py-14 sm:px-6 md:px-11 md:py-16">
+    <section id="features" className="mx-auto max-w-7xl scroll-mt-4 px-4 py-14 sm:px-6 md:px-11 md:py-16">
       <h2 className="mb-2.5 text-[30px] leading-[1.08] font-semibold tracking-[-0.02em] md:text-[38px]">
         Your whole new life, <Serif>in one place.</Serif>
       </h2>

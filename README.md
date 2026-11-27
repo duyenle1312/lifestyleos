@@ -75,7 +75,11 @@ The landing page is light-only: its colors don't use the app's CSS variables and
 
 **Installed app.** `StandaloneRedirect` (rendered on `/` only) sends a visitor who opened the installed app (display mode `standalone`) from `/` to `/expenses`.
 
-**Images** in `public/landing/` (`scan-hero.png`, `expenses-month.png`, `shopping-location.png`) are the landing page's own light-theme shots with fake demo data (the README's dark-theme shots in `docs/screenshots/` are separate), made by `scripts/landing-screenshots.playwright.js` (mocks Supabase and the scan API with Playwright routes; run it through the Playwright MCP `browser_run_code_unsafe` tool against `npm run dev`).
+**Images** in `public/landing/` (`scan-hero.png`, `scan-result.png`, `scan-added.png`, `expenses-month.png`, `shopping-location.png`, `pantry-expiry.png`, and `desktop.png` for the "Works offline, too" block) are the landing page's own light-theme shots with fake demo data (the README's dark-theme shots in `docs/screenshots/` are separate), made by `scripts/landing-screenshots.playwright.js` (mocks Supabase and the scan API with Playwright routes; run it through the Playwright MCP `browser_run_code_unsafe` tool against `npm run dev`).
+
+**Stats band.** The usage figures (bold gold-gradient numbers on the cream page background, like the hero) under the language strip (`StatsBand.tsx`: expenses logged, € tracked, pantry and shopping-list items) are fixed exact numbers (as of the date in the comment), updated by hand; the read-only SQL to refresh them is in a comment above `STATS`. Nothing reads the database at runtime for them.
+
+**Hero carousel.** The hero fans out three phones at a time from five phone shots, in the app's order: scan, translated result, expenses, shopping list, pantry (`HeroCarousel.tsx`; state and ring positions in `carousel.ts`, unit-tested; the 3D fan, float and entrance styles are the `hero-*` classes in `globals.css`, since the Turbopack CSS rule in `next.config.ts` treats `*.module.css` as plain CSS). The current one is in front; the previous and next ones are smaller, pushed back, angled in and tilted outward. Every 3.5 s they rotate with a springy ease so the right-hand phone comes to the front. The phones float gently, rise into place on load, and the fan tilts slightly towards the mouse. Clicking a side phone or a dot jumps there. It pauses on hover, while focused and in a hidden tab; under reduced motion nothing moves on its own. `scan-added.png` (the success popup) is still made by the script but no longer shown.
 
 **Copy** comes from the approved mockup, `docs/superpowers/mockups/2026-11-27-landing-full-page.html`, and the spec, `docs/superpowers/specs/2026-11-27-landing-page-design.md`. Edit those together with the components.
 
@@ -484,7 +488,7 @@ bash scripts/test-migrations.sh   # applies the migrations to a throwaway local 
 | Sign-in / sign-up (merged, see [Sign-in](#sign-in)) | `components/LoginView.tsx` |
 | Expenses: list, add, edit, detail, month picker | `app/(app)/expenses`, `components/expenses/*` |
 | Shopping lists | `app/(app)/shopping`, `components/shopping/*` |
-| Inventory: list, add, detail | `app/(app)/inventory`, `app/(app)/inventory/[id]` |
+| Pantry (the Inventory tab, renamed; URL stays `/inventory`): list, add, detail | `app/(app)/inventory`, `app/(app)/inventory/[id]` |
 | Receipt scanner | `app/(app)/scan` + `app/api/scan-receipt` |
 | Settings | `app/(app)/settings` |
 
