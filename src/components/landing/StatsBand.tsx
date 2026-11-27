@@ -19,13 +19,13 @@ export function StatsBand() {
     <section aria-labelledby="stats-heading" className="text-[#14161c]">
       <div className="mx-auto max-w-7xl px-4 pt-4 pb-16 text-center sm:px-6 md:px-11 md:pt-6 md:pb-20">
         <h2 id="stats-heading" className="mb-12 text-[30px] leading-[1.08] font-semibold tracking-[-0.02em] md:mb-14 md:text-[38px]">
-          Our <Serif><span className="bg-linear-to-b from-[#f0b93f] via-[#d4961c] to-[#a06a0c] bg-clip-text pr-1 text-transparent">achievements</span></Serif>
+          Our <Serif><span className="bg-linear-to-b from-[#f2bf4a] via-[#e2a52c] to-[#cf9019] bg-clip-text pr-1 text-transparent">achievements</span></Serif>
         </h2>
         <dl className="grid grid-cols-2 gap-x-8 gap-y-12 lg:grid-cols-4 xl:gap-x-12">
           {STATS.map((s) => (
             <div key={s.label} className="flex flex-col-reverse items-center gap-3">
               <dt className="text-sm text-[#6b6e78] md:text-base">{s.label}</dt>
-              <dd className="text-[40px] bg-linear-to-b from-[#f0b93f] via-[#d4961c] to-[#a06a0c] bg-clip-text pb-1 leading-none font-bold tracking-[-0.03em] text-transparent md:text-[52px] lg:text-[48px] xl:text-[60px]">{s.value}+</dd>
+              <dd className="text-[40px] bg-linear-to-b from-[#f2bf4a] via-[#e2a52c] to-[#cf9019] bg-clip-text pb-1 leading-none font-bold tracking-[-0.03em] text-transparent md:text-[52px] lg:text-[48px] xl:text-[60px]">{s.value}+</dd>
             </div>
           ))}
         </dl>

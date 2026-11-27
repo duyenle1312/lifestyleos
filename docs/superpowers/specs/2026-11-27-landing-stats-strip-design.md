@@ -8,7 +8,7 @@ Build trust on the landing page with a few usage figures, right after the "Reads
 
 ## Design
 
-- Revised by the user: the figures get their own section on the cream page background (like the hero) with bold gold-gradient figures (`#f0b93f` → `#d4961c` → `#a06a0c`, top to bottom)
+- Revised by the user: the figures get their own section on the cream page background (like the hero) with bold gold-gradient figures (`#f2bf4a` → `#e2a52c` → `#cf9019`, top to bottom; the heading accent uses it too)
   spread evenly across the content width, a hairline below it, headed "Our *achievements*", between the language strip (now pills, then the "Works offline…"
   facts line) and the dark "Made for people who just moved" band (`StatsBand.tsx`). Each figure is a big
   number over a short label: **1,172** expenses logged · **€10,777** tracked · **163** pantry items · **164**
