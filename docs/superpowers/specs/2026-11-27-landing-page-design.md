@@ -1,6 +1,6 @@
 # Public landing page — design
 
-Date: 2026-11-27 · Branch: `feature/landing-page`
+Date: 2026-11-27 · Branch: `feature/landing-page` · **Status: approved by the user 2026-11-27**
 
 ## Intent
 
@@ -62,7 +62,7 @@ start sign-up in one click. Every claim on the page is true of the app as shippe
   and `receiptToExpenseInputs`. The prompt already asks for English translations from any language.
 - `src/app/scan/page.tsx:176` tip says "Works with Bulgarian store receipts".
 - `src/lib/constants.ts` `CURRENCIES` = EUR, USD, GBP, JPY, BGN, CNY, INR.
-- The scan model returns only the English item name, not the original-language text.
+- The scan model returns only the English item name, not the original-language text (changed by app change 5).
 - Fonts: the app self-hosts Inter (`src/app/fonts`). The page needs a serif italic for accent words.
 - This Next.js version differs from training data. Read `node_modules/next/dist/docs/` (route groups,
   layouts, metadata) before writing code.
@@ -189,6 +189,18 @@ don't ship.
    average use the month's **main currency** (the one with the largest share of entries, ties → EUR), with
    a small note such as "+ ฿1,250 in other currencies". A single-currency month looks as it does today,
    apart from showing the right currency symbol. Pure grouping helpers go in `src/lib/` with unit tests.
+5. **Original-language item names** *(requested by the user)*. The prompt asks for each item's name exactly as
+   printed **and** its English translation. Item line format becomes
+   `[original name as printed]|[name in English]|[price]|[quantity]|[category]`. `parseReceiptResponse`
+   fills `ReceiptItem.name` (original) and `translatedName` (English). Both are set to the English name
+   today. It still accepts the old 4-field line (original = English) so a model slip doesn't drop items.
+   If the original equals the English name (an English receipt), show only one line.
+   The scan review screen (`src/app/scan/page.tsx`) shows each item the way the hero card does: the original
+   in small grey text above the English name in the normal style. When the user renames an item, only the
+   English name changes and the original stays as printed.
+   **Not persisted** *(my call)*: saved expenses keep the English name only. Storing the original would need
+   a new `expenses` column (migration + README database section), which this project avoids.
+   Update `receipt.test.ts` for the 5-field format, the 4-field fallback, and English receipts.
 
 ### Legal pages
 
