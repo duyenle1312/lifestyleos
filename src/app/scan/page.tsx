@@ -173,7 +173,7 @@ export default function ScanPage() {
 
           <div className="flex flex-col gap-3 rounded-xl bg-gray6 p-4 dark:bg-cell">
             <p className="text-[17px] font-semibold">Tips for best results:</p>
-            {["Ensure receipt is flat and well-lit", "Hold camera steady", "Works with Bulgarian store receipts"].map(
+            {["Ensure receipt is flat and well-lit", "Hold camera steady", "Works with receipts in any language"].map(
               (tip) => (
                 <p key={tip} className="flex items-start gap-3 text-[15px] text-label-2">
                   <CircleCheck size={20} className="shrink-0 fill-ios-green text-cell" />
@@ -422,8 +422,8 @@ function ReceiptItemRow({
     <li className="flex flex-col gap-3 border-b border-separator px-4 py-4">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-[17px] font-semibold">{receiptItemDisplayName(item)}</p>
           {item.name !== receiptItemDisplayName(item) && <p className="text-xs text-label-2">{item.name}</p>}
+          <p className="text-[17px] font-semibold">{receiptItemDisplayName(item)}</p>
           <p className="mt-0.5 text-[13px] text-label-2">Qty: {formatQuantity(item.quantity ?? 1)}</p>
         </div>
         <span className="text-[17px] font-semibold text-ios-blue">{item.amount.toFixed(2)}</span>
