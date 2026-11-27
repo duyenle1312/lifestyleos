@@ -5,7 +5,7 @@
 //
 // Run it with the Playwright MCP tool `browser_run_code_unsafe`, passing this file as `filename`
 // (the file must sit inside the repo or .playwright-mcp/). It writes expenses.png, scan.png and
-// desktop.png to `out` (below); copy them to docs/screenshots/ and public/landing/.
+// desktop.png to `out` (below); copy them to public/landing/ (not docs/screenshots/, which holds the README's dark-theme shots).
 // REF is the public Supabase project ref from NEXT_PUBLIC_SUPABASE_URL (it names the auth storage key).
 async (page0) => {
 const REF = "ywmygkzatdvuliiwjpuh";
