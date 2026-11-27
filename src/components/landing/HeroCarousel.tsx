@@ -91,9 +91,13 @@ export function HeroCarousel() {
       aria-roledescription="carousel"
       aria-label="Lifestyle OS app screens"
       className="flex flex-col items-center"
-      onMouseEnter={() => dispatch({ type: "pause", reason: "hover" })}
-      onMouseLeave={() => dispatch({ type: "resume", reason: "hover" })}
-      onFocus={() => dispatch({ type: "pause", reason: "focus" })}
+      // Hover pauses only for a real mouse: a tap fires mouseenter with no mouseleave until the
+      // next tap elsewhere, which would stop the rotation for good.
+      onPointerEnter={(e) => e.pointerType === "mouse" && dispatch({ type: "pause", reason: "hover" })}
+      onPointerLeave={(e) => e.pointerType === "mouse" && dispatch({ type: "resume", reason: "hover" })}
+      // Focus pauses only when it came from the keyboard: a clicked dot keeps focus after the mouse
+      // leaves, which would otherwise leave the rotation paused until the visitor clicks elsewhere.
+      onFocus={(e) => (e.target as Element).matches(":focus-visible") && dispatch({ type: "pause", reason: "focus" })}
       onBlur={(e) => {
         if (!root.current?.contains(e.relatedTarget as Node | null)) dispatch({ type: "resume", reason: "focus" });
       }}
@@ -133,7 +137,10 @@ export function HeroCarousel() {
         </div>
       </div>
 
-      <p aria-live="polite" className="mt-9 text-[13px] font-semibold tracking-[0.02em] text-[#14161c]">
+      <p
+        // Quiet while rotating on its own (it changes every few seconds); announced once the visitor picks a slide.
+        aria-live={state.announce ? "polite" : "off"}
+        className="mt-9 text-[13px] font-semibold tracking-[0.02em] text-[#14161c]">
         {SLIDES[state.index].label}
       </p>
       <div className="mt-1 flex">

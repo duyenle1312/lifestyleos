@@ -30,6 +30,14 @@ describe("carouselReducer", () => {
     expect(r(s, { type: "tick" }).index).toBe(1);
   });
 
+  test("starts quiet for screen readers", () => expect(initialCarousel.announce).toBe(false));
+
+  test("goto turns announcements on (the visitor chose this slide)", () =>
+    expect(r(initialCarousel, { type: "goto", index: 2 }).announce).toBe(true));
+
+  test("tick turns announcements off (auto-rotation stays quiet)", () =>
+    expect(r({ ...initialCarousel, announce: true }, { type: "tick" }).announce).toBe(false));
+
   test("pausing twice for the same reason needs one resume", () => {
     let s = r(initialCarousel, { type: "pause", reason: "focus" });
     s = r(s, { type: "pause", reason: "focus" });

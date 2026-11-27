@@ -11,6 +11,8 @@ export interface CarouselState {
   /** The slide on the front phone. */
   index: number;
   paused: PauseReason[];
+  /** Whether screen readers should hear the label change: only after the visitor picks a slide. */
+  announce: boolean;
 }
 
 export type CarouselAction =
@@ -19,15 +21,15 @@ export type CarouselAction =
   | { type: "pause"; reason: PauseReason }
   | { type: "resume"; reason: PauseReason };
 
-export const initialCarousel: CarouselState = { index: 0, paused: [] };
+export const initialCarousel: CarouselState = { index: 0, paused: [], announce: false };
 
 export function carouselReducer(count: number) {
   return (s: CarouselState, a: CarouselAction): CarouselState => {
     switch (a.type) {
       case "tick":
-        return s.paused.length > 0 ? s : { ...s, index: (s.index + 1) % count };
+        return s.paused.length > 0 ? s : { ...s, index: (s.index + 1) % count, announce: false };
       case "goto":
-        return a.index < 0 || a.index >= count ? s : { ...s, index: a.index };
+        return a.index < 0 || a.index >= count ? s : { ...s, index: a.index, announce: true };
       case "pause":
         return s.paused.includes(a.reason) ? s : { ...s, paused: [...s.paused, a.reason] };
       case "resume":
