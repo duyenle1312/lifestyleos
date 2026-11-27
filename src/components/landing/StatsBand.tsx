@@ -17,9 +17,9 @@ const STATS = [
 export function StatsBand() {
   return (
     <section aria-labelledby="stats-heading" className="text-[#14161c]">
-      <div className="mx-auto max-w-7xl px-4 py-16 text-center sm:px-6 md:px-11 md:py-20">
+      <div className="mx-auto max-w-7xl px-4 pt-4 pb-16 text-center sm:px-6 md:px-11 md:pt-6 md:pb-20">
         <h2 id="stats-heading" className="mb-12 text-[30px] leading-[1.08] font-semibold tracking-[-0.02em] md:mb-14 md:text-[38px]">
-          Our <Serif>achievements</Serif>
+          Our <Serif><span className="bg-linear-to-b from-[#f0b93f] via-[#d4961c] to-[#a06a0c] bg-clip-text pr-1 text-transparent">achievements</span></Serif>
         </h2>
         <dl className="grid grid-cols-2 gap-x-8 gap-y-12 lg:grid-cols-4 xl:gap-x-12">
           {STATS.map((s) => (
