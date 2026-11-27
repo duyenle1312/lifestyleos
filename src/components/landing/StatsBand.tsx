@@ -6,10 +6,10 @@ import { Serif } from "./Serif";
 //          (select sum(amount) from expenses where deleted_at is null and upper(currency) = 'EUR'),
 //          (select count(*) from inventory_items), (select count(*) from shopping_lists);
 const STATS = [
-  { value: "1,172", label: "expenses logged" },
-  { value: "€10,777", label: "tracked" },
-  { value: "163", label: "pantry items" },
-  { value: "164", label: "shopping-list items" },
+  { value: "1,172", label: "Expenses Logged" },
+  { value: "€10,777", label: "Tracked" },
+  { value: "163", label: "Pantry Items" },
+  { value: "164", label: "Shopping List Items" },
 ];
 
 // Gold figures on the page's cream background (like the hero), between the language strip and the dark
