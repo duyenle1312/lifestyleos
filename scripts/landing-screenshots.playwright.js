@@ -5,7 +5,7 @@
 //
 // Run it with the Playwright MCP tool `browser_run_code_unsafe`, passing this file as `filename`
 // (the file must sit inside the repo or .playwright-mcp/). It writes expenses-month.png, scan-hero.png and
-// desktop.png to `out` (below); copy them to public/landing/ (not docs/screenshots/, which holds the README's dark-theme shots).
+// shopping-location.png to `out` (below); copy them to public/landing/ (not docs/screenshots/, which holds the README's dark-theme shots).
 // REF is the public Supabase project ref from NEXT_PUBLIC_SUPABASE_URL (it names the auth storage key).
 async (page0) => {
 const REF = "ywmygkzatdvuliiwjpuh";
@@ -55,7 +55,22 @@ const expenses = [
   ex(44, "Museum", 12, "EUR", "c-fun", "pm-cash", "National Gallery"),
 ];
 const inventory = [];
-const shopping = [];
+let k = 0;
+const sh = (item, location, quantity, unit_price, extra = {}) => ({
+  id: `s-${++k}`, account_id: UID, created_by_user_id: UID, item, description: null, metadata: {}, deleted_at: null,
+  created_at: day(k), updated_at: day(k), location, available_date_start: null, available_date_end: null,
+  unit_price, quantity, purchased: false, scheduled_date: null, priority: null, ...extra,
+});
+const shopping = [
+  sh("Oat milk", "Lidl", 2, 1.49),
+  sh("Bananas", "Lidl", 1, 1.29, { purchased: true }),
+  sh("Eggs", "Lidl", 1, 3.2),
+  sh("Shampoo", "dm", 1, 4.95),
+  sh("Toothpaste", "dm", 1, 2.45, { priority: 3 }),
+  sh("Tomatoes", "Farmers market", 1, null),
+  sh("Fresh herbs", "Farmers market", null, null),
+  sh("Hangers", "IKEA", 10, 0.39),
+];
 
 const receipt = {
   storeName: "Lidl", date: "2026-11-27", total: 9.87, currency: "EUR",
@@ -69,7 +84,7 @@ const receipt = {
 };
 
 const user = { id: UID, aud: "authenticated", role: "authenticated", email: "demo@example.com", user_metadata: { full_name: "Demo" }, app_metadata: { provider: "email" }, created_at: day(60) };
-const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
+const b64 = (o) => btoa(JSON.stringify(o)).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
 const exp = Math.floor(now.getTime() / 1000) + 10 * 365 * 86400;
 const token = `${b64({ alg: "HS256", typ: "JWT" })}.${b64({ sub: UID, exp, role: "authenticated", aud: "authenticated" })}.sig`;
 const session = { access_token: token, token_type: "bearer", expires_in: 3600 * 24 * 3650, expires_at: exp, refresh_token: "demo", user };
@@ -78,7 +93,7 @@ const TABLES = { expenses, categories: cats, payment_methods: pms, inventory_ite
 
 
   const browser = page0.context().browser();
-  const out = process.cwd() + '/.playwright-mcp/shots';
+  const out = '.playwright-mcp/shots'; // relative to the Playwright MCP server's cwd (the repo root)
   const shots = [];
   let eurOnly = false;
   async function newPage(viewport) {
@@ -123,15 +138,17 @@ const TABLES = { expenses, categories: cats, payment_methods: pms, inventory_ite
     shots.push('scan');
     await ctx.close();
   }
-  // Desktop (mixed EUR + THB month)
-  eurOnly = false;
+  // Mobile shopping list, grouped by location
   {
-    const { ctx, page } = await newPage({ width: 1280, height: 800 });
-    await page.goto('http://localhost:3000/expenses', { waitUntil: 'networkidle' });
+    const { ctx, page } = await newPage({ width: 390, height: 760 });
+    await page.goto('http://localhost:3000/shopping', { waitUntil: 'networkidle' });
     await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
     await page.waitForTimeout(2500);
-    await page.screenshot({ path: out + '/desktop.png' });
-    shots.push('desktop');
+    await page.getByRole('button', { name: 'Group by' }).click();
+    await page.getByText('By Location').click();
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: out + '/shopping-location.png' });
+    shots.push('shopping');
     await ctx.close();
   }
   return shots;

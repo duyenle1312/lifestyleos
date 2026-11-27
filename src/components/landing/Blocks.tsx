@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { PhoneFrame } from "./PhoneFrame";
 import { Serif } from "./Serif";
 
@@ -89,13 +88,13 @@ export function Blocks() {
             your home screen and it opens like an app.
           </p>
         </div>
-        <Image
-          src="/landing/desktop.png"
-          alt="Lifestyle OS on a laptop, with the split view"
-          width={2560}
-          height={1600}
-          sizes="(min-width: 1152px) 520px, (min-width: 768px) 45vw, 100vw"
-          className="h-auto w-full rounded-[18px] shadow-[0_18px_40px_rgba(0,0,0,0.12)]"
+        <PhoneFrame
+          src="/landing/shopping-location.png"
+          alt="The shopping list, grouped by shop"
+          width={780}
+          height={1520}
+          sizes="190px"
+          className="w-[170px] justify-self-center lg:w-[190px]"
         />
       </div>
     </section>
