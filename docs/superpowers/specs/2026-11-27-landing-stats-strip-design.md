@@ -11,10 +11,9 @@ Build trust on the landing page with a few usage figures, right after the "Reads
 - Revised by the user: the figures get their own full-width dark band (`#14161c`) with gold figures (`#e8c37a`)
   spread evenly across the content width, a hairline below it, headed "Our *achievements*", between the language strip (now pills, then the "Works offline…"
   facts line) and the dark "Made for people who just moved" band (`StatsBand.tsx`). Each figure is a big
-  number over a short label: **1,100+** expenses logged · **€10,000+** tracked · **160+** pantry items · **160+**
-  shopping-list items. 2×2 on phones, one row of four from `sm` up.
-- Fixed numbers in `src/components/landing/StatsBand.tsx`, rounded down so they stay true as usage
-  grows, with an "as of" date and the read-only SQL used, so updating means re-running it and editing
+  number over a short label: **1,172** expenses logged · **€10,777** tracked · **163** pantry items · **164**
+  shopping-list items (exact, as the user asked; they were rounded-down "1,100+" style at first). 2×2 on phones, one row of four from `sm` up.
+- Fixed numbers in `src/components/landing/StatsBand.tsx`, with an "as of" date and the read-only SQL used, so updating means re-running it and editing
   four numbers. Nothing reads the database at runtime.
 - Wording says what the app tracked, never who; no user count (too small to show in beta).
 

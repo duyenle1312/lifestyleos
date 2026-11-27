@@ -1,16 +1,15 @@
 import { Serif } from "./Serif";
 
-// Usage figures, rounded down so they stay true as usage grows. Fixed by hand, as of 2026-11-27
-// (actual: 1,172 expenses, €10,777, 163 pantry items, 164 shopping-list items). To update, run
-// read-only in Supabase and edit the numbers:
+// Usage figures, exact as of 2026-11-27 (€ total rounded to the euro). Fixed by hand, so they go
+// stale as usage grows. To update, run read-only in Supabase and edit the numbers:
 //   select (select count(*) from expenses where deleted_at is null),
 //          (select sum(amount) from expenses where deleted_at is null and upper(currency) = 'EUR'),
 //          (select count(*) from inventory_items), (select count(*) from shopping_lists);
 const STATS = [
-  { value: "1,100+", label: "expenses logged" },
-  { value: "€10,000+", label: "tracked" },
-  { value: "160+", label: "pantry items" },
-  { value: "160+", label: "shopping-list items" },
+  { value: "1,172", label: "expenses logged" },
+  { value: "€10,777", label: "tracked" },
+  { value: "163", label: "pantry items" },
+  { value: "164", label: "shopping-list items" },
 ];
 
 // A dark band with gold figures, between the language strip and the dark "Made for people who just
